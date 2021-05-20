@@ -39,7 +39,12 @@ class CSVExporter:
             if prefix == "offers":
                 array_value = array_value[:1]
             if prefix in self.named_properties:
-                pass
+                # Picking first required property to use as a name
+                # because named properties must require the name
+                name = array_schema["items"]["required"][0]
+                for nm in self.pick_array_names(array_value, name):
+                    if nm not in self.csv_schema[prefix]["properties"]:
+                        self.csv_schema[prefix]["properties"].append(nm)
             else:
                 if self.csv_schema[prefix]["count"] < len(array_value):
                     self.csv_schema[prefix]["count"] = len(array_value)
@@ -55,6 +60,14 @@ class CSVExporter:
             for key in [x for x in element.keys() if x not in array_properties]:
                 array_properties[key] = None
         return list(array_properties.keys())
+
+    @staticmethod
+    def pick_array_names(array_value, name):
+        array_names = {}
+        for element in array_value:
+            if element[name] not in array_names:
+                array_names[element[name]] = None
+        return list(array_names.keys())
 
     def process_product_list(self):
         for product in self.product_list:
