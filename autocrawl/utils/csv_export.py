@@ -40,10 +40,11 @@ class CSVExporter:
             if prefix in self.named_properties:
                 # Picking first required property to use as a name
                 # because named properties must require the name
-                name = array_schema["items"]["required"][0]
-                for nm in self.pick_array_names(array_value, name):
-                    if nm not in self.csv_schema[prefix]["properties"]:
-                        self.csv_schema[prefix]["properties"].append(nm)
+                # TODO Clean properties with count: 0 to avoid saving initial field of named properties
+                for pr in self.pick_array_names(array_value, array_schema["items"]["required"][0]):
+                    property_path = f"{prefix}.{pr}"
+                    if property_path not in self.csv_schema:
+                        self.csv_schema[property_path] = {"count": 1}
             else:
                 if self.csv_schema[prefix]["count"] < len(array_value):
                     self.csv_schema[prefix]["count"] = len(array_value)
