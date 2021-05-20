@@ -16,6 +16,7 @@ class CSVExporter:
         self.named_properties = {"gtin", "additionalProperty"}
 
     def process_object(self, prefix, object_value, object_schema):
+        print("waka")
         for property_name in object_value:
             property_path = f"{prefix}.{property_name}"
             property_type = object_schema["properties"][property_name]["type"]
@@ -26,9 +27,9 @@ class CSVExporter:
                 self.process_object(property_path, object_value[property_name])
 
     def process_array(self, prefix, array_value, array_schema):
-        # Currently there're no array of arrays, so they could be ignored
         if self.csv_schema.get(prefix) is None:
             self.csv_schema[prefix] = {"count": 0, "properties": []}
+        # Currently there're no array of arrays, so arrays could be ignored
         if array_schema["items"]["type"] not in {"object"}:
             if self.csv_schema[prefix]["count"] < len(array_value):
                 self.csv_schema[prefix]["count"] = len(array_value)
@@ -40,34 +41,55 @@ class CSVExporter:
             if prefix in self.named_properties:
                 # Picking first required property to use as a name
                 # because named properties must require the name
+                name_property = array_schema["items"]["required"][0]
                 # TODO Clean properties with count: 0 to avoid saving initial field of named properties
-                for pr in self.pick_array_names(array_value, array_schema["items"]["required"][0]):
-                    property_path = f"{prefix}.{pr}"
-                    if property_path not in self.csv_schema:
+                for element in array_value:
+                    property_path = f"{prefix}.{element[name_property]}"
+                    if property_path in self.csv_schema:
+                        continue
+                    property_schema = array_schema["items"]["properties"][name_property]
+                    property_type = property_schema["type"]
+                    if property_type not in {"object", "array"}:
                         self.csv_schema[property_path] = {"count": 1}
+                    elif property_type == "array":
+                        self.process_array(property_path, element, property_schema)
+                    else:
+                        self.process_object(property_path, element, property_schema)
             else:
                 if self.csv_schema[prefix]["count"] < len(array_value):
                     self.csv_schema[prefix]["count"] = len(array_value)
                 # Checking manually to keep properties order instead of checking subsets
-                for pr in self.pick_array_properties(array_value):
-                    if pr not in self.csv_schema[prefix]["properties"]:
-                        self.csv_schema[prefix]["properties"].append(pr)
+                for element in array_value:
+                    for property_name, property_value in element.items():
+                        property_path = f"{prefix}.{element[property_name]}"
+                        property_schema = array_schema["items"]["properties"][
+                            property_name
+                        ]
+                        property_type = property_schema["type"]
+                        if property_type not in {"object", "array"}:
+                            if property_name in self.csv_schema[prefix]["properties"]:
+                                continue
+                            self.csv_schema[prefix]["properties"].append(property_name)
+                        elif property_type == "array":
+                            self.process_array(property_path, element, property_schema)
+                        else:
+                            self.process_object(property_path, element, property_schema)
 
-    @staticmethod
-    def pick_array_properties(array_value):
-        array_properties = {}
-        for element in array_value:
-            for key in [x for x in element.keys() if x not in array_properties]:
-                array_properties[key] = None
-        return list(array_properties.keys())
+    # @staticmethod
+    # def pick_array_properties(array_value):
+    #     array_properties = {}
+    #     for element in array_value:
+    #         for key in [x for x in element.keys() if x not in array_properties]:
+    #             array_properties[key] = None
+    #     return list(array_properties.keys())
 
-    @staticmethod
-    def pick_array_names(array_value, name):
-        array_names = {}
-        for element in array_value:
-            if element[name] not in array_names:
-                array_names[element[name]] = None
-        return list(array_names.keys())
+    # @staticmethod
+    # def pick_array_names(array_value, name):
+    #     array_names = {}
+    #     for element in array_value:
+    #         if element[name] not in array_names:
+    #             array_names[element[name]] = None
+    #     return list(array_names.keys())
 
     def process_product_list(self):
         for product in self.product_list:
@@ -77,7 +99,9 @@ class CSVExporter:
                 elif product_field in self.skip_fields:
                     self.csv_schema[product_field] = {"count": 1}
                     continue
-                field_schema = self.product_schema.get(f"allOf[0].properties.{product_field}")
+                field_schema = self.product_schema.get(
+                    f"allOf[0].properties.{product_field}"
+                )
                 # Save non-array/object fields
                 if field_schema["type"] not in {"object", "array"}:
                     self.csv_schema[product_field] = {"count": 1}
@@ -115,7 +139,7 @@ class CSVExporter:
                 #                     csv_schema[f"{key}[{i}].{asf}"] = 1
                 #
                 #     continue
-        print(self.csv_schema)
+        print(json.dumps(self.csv_schema, indent=4))
 
 
 waka = CSVExporter()
