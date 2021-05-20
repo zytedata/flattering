@@ -15,17 +15,15 @@ class CSVExporter:
             self.product_schema = Cut(json.loads(f.read()))
         self.named_properties = {"gtin", "additionalProperty"}
 
-    # TODO Fix
     def process_object(self, prefix, object_value, object_schema):
-        return ""
-        # for property_name, property_value in object_field["properties"]:
-        #     property_path = f"{prefix}.{property_name}"
-        #     if property_value["type"] not in {"object", "array"}:
-        #         if self.csv_schema.get(property_path) is None:
-        #             self.csv_schema[property_path] = ""
-        #     elif property_value["type"] == "object":
-        #         self.process_object(property_path, property_value)
-        #     # TODO Add arrays processing
+        for property_name in object_value:
+            property_path = f"{prefix}.{property_name}"
+            property_type = object_schema["properties"][property_name]["type"]
+            if property_type not in {"object", "array"}:
+                if self.csv_schema.get(property_path) is None:
+                    self.csv_schema[property_path] = {"count": 1}
+            elif property_type == "object":
+                self.process_object(property_path, object_value[property_name])
 
     def process_array(self, prefix, array_value, array_schema):
         # Currently there're no array of arrays, so they could be ignored
@@ -35,6 +33,7 @@ class CSVExporter:
             if self.csv_schema[prefix]["count"] < len(array_value):
                 self.csv_schema[prefix]["count"] = len(array_value)
         else:
+            # TODO Check if object properties are not nested objects
             # Process only the first offer
             if prefix == "offers":
                 array_value = array_value[:1]
@@ -83,10 +82,8 @@ class CSVExporter:
                     self.csv_schema[product_field] = {"count": 1}
                     continue
                 elif field_schema["type"] == "object":
-                    pass
-                    # self.process_object(product_field, product_value)
+                    self.process_object(product_field, product_value, field_schema)
                 else:
-                    # TODO Temporary filter
                     self.process_array(product_field, product_value, field_schema)
                 # # Process
                 # if key_schema.get("type") == "array":

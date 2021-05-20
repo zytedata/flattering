@@ -7,7 +7,12 @@
             {
                 "price": "48.49",
                 "currency": "£",
-                "availability": "InStock"
+                "availability": "InStock",
+                "aggregateRating": {
+                    "ratingValue": 4.0,
+                    "bestRating": 5.0,
+                    "reviewCount": 24
+                }
             }
         ],
         "sku": "b5953ca1f8a0b8d7",
