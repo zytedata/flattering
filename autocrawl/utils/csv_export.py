@@ -30,9 +30,9 @@ class CSVExporter:
     def process_array(self, prefix, array_value, array_schema):
         # Currently there're no array of arrays, so they could be ignored
         if self.csv_schema.get(prefix) is None:
-            self.csv_schema[prefix] = {}
+            self.csv_schema[prefix] = {"count": 0, "properties": []}
         if array_schema["items"]["type"] not in {"object"}:
-            if self.csv_schema.get(f"{prefix}.count", 0) < len(array_value):
+            if self.csv_schema[prefix]["count"] < len(array_value):
                 self.csv_schema[prefix]["count"] = len(array_value)
         else:
             # Process only the first offer
@@ -41,15 +41,15 @@ class CSVExporter:
             if prefix in self.named_properties:
                 pass
             else:
-                if self.csv_schema.get(f"{prefix}.count", 0) < len(array_value):
+                if self.csv_schema[prefix]["count"] < len(array_value):
                     self.csv_schema[prefix]["count"] = len(array_value)
-                object_properties = self.pick_objects_array_properties(array_value)
-                # TODO: Check not length but new/non-existing elements
-                if len(self.csv_schema.get(f"{prefix}.properties", [])) < len(object_properties):
-                    self.csv_schema[prefix]["properties"] = object_properties
+                # Checking manually to keep properties order instead of checking subsets
+                for pr in self.pick_array_properties(array_value):
+                    if pr not in self.csv_schema[prefix]["properties"]:
+                        self.csv_schema[prefix]["properties"].append(pr)
 
     @staticmethod
-    def pick_objects_array_properties(array_value):
+    def pick_array_properties(array_value):
         array_properties = {}
         for element in array_value:
             for key in [x for x in element.keys() if x not in array_properties]:
