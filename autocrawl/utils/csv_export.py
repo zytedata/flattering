@@ -1,4 +1,5 @@
 import json
+from collections import defaultdict
 
 from scalpl import Cut
 
@@ -12,7 +13,6 @@ class CSVExporter:
             self.product_list = json.loads(f.read())
         with open("autocrawl/utils/csv_export_assets/product_schema.json") as f:
             self.product_schema = Cut(json.loads(f.read()))
-        self.ordered_properties = {"images", "offers", "breadcrumbs"}
         self.named_properties = {"gtin", "additionalProperty"}
 
     # TODO Fix
@@ -29,22 +29,32 @@ class CSVExporter:
 
     def process_array(self, prefix, array_value, array_schema):
         # Currently there're no array of arrays, so they could be ignored
+        if self.csv_schema.get(prefix) is None:
+            self.csv_schema[prefix] = {}
         if array_schema["items"]["type"] not in {"object"}:
-            if self.csv_schema.get(prefix, 0) < len(array_value):
-                self.csv_schema[prefix] = len(array_value)
+            if self.csv_schema.get(f"{prefix}.count", 0) < len(array_value):
+                self.csv_schema[prefix]["count"] = len(array_value)
         else:
-        #     # # Process only the first offer
-        #     # if prefix == "offers":
-        #     #     array_value = array_value[:1]
-        #     # TODO Teprorary process only breacrumbs
-        #     # TODO Add logic for non-ordered (like gtin or additional properties)
-        #     # and ordered (like breadcrumbs)
-            if prefix == "breadcrumbs":
-                # TODO Check how many ordered were already processed
-                # so is there a need to extend
-                # TODO: !!! or better to collect counts first and then generate final example with counts? :)
+            # Process only the first offer
+            if prefix == "offers":
+                array_value = array_value[:1]
+            if prefix in self.named_properties:
+                pass
+            else:
+                if self.csv_schema.get(f"{prefix}.count", 0) < len(array_value):
+                    self.csv_schema[prefix]["count"] = len(array_value)
+                object_properties = self.pick_objects_array_properties(array_value)
+                # TODO: Check not length but new/non-existing elements
+                if len(self.csv_schema.get(f"{prefix}.properties", [])) < len(object_properties):
+                    self.csv_schema[prefix]["properties"] = object_properties
 
-
+    @staticmethod
+    def pick_objects_array_properties(array_value):
+        array_properties = {}
+        for element in array_value:
+            for key in [x for x in element.keys() if x not in array_properties]:
+                array_properties[key] = None
+        return list(array_properties.keys())
 
     def process_product_list(self):
         for product in self.product_list:
@@ -52,12 +62,12 @@ class CSVExporter:
                 if product_field in self.csv_schema:
                     continue
                 elif product_field in self.skip_fields:
-                    self.csv_schema[product_field] = 1
+                    self.csv_schema[product_field] = {"count": 1}
                     continue
                 field_schema = self.product_schema.get(f"allOf[0].properties.{product_field}")
                 # Save non-array/object fields
                 if field_schema["type"] not in {"object", "array"}:
-                    self.csv_schema[product_field] = 1
+                    self.csv_schema[product_field] = {"count": 1}
                     continue
                 elif field_schema["type"] == "object":
                     pass
@@ -95,6 +105,7 @@ class CSVExporter:
                 #
                 #     continue
         print(self.csv_schema)
+
 
 waka = CSVExporter()
 waka.process_product_list()
