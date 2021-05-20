@@ -1,0 +1,203 @@
+[
+  {
+    "offers": [
+      {
+        "shippingInfo": {
+          "currency": "$"
+        },
+        "itemCondition": {
+          "type": "NewCondition"
+        },
+        "availability": "InStock",
+        "price": "99.99",
+        "seller": {
+          "name": "Amazon.com"
+        },
+        "currency": "$"
+      },
+      {
+        "shippingInfo": {
+          "price": "0",
+          "raw": "& FREE Shipping"
+        },
+        "availability": "InStock",
+        "seller": {
+          "url": "https://www.amazon.com/gp/help/seller/at-a-glance.html/ref=dp_merchant_link?ie=UTF8&seller=A3S4H3E5TUN1NP",
+          "name": "CTGINC"
+        }
+      },
+      {
+        "shippingInfo": {
+          "currency": "$",
+          "price": "0",
+          "raw": "+ Free Shipping"
+        },
+        "availability": "InStock",
+        "price": "122.80",
+        "seller": {
+          "name": "Tichen"
+        }
+      },
+      {
+        "shippingInfo": {
+          "currency": "$",
+          "price": "0",
+          "raw": "+ Free Shipping"
+        },
+        "availability": "InStock",
+        "price": "122.89",
+        "seller": {
+          "name": "AEX Tech (We record SN)"
+        }
+      },
+      {
+        "shippingInfo": {
+          "currency": "$",
+          "price": "0",
+          "raw": "+ Free Shipping"
+        },
+        "availability": "InStock",
+        "price": "122.99",
+        "seller": {
+          "name": "WintShop"
+        }
+      }
+    ],
+    "ratingHistogram": [
+      {
+        "ratingOption": "5 star",
+        "ratingPercentage": 81
+      },
+      {
+        "ratingOption": "4 star",
+        "ratingPercentage": 13
+      },
+      {
+        "ratingOption": "3 star",
+        "ratingPercentage": 4
+      },
+      {
+        "ratingOption": "2 star",
+        "ratingPercentage": 1
+      },
+      {
+        "ratingOption": "1 star",
+        "ratingPercentage": 2
+      }
+    ],
+    "rankings": [
+      {
+        "category": "Webcams",
+        "rank": 6
+      }
+    ],
+    "mainImage": "https://images-na.ssl-images-amazon.com/images/I/712xpaJPT6L._AC_SX425_.jpg",
+    "releaseDateRaw": "September 29, 2016",
+    "name": "Logitech C922x Pro Stream Webcam - Full 1080p HD Camera",
+    "description": "Web camera specifically designed and optimized for professional quality video streaming on social gaming and entertainment sites like Twitch and YouTube Stream and record vibrant, true to life HD 1080P video at 30Fps/ 720P at 60FPS. Compatibility Windows 7, Windows 8 or Windows 10, macOS X 10.9 or higher, XBox One, Chrome OS, Android v5.0 or above, USB port. FoV: 78 degree Full HD glass lens and premium autofocus deliver razor sharp, clear video in consistent high definition while 2 built in mics capture your voice in rich stereo audio Record clear videos even in dim or poorly backlit settings with automatic light correction. Cable length: 5 feet 1 - year limited warranty Power your online video content with the Logitech C922x Pro Stream Webcam. This HD Camera is more than capable of streaming and recording high quality videos with crystal clear audio, all in your home. Works with OBS (Open Broadcasting Software) XSplit Broadcaster This web camera is specially designed to meet the needs of streamers who like to broadcast on popular websites such as Twitch and YouTube. You need a camera that works fast and well for this, and the C922x is exactly that. It has a full HD lens that records 1080p videos at 30 frames per second and is also capable of 720p resolution at 60 frames per second. You and your viewers can enjoy superior quality that doesn't lag behind your games. The premium autofocus adjusts to various lighting conditions, whether the glare of a multiple monitor setup or a dimly lit bedroom. The professional quality of this webcam gives you that edge to rise above the rest! Two integrated omnidirectional microphones with noise reduction technology pick up sounds from every direction for a complete video that doesn't lag. Don't bore your viewers with the backdrop of a blank wall when they watch your stream - put yourself right in the action with Personify's background replacement technology. It is incredibly easy to use and doesn't need a green screen. Integrate your live image hassle free and turn up the heat as you play your favorite games in front of a live internet audience. Breaking through as an online streamer can be challenging if you don't have the right tools. Logitech helps you get started by giving you a free, six month Xsplit license, whether for fun or professional use. One of the most popular streaming apps today, Xsplit allows you to fine tune all of the different aspects of your live stream, including sound levels, lighting, text overlays, music, graphics, and so much more. This license includes access to both the Broadcaster and Gamecaster apps. Record, edit, and broadcast all of your adventures in the gaming world with Logitech! Compatible with Windows 7 10, Mac OS X 10.9 or later, Chrome OS, and Android v5.0 and above, all you need to start broadcasting is a USB port! Get high quality professional video right out of the box with the Logitech C922x Pro Stream Webcam, your trusted partner for streaming online.",
+    "additionalProperty": [
+      {
+        "name": "Brand",
+        "value": "Logitech"
+      },
+      {
+        "name": "Series",
+        "value": "960-001176"
+      },
+      {
+        "name": "Item model number",
+        "value": "960-001176"
+      },
+      {
+        "name": "Hardware Platform",
+        "value": "PC"
+      },
+      {
+        "name": "Item Weight",
+        "value": "5.8 ounces"
+      },
+      {
+        "name": "Product Dimensions",
+        "value": "2.8 x 1.71 x 3.74 inches"
+      },
+      {
+        "name": "Item Dimensions LxWxH",
+        "value": "2.8 x 1.71 x 3.74 inches"
+      },
+      {
+        "name": "Color",
+        "value": "Black"
+      },
+      {
+        "name": "Batteries",
+        "value": "1 CR2 batteries required."
+      },
+      {
+        "name": "Manufacturer",
+        "value": "Logitech, Inc"
+      },
+      {
+        "name": "ASIN",
+        "value": "B01LXCDPPK"
+      },
+      {
+        "name": "Is Discontinued By Manufacturer",
+        "value": "No"
+      },
+      {
+        "name": "Date First Available",
+        "value": "September 29, 2016"
+      },
+      {
+        "name": "Customer Reviews",
+        "value": "4.7 out of 5 stars"
+      }
+    ],
+    "weight": {
+      "value": 5.8,
+      "unitText": "ounces"
+    },
+    "breadcrumbs": [
+      {
+        "link": "https://www.amazon.com/electronics-store/b/ref=dp_bc_aui_C_1/140-1496648-2189030?ie=UTF8&node=172282",
+        "name": "Electronics"
+      },
+      {
+        "link": "https://www.amazon.com/computer-pc-hardware-accessories-add-ons/b/ref=dp_bc_aui_C_2/140-1496648-2189030?ie=UTF8&node=541966",
+        "name": "Computers & Accessories"
+      },
+      {
+        "link": "https://www.amazon.com/Computer-Accessories-Supplies/b/ref=dp_bc_aui_C_3/140-1496648-2189030?ie=UTF8&node=172456",
+        "name": "Computer Accessories & Peripherals"
+      },
+      {
+        "link": "https://www.amazon.com/Computer-Audio-Video-Accessories/b/ref=dp_bc_aui_C_4/140-1496648-2189030?ie=UTF8&node=11548951011",
+        "name": "Audio & Video Accessories"
+      },
+      {
+        "link": "https://www.amazon.com/Webcams-Computer-Add-Ons-Computers/b/ref=dp_bc_aui_C_5/140-1496648-2189030?ie=UTF8&node=172511",
+        "name": "Webcams"
+      }
+    ],
+    "images": [
+      "https://images-na.ssl-images-amazon.com/images/I/712xpaJPT6L._AC_SX425_.jpg",
+      "https://images-na.ssl-images-amazon.com/images/I/712xpaJPT6L._AC_SY355_.jpg",
+      "https://images-na.ssl-images-amazon.com/images/I/712xpaJPT6L._AC_SX569_.jpg",
+      "https://images-na.ssl-images-amazon.com/images/I/712xpaJPT6L._AC_SY450_.jpg",
+      "https://images-na.ssl-images-amazon.com/images/I/712xpaJPT6L._AC_SX466_.jpg",
+      "https://images-na.ssl-images-amazon.com/images/I/712xpaJPT6L._AC_SX522_.jpg",
+      "https://images-na.ssl-images-amazon.com/images/I/712xpaJPT6L._AC_SX679_.jpg"
+    ],
+    "aggregateRating": {
+      "ratingValue": 4.7,
+      "bestRating": 5,
+      "reviewCount": 1711
+    },
+    "sku": "B01LXCDPPK",
+    "brand": "Logitech",
+    "mpn": "960-001176",
+    "releaseDate": "2016-09-29",
+    "manufacturer": "Logitech, Inc",
+    "url": "https://www.amazon.com/dp/B01LXCDPPK"
+  }
+]

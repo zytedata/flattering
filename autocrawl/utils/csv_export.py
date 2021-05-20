@@ -9,14 +9,13 @@ class CSVExporter:
         # Insertion-ordered dict
         self.csv_schema = {}
         self.skip_fields = {"probability", "_key"}
-        with open("autocrawl/utils/csv_export_assets/products_csv_test.json") as f:
+        with open("autocrawl/utils/csv_export_assets/products_xod_test.json") as f:
             self.product_list = json.loads(f.read())
-        with open("autocrawl/utils/csv_export_assets/product_schema.json") as f:
+        with open("autocrawl/utils/csv_export_assets/product_xod_schema.json") as f:
             self.product_schema = Cut(json.loads(f.read()))
         self.named_properties = {"gtin", "additionalProperty"}
 
     def process_object(self, prefix, object_value, object_schema):
-        print("waka")
         for property_name in object_value:
             property_path = f"{prefix}.{property_name}"
             property_type = object_schema["properties"][property_name]["type"]
@@ -61,7 +60,7 @@ class CSVExporter:
                 # Checking manually to keep properties order instead of checking subsets
                 for element in array_value:
                     for property_name, property_value in element.items():
-                        property_path = f"{prefix}.{element[property_name]}"
+                        property_path = f"{prefix}.{property_name}"
                         property_schema = array_schema["items"]["properties"][
                             property_name
                         ]
@@ -71,25 +70,9 @@ class CSVExporter:
                                 continue
                             self.csv_schema[prefix]["properties"].append(property_name)
                         elif property_type == "array":
-                            self.process_array(property_path, element, property_schema)
+                            self.process_array(property_path, property_value, property_schema)
                         else:
-                            self.process_object(property_path, element, property_schema)
-
-    # @staticmethod
-    # def pick_array_properties(array_value):
-    #     array_properties = {}
-    #     for element in array_value:
-    #         for key in [x for x in element.keys() if x not in array_properties]:
-    #             array_properties[key] = None
-    #     return list(array_properties.keys())
-
-    # @staticmethod
-    # def pick_array_names(array_value, name):
-    #     array_names = {}
-    #     for element in array_value:
-    #         if element[name] not in array_names:
-    #             array_names[element[name]] = None
-    #     return list(array_names.keys())
+                            self.process_object(property_path, property_value, property_schema)
 
     def process_product_list(self):
         for product in self.product_list:
@@ -110,37 +93,29 @@ class CSVExporter:
                     self.process_object(product_field, product_value, field_schema)
                 else:
                     self.process_array(product_field, product_value, field_schema)
-                # # Process
-                # if key_schema.get("type") == "array":
-                #     if key_schema.get("items.type") not in {"object", "array"}:
-                #         csv_key_value = csv_schema.get(key, 0)
-                #         if csv_key_value < len(value):
-                #             csv_schema[key] = len(value)
-                #         continue
-                #     # TODO: Skipping arrays of arrays for now (couldn't find real examples)
-                #     if key_schema.get("items.type") == "object":
-                #         if key == "additionalProperty":
-                #             available_add_properties = []
-                #             for sub_item in value:
-                #                 name = sub_item.get("name")
-                #                 if name and name not in available_add_properties:
-                #                     if f"{key}.{name}" not in csv_schema:
-                #                         csv_schema[f"{key}.{name}"] = 1
-                #         else:
-                #             available_sub_fields = []
-                #             for sub_item in value:
-                #                 for sub_key in sub_item:
-                #                     if sub_key not in available_sub_fields:
-                #                         available_sub_fields.append(sub_key)
-                #                 if key == "offers":
-                #                     break
-                #             for i in range(len(value)):
-                #                 for asf in available_sub_fields:
-                #                     csv_schema[f"{key}[{i}].{asf}"] = 1
-                #
-                #     continue
         print(json.dumps(self.csv_schema, indent=4))
+
+    def flatten_csv_schema(self):
+        headers = []
+        for field, meta in self.csv_schema.items():
+            if meta["count"] == 0:
+                continue
+            elif not meta.get("properties"):
+                if meta["count"] == 1:
+                    headers.append(field)
+                else:
+                    for i in range(meta["count"]):
+                        headers.append(f"{field}[{i}]")
+            else:
+                for i in range(meta["count"]):
+                    for pr in meta["properties"]:
+                        headers.append(f"{field}[{i}].{pr}")
+        return headers
 
 
 waka = CSVExporter()
 waka.process_product_list()
+print('*' * 500)
+from pprint import pprint
+
+pprint(waka.flatten_csv_schema())
