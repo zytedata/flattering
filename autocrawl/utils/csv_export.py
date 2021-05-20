@@ -9,11 +9,15 @@ class CSVExporter:
         # Insertion-ordered dict
         self.csv_schema = {}
         self.skip_fields = {"probability", "_key"}
-        with open("autocrawl/utils/csv_export_assets/products_xod_test.json") as f:
+        with open("autocrawl/utils/csv_export_assets/products_full_test.json") as f:
             self.product_list = json.loads(f.read())
-        with open("autocrawl/utils/csv_export_assets/product_xod_schema.json") as f:
+        with open("autocrawl/utils/csv_export_assets/product_full_schema.json") as f:
             self.product_schema = Cut(json.loads(f.read()))
-        self.named_properties = {"gtin", "additionalProperty"}
+        self.named_properties = {
+            "gtin": "type",
+            "additionalProperty": "name",
+            "ratingHistogram": "ratingOption"
+        }
 
     def process_object(self, prefix, object_value, object_schema):
         for property_name in object_value:
@@ -38,15 +42,11 @@ class CSVExporter:
             if prefix == "offers":
                 array_value = array_value[:1]
             if prefix in self.named_properties:
-                # Picking first required property to use as a name
-                # because named properties must require the name
-                name_property = array_schema["items"]["required"][0]
-                # TODO Clean properties with count: 0 to avoid saving initial field of named properties
                 for element in array_value:
-                    property_path = f"{prefix}.{element[name_property]}"
+                    property_path = f"{prefix}.{element[self.named_properties[prefix]]}"
                     if property_path in self.csv_schema:
                         continue
-                    property_schema = array_schema["items"]["properties"][name_property]
+                    property_schema = array_schema["items"]["properties"][self.named_properties[prefix]]
                     property_type = property_schema["type"]
                     if property_type not in {"object", "array"}:
                         self.csv_schema[property_path] = {"count": 1}
