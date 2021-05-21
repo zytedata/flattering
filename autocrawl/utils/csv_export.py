@@ -38,12 +38,13 @@ class CSVExporter:
             if prefix in self.named_properties:
                 for element in array_value:
                     property_path = f"{prefix}.{element[self.named_properties[prefix]]}"
+                    value_properties = [x for x in element.keys() if x != self.named_properties[prefix]]
                     if property_path in self.headers_meta:
                         continue
                     property_schema = array_schema["items"]["properties"][self.named_properties[prefix]]
                     property_type = property_schema["type"]
                     if property_type not in {"object", "array"}:
-                        self.headers_meta[property_path] = {"count": 1}
+                        self.headers_meta[property_path] = {"count": 1, "properties": value_properties}
                     elif property_type == "array":
                         self.process_array(property_path, element, property_schema)
                     else:
@@ -99,6 +100,12 @@ class CSVExporter:
                     for i in range(meta["count"]):
                         headers.append(f"{field}[{i}]")
             else:
+                # TODO Decide how to process offers.itemCondition as offers[0].itemCondition
+                # Different processing logic for nested arrays or nested objects
+                if meta["count"] == 1 and field != "offers":
+                    for pr in meta["properties"]:
+                        headers.append(f"{field}.{pr}")
+                    continue
                 for i in range(meta["count"]):
                     for pr in meta["properties"]:
                         headers.append(f"{field}[{i}].{pr}")
@@ -119,9 +126,9 @@ class CSVExporter:
         pprint(row)
 
 
-with open("autocrawl/utils/csv_export_assets/products_xod_test.json") as f:
+with open("autocrawl/utils/csv_export_assets/products_full_test.json") as f:
     product_list = json.loads(f.read())
-with open("autocrawl/utils/csv_export_assets/product_xod_schema.json") as f:
+with open("autocrawl/utils/csv_export_assets/product_full_schema.json") as f:
     product_schema = Cut(json.loads(f.read()))
 test_named_properties = {
     "gtin": "type",
