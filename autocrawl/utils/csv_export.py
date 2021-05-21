@@ -26,20 +26,19 @@ class CSVExporter:
                     self.headers_meta[property_path] = {}
             elif type(property_value) == dict:
                 self.process_object(property_path, object_value[property_name])
-            # TODO: Process arrays
+            # TODO: Process arrays?
 
     def process_array(self, prefix: str, array_value: List):
         if len(array_value) == 0:
             return
         if self.headers_meta.get(prefix) is None:
             self.headers_meta[prefix] = {"count": 0, "properties": []}
-        # Currently there're no array of arrays, so arrays could be ignored
+        # TODO: Currently there're no array of arrays, so arrays could be ignored
         # Also assuming all elements of array are the same type
         if type(array_value[0]) != dict:
             if self.headers_meta[prefix]["count"] < len(array_value):
                 self.headers_meta[prefix]["count"] = len(array_value)
         else:
-            # TODO Check if object properties are not nested objects
             # Process only the first offer
             if prefix == "offers":
                 array_value = array_value[:1]
