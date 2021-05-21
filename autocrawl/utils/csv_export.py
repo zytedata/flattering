@@ -5,69 +5,66 @@ from scalpl import Cut
 
 
 class CSVExporter:
-    def __init__(self, named_properties, skip_fields, schema):
+    def __init__(self, named_properties, skip_fields):
         # Insertion-ordered dict
         self.headers_meta = {}
         self.flat_headers = []
         self.skip_fields = skip_fields
         self.named_properties = named_properties
-        self.schema = schema
 
-    def process_object(self, prefix, object_value, object_schema):
-        for property_name in object_value:
+    def process_object(self, prefix, object_value):
+        for property_name, property_value in object_value.items():
             property_path = f"{prefix}.{property_name}"
-            property_type = object_schema["properties"][property_name]["type"]
-            if property_type not in {"object", "array"}:
+            if type(property_value) not in {dict, list}:
                 if self.headers_meta.get(property_path) is None:
                     self.headers_meta[property_path] = {"count": 1}
-            elif property_type == "object":
+            elif type(property_value) == dict:
                 self.process_object(property_path, object_value[property_name])
 
-    def process_array(self, prefix, array_value, array_schema):
+    def process_array(self, prefix, array_value):
+        if len(array_value) == 0:
+            return
         if self.headers_meta.get(prefix) is None:
             self.headers_meta[prefix] = {"count": 0, "properties": []}
         # Currently there're no array of arrays, so arrays could be ignored
-        if array_schema["items"]["type"] not in {"object"}:
+        # Also assuming all elements of array are the same type
+        if type(array_value[0]) != dict:
             if self.headers_meta[prefix]["count"] < len(array_value):
                 self.headers_meta[prefix]["count"] = len(array_value)
         else:
             # TODO Check if object properties are not nested objects
             # Process only the first offer
-            if prefix == "offers":
-                array_value = array_value[:1]
+            # if prefix == "offers":
+            #     array_value = array_value[:1]
             if prefix in self.named_properties:
                 for element in array_value:
                     property_path = f"{prefix}.{element[self.named_properties[prefix]]}"
                     value_properties = [x for x in element.keys() if x != self.named_properties[prefix]]
                     if property_path in self.headers_meta:
                         continue
-                    property_schema = array_schema["items"]["properties"][self.named_properties[prefix]]
-                    property_type = property_schema["type"]
-                    if property_type not in {"object", "array"}:
+                    if type(element) not in {dict, list}:
                         self.headers_meta[property_path] = {"count": 1, "properties": value_properties}
-                    elif property_type == "array":
-                        self.process_array(property_path, element, property_schema)
+                    elif type(element) == list:
+                        self.process_array(property_path, element)
                     else:
-                        self.process_object(property_path, element, property_schema)
+                        self.process_object(property_path, element)
             else:
                 if self.headers_meta[prefix]["count"] < len(array_value):
                     self.headers_meta[prefix]["count"] = len(array_value)
                 # Checking manually to keep properties order instead of checking subsets
-                for element in array_value:
+                if prefix == "offers":
+                    print("")
+                for i, element in enumerate(array_value):
                     for property_name, property_value in element.items():
-                        property_path = f"{prefix}.{property_name}"
-                        property_schema = array_schema["items"]["properties"][
-                            property_name
-                        ]
-                        property_type = property_schema["type"]
-                        if property_type not in {"object", "array"}:
+                        property_path = f"{prefix}[{i}].{property_name}"
+                        if type(property_value) not in {dict, list}:
                             if property_name in self.headers_meta[prefix]["properties"]:
                                 continue
                             self.headers_meta[prefix]["properties"].append(property_name)
-                        elif property_type == "array":
-                            self.process_array(property_path, property_value, property_schema)
+                        elif type(property_value) == list:
+                            self.process_array(property_path, property_value)
                         else:
-                            self.process_object(property_path, property_value, property_schema)
+                            self.process_object(property_path, property_value)
 
     def process_product(self, product):
         for product_field, product_value in product.items():
@@ -76,17 +73,14 @@ class CSVExporter:
             elif product_field in self.skip_fields:
                 self.headers_meta[product_field] = {"count": 1}
                 continue
-            field_schema = self.schema.get(
-                f"allOf[0].properties.{product_field}"
-            )
             # Save non-array/object fields
-            if field_schema["type"] not in {"object", "array"}:
+            if type(product_value) not in {dict, list}:
                 self.headers_meta[product_field] = {"count": 1}
                 continue
-            elif field_schema["type"] == "object":
-                self.process_object(product_field, product_value, field_schema)
+            elif type(product_value) == list:
+                self.process_array(product_field, product_value)
             else:
-                self.process_array(product_field, product_value, field_schema)
+                self.process_object(product_field, product_value)
 
     def flatten_headers(self):
         headers = []
@@ -102,7 +96,7 @@ class CSVExporter:
             else:
                 # TODO Decide how to process offers.itemCondition as offers[0].itemCondition
                 # Different processing logic for nested arrays or nested objects
-                if meta["count"] == 1 and field != "offers":
+                if meta["count"] == 1:
                     for pr in meta["properties"]:
                         headers.append(f"{field}.{pr}")
                     continue
@@ -128,8 +122,6 @@ class CSVExporter:
 
 with open("autocrawl/utils/csv_export_assets/products_full_test.json") as f:
     product_list = json.loads(f.read())
-with open("autocrawl/utils/csv_export_assets/product_full_schema.json") as f:
-    product_schema = Cut(json.loads(f.read()))
 test_named_properties = {
     "gtin": "type",
     "additionalProperty": "name",
@@ -139,11 +131,12 @@ test_named_properties = {
 # isbn.value, ratingHistogram.5 stars.ratingCount, ratingHistogram.5 stars.ratingPercentage etc.
 test_skip_fields = {"probability", "_key"}
 
-csv_exporter = CSVExporter(test_named_properties, test_skip_fields, product_schema)
+csv_exporter = CSVExporter(test_named_properties, test_skip_fields)
 for p in product_list:
     csv_exporter.process_product(p)
 
 from pprint import pprint
+
 print('*' * 500)
 pprint(csv_exporter.headers_meta)
 print('*' * 500)
