@@ -1,8 +1,6 @@
 import csv
 import json
-
-# from pprint import pprint
-from typing import Dict, List, Set, TypedDict
+from typing import Dict, List, TypedDict
 
 # Using scalpl (instead of jmespath/etc.) as an existing fast backend dependency
 from scalpl import Cut
@@ -14,11 +12,10 @@ class Header(TypedDict, total=False):
 
 
 class CSVExporter:
-    def __init__(self, named_properties: Dict[str, str], skip_fields: Set[str]):
+    def __init__(self, named_properties: Dict[str, str]):
         # Insertion-ordered dict
         self.headers_meta: Dict[str, Header] = {}
         self.flat_headers: List[str] = []
-        self.skip_fields = skip_fields
         self.named_properties = named_properties
 
     def process_object(self, prefix: str, object_value: Dict):
@@ -77,9 +74,6 @@ class CSVExporter:
         for item_field, item_value in item.items():
             if item_field in self.headers_meta:
                 continue
-            elif item_field in self.skip_fields:
-                self.headers_meta[item_field] = {}
-                continue
             # Save non-array/object fields
             if type(item_value) not in {dict, list}:
                 self.headers_meta[item_field] = {}
@@ -125,7 +119,7 @@ class CSVExporter:
             else:
                 name_property = self.named_properties[header_path[0]]
                 value_found = False
-                for pr in item_data[header_path[0]]:
+                for pr in item_data.get(header_path[0], []):
                     if pr.get(name_property) == header_path[1]:
                         row.append(pr.get(header_path[2], ""))
                         value_found = True
@@ -142,31 +136,24 @@ if __name__ == "__main__":
         "additionalProperty": "name",
         "ratingHistogram": "ratingOption",
     }
-    # Define fields to provide data as-is, without additional processing
-    test_skip_fields = {"probability", "_key"}
 
     # Load item list from JSON (simulate API response)
-    with open("autocrawl/utils/csv_export_assets/products_xod_test.json") as f:
+    with open("autocrawl/utils/csv_export_assets/articles_xod_test.json") as f:
         item_list = json.loads(f.read())
 
-    csv_exporter = CSVExporter(test_named_properties, test_skip_fields)
+    csv_exporter = CSVExporter(test_named_properties)
 
     # Collect stats
     for it in item_list:
         csv_exporter.process_item(it)
 
-    # pprint(csv_exporter.headers_meta)
-
     # Flatten headers
     csv_exporter.flatten_headers()
 
-    # print('*' * 500)
-    # pprint(csv_exporter.flat_headers)
-
     with open("test_csv_export.csv", mode="w") as export_file:
-        employee_writer = csv.writer(
+        csv_writer = csv.writer(
             export_file, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL
         )
-        employee_writer.writerow(csv_exporter.flat_headers)
+        csv_writer.writerow(csv_exporter.flat_headers)
         for p in item_list:
-            employee_writer.writerow(csv_exporter.export_item(p))
+            csv_writer.writerow(csv_exporter.export_item(p))
