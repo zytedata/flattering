@@ -73,21 +73,21 @@ class CSVExporter:
                         else:
                             self.process_object(property_path, property_value)
 
-    def process_product(self, product: Dict):
-        for product_field, product_value in product.items():
-            if product_field in self.headers_meta:
+    def process_item(self, item: Dict):
+        for item_field, item_value in item.items():
+            if item_field in self.headers_meta:
                 continue
-            elif product_field in self.skip_fields:
-                self.headers_meta[product_field] = {}
+            elif item_field in self.skip_fields:
+                self.headers_meta[item_field] = {}
                 continue
             # Save non-array/object fields
-            if type(product_value) not in {dict, list}:
-                self.headers_meta[product_field] = {}
+            if type(item_value) not in {dict, list}:
+                self.headers_meta[item_field] = {}
                 continue
-            elif type(product_value) == list:
-                self.process_array(product_field, product_value)
+            elif type(item_value) == list:
+                self.process_array(item_field, item_value)
             else:
-                self.process_object(product_field, product_value)
+                self.process_object(item_field, item_value)
 
     def flatten_headers(self):
         headers = []
@@ -112,20 +112,20 @@ class CSVExporter:
                         headers.append(f"{field}.{pr}")
         self.flat_headers = headers
 
-    def export_product(self, product: Dict):
+    def export_item(self, item: Dict):
         row = []
-        product_data = Cut(product)
+        item_data = Cut(item)
         for header in self.flat_headers:
             header_path = header.split(".")
             if header_path[0] not in self.named_properties:
-                row.append(product_data.get(header, ""))
+                row.append(item_data.get(header, ""))
             # Assuming one nesting level of named properties
             # like `additionalProperty.Focus Type.value`, where
             # `name` (Focus Type) and `value` are on the same level
             else:
                 name_property = self.named_properties[header_path[0]]
                 value_found = False
-                for pr in product_data[header_path[0]]:
+                for pr in item_data[header_path[0]]:
                     if pr.get(name_property) == header_path[1]:
                         row.append(pr.get(header_path[2], ""))
                         value_found = True
@@ -145,15 +145,15 @@ if __name__ == "__main__":
     # Define fields to provide data as-is, without additional processing
     test_skip_fields = {"probability", "_key"}
 
-    # Load product list from JSON (simulate API response)
+    # Load item list from JSON (simulate API response)
     with open("autocrawl/utils/csv_export_assets/products_xod_test.json") as f:
-        product_list = json.loads(f.read())
+        item_list = json.loads(f.read())
 
     csv_exporter = CSVExporter(test_named_properties, test_skip_fields)
 
     # Collect stats
-    for p in product_list:
-        csv_exporter.process_product(p)
+    for it in item_list:
+        csv_exporter.process_item(it)
 
     # pprint(csv_exporter.headers_meta)
 
@@ -168,5 +168,5 @@ if __name__ == "__main__":
             export_file, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL
         )
         employee_writer.writerow(csv_exporter.flat_headers)
-        for p in product_list:
-            employee_writer.writerow(csv_exporter.export_product(p))
+        for p in item_list:
+            employee_writer.writerow(csv_exporter.export_item(p))
