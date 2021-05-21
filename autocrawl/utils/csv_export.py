@@ -17,9 +17,10 @@ class CSVExporter:
             property_path = f"{prefix}.{property_name}"
             if type(property_value) not in {dict, list}:
                 if self.headers_meta.get(property_path) is None:
-                    self.headers_meta[property_path] = {"count": 1}
+                    self.headers_meta[property_path] = {}
             elif type(property_value) == dict:
                 self.process_object(property_path, object_value[property_name])
+            # TODO: Process arrays
 
     def process_array(self, prefix, array_value):
         if len(array_value) == 0:
@@ -34,8 +35,8 @@ class CSVExporter:
         else:
             # TODO Check if object properties are not nested objects
             # Process only the first offer
-            # if prefix == "offers":
-            #     array_value = array_value[:1]
+            if prefix == "offers":
+                array_value = array_value[:1]
             if prefix in self.named_properties:
                 for element in array_value:
                     property_path = f"{prefix}.{element[self.named_properties[prefix]]}"
@@ -43,7 +44,7 @@ class CSVExporter:
                     if property_path in self.headers_meta:
                         continue
                     if type(element) not in {dict, list}:
-                        self.headers_meta[property_path] = {"count": 1, "properties": value_properties}
+                        self.headers_meta[property_path] = {"properties": value_properties}
                     elif type(element) == list:
                         self.process_array(property_path, element)
                     else:
@@ -71,11 +72,11 @@ class CSVExporter:
             if product_field in self.headers_meta:
                 continue
             elif product_field in self.skip_fields:
-                self.headers_meta[product_field] = {"count": 1}
+                self.headers_meta[product_field] = {}
                 continue
             # Save non-array/object fields
             if type(product_value) not in {dict, list}:
-                self.headers_meta[product_field] = {"count": 1}
+                self.headers_meta[product_field] = {}
                 continue
             elif type(product_value) == list:
                 self.process_array(product_field, product_value)
@@ -85,21 +86,15 @@ class CSVExporter:
     def flatten_headers(self):
         headers = []
         for field, meta in self.headers_meta.items():
-            if meta["count"] == 0:
+            if meta.get("count") == 0:
                 continue
-            elif not meta.get("properties"):
-                if meta["count"] == 1:
-                    headers.append(field)
-                else:
-                    for i in range(meta["count"]):
-                        headers.append(f"{field}[{i}]")
+            if meta.get("count") is None:
+                headers.append(field)
+                continue
+            if not meta.get("properties"):
+                for i in range(meta["count"]):
+                    headers.append(f"{field}[{i}]")
             else:
-                # TODO Decide how to process offers.itemCondition as offers[0].itemCondition
-                # Different processing logic for nested arrays or nested objects
-                if meta["count"] == 1:
-                    for pr in meta["properties"]:
-                        headers.append(f"{field}.{pr}")
-                    continue
                 for i in range(meta["count"]):
                     for pr in meta["properties"]:
                         headers.append(f"{field}[{i}].{pr}")
@@ -112,11 +107,13 @@ class CSVExporter:
             header_path = header.split(".")
             if header_path[0] not in self.named_properties:
                 row.append(product_data.get(header, ""))
+            # W
             else:
+                name_property = self.named_properties[header_path[0]]
                 for pr in product_data[header_path[0]]:
-                    if pr.get(self.named_properties[header_path[0]]) == header_path[1]:
+                    if pr.get(name_property) == header_path[1]:
                         # TODO Require not only name of the name property, but also value property
-                        row.append(str(pr))
+                        row.append(pr.get(header_path[2], ""))
         pprint(row)
 
 
@@ -138,7 +135,7 @@ for p in product_list:
 from pprint import pprint
 
 print('*' * 500)
-pprint(csv_exporter.headers_meta)
+# pprint(csv_exporter.headers_meta)
 print('*' * 500)
 csv_exporter.flatten_headers()
 pprint(csv_exporter.flat_headers)
