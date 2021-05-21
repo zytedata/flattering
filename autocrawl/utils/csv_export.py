@@ -114,10 +114,10 @@ class CSVExporter:
                     if pr.get(name_property) == header_path[1]:
                         # TODO Require not only name of the name property, but also value property
                         row.append(pr.get(header_path[2], ""))
-        pprint(row)
+        return row
 
 
-with open("autocrawl/utils/csv_export_assets/products_full_test.json") as f:
+with open("autocrawl/utils/csv_export_assets/products_xod_test.json") as f:
     product_list = json.loads(f.read())
 test_named_properties = {
     "gtin": "type",
@@ -134,12 +134,20 @@ for p in product_list:
 
 from pprint import pprint
 
-print('*' * 500)
+# print('*' * 500)
 # pprint(csv_exporter.headers_meta)
-print('*' * 500)
+# print('*' * 500)
 csv_exporter.flatten_headers()
-pprint(csv_exporter.flat_headers)
-print('*' * 500)
-for p in product_list:
-    csv_exporter.export_product(p)
-    break
+# pprint(csv_exporter.flat_headers)
+# print('*' * 500)
+
+import csv
+
+with open('employee_file.csv', mode='w') as employee_file:
+    employee_writer = csv.writer(employee_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+    employee_writer.writerow(csv_exporter.flat_headers)
+    for p in product_list:
+        employee_writer.writerow(csv_exporter.export_product(p))
+
+
+
