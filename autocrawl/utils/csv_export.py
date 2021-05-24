@@ -76,8 +76,6 @@ class CSVExporter:
 
     def process_item(self, item: Dict):
         for item_field, item_value in item.items():
-            if item_field in self.headers_meta:
-                continue
             # Save non-array/object fields
             if type(item_value) not in {dict, list}:
                 self.headers_meta[item_field] = {}
@@ -152,6 +150,8 @@ if __name__ == "__main__":
 
     # Collect stats
     for it in item_list:
+        if len(it.get("named_array_field", [])) == 3:
+            print("")
         csv_exporter.process_item(it)
 
     # Flatten headers
