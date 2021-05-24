@@ -76,10 +76,9 @@ class CSVExporter:
 
     def process_item(self, item: Dict):
         for item_field, item_value in item.items():
-            # Save non-array/object fields
             if type(item_value) not in {dict, list}:
-                self.headers_meta[item_field] = {}
-                continue
+                if self.headers_meta.get(item_field) is None:
+                    self.headers_meta[item_field] = {}
             elif type(item_value) == list:
                 self.process_array(item_field, item_value)
             else:
