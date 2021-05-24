@@ -25,9 +25,10 @@ class CSVExporter:
             if type(property_value) not in {dict, list}:
                 if self.headers_meta.get(property_path) is None:
                     self.headers_meta[property_path] = {}
-            elif type(property_value) == dict:
+            elif type(property_value) == list:
+                self.process_array(property_path, object_value[property_name])
+            else:
                 self.process_object(property_path, object_value[property_name])
-            # TODO: Process arrays?
 
     def process_array(self, prefix: str, array_value: List):
         if len(array_value) == 0:
@@ -42,8 +43,9 @@ class CSVExporter:
             if self.headers_meta[prefix]["count"] < len(array_value):
                 self.headers_meta[prefix]["count"] = len(array_value)
         elif type(array_value[0]) == list:
-            # Skipping array of arrays for now, because it's impossible with Unified Schema
-            pass
+            for i, element in enumerate(array_value):
+                property_path = f"{prefix}[{i}]"
+                self.process_array(property_path, element)
         else:
             if prefix in self.named_properties:
                 for element in array_value:
@@ -137,12 +139,13 @@ if __name__ == "__main__":
         "gtin": "type",
         "additionalProperty": "name",
         "ratingHistogram": "ratingOption",
+        "named_array_field": "name",
     }
     # Define how many elements of array to process
     test_array_limits = {"offers": 1}
 
     # Load item list from JSON (simulate API response)
-    with open("autocrawl/utils/csv_export_assets/articles_xod_test.json") as f:
+    with open("autocrawl/utils/csv_export_assets/items_recursive_test.json") as f:
         item_list = json.loads(f.read())
 
     csv_exporter = CSVExporter(test_named_properties, test_array_limits)
@@ -152,7 +155,12 @@ if __name__ == "__main__":
         csv_exporter.process_item(it)
 
     # Flatten headers
+    from pprint import pprint
+
+    pprint(csv_exporter.headers_meta, sort_dicts=False)
+    print("*" * 500)
     csv_exporter.flatten_headers()
+    pprint(csv_exporter.flat_headers, sort_dicts=False)
 
     with open("test_csv_export.csv", mode="w") as export_file:
         csv_writer = csv.writer(

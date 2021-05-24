@@ -1,0 +1,108 @@
+[
+    {
+        "base_field": "some_value",
+        "object_field": {
+            "base_property_1": "base_value_1",
+            "base_property_2": "base_value_2",
+            "base_property_3": "base_value_3"
+        },
+        "array_field": [
+            "base_element_1",
+            "base_element_2",
+            "base_element_3"
+        ],
+        "nested_object_field": {
+            "nested_property_1": "nested_value_1",
+            "nested_property_2": {
+                "nested_object_property_1": "nested_object_value_1",
+                "nested_object_property_2": {
+                    "double_nested_object_property_1": "double_nested_object_value_1",
+                    "double_nested_object_property_2": [
+                        "double_nested_element_1",
+                        "double_nested_element_2",
+                        "double_nested_element_3"
+                    ],
+                    "double_nested_object_property_3": {
+                        "triple_nested_object_property_1": "triple_nested_object_value_1",
+                        "triple_nested_object_property_2": [
+                            "triple_nested_element_1",
+                            "triple_nested_element_2",
+                            "triple_nested_element_3"
+                        ]
+                    }
+                }
+            },
+            "nested_property_3": [
+                "nested_element_1",
+                "nested_element_2",
+                "nested_element_3"
+            ]
+        },
+        "array_of_arrays_field": [
+            [
+                "array_of_arrays_1_element_1",
+                "array_of_arrays_1_element_2",
+                "array_of_arrays_1_element_3"
+            ],
+            [
+                "array_of_arrays_2_element_1",
+                "array_of_arrays_2_element_2",
+                "array_of_arrays_2_element_3"
+            ]
+        ]
+    },
+    {
+        "base_field": "some_value_second_item",
+        "named_array_field": [
+            {
+                "name": "named_array_element_1",
+                "value": "named_array_element_1_value_second_item"
+            },
+            {
+                "name": "named_array_element_2",
+                "value": "named_array_element_2_value_second_item"
+            }
+        ]
+    },
+    {
+        "base_field": "some_value_third_item",
+        "object_field": {
+            "base_property_1": "base_value_1_third_item",
+            "base_property_2": "base_value_2_third_item",
+            "base_property_3": "base_value_3_third_item"
+        },
+        "array_field": [
+            "base_element_1_third_item",
+            "base_element_2_third_item",
+            "base_element_3_third_item"
+        ],
+        "array_of_arrays_field": [
+            [
+                "array_of_arrays_1_element_1_third_item",
+                "array_of_arrays_1_element_2_third_item",
+                "array_of_arrays_1_element_3_third_item"
+            ],
+            [
+                "array_of_arrays_2_element_1_third_item",
+                "array_of_arrays_2_element_2_third_item",
+                "array_of_arrays_2_element_3_third_item"
+            ]
+        ]
+    },
+    {
+        "named_array_field": [
+            {
+                "name": "named_array_element_1",
+                "value": "named_array_element_1_value_fourth_item"
+            },
+            {
+                "name": "named_array_element_2",
+                "value": "named_array_element_2_value_fourth_item"
+            },
+            {
+                "name": "named_array_element_3",
+                "value": "named_array_element_3_value_fourth_item"
+            }
+        ]
+    }
+]
