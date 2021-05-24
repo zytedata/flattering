@@ -149,17 +149,14 @@ if __name__ == "__main__":
 
     # Collect stats
     for it in item_list:
-        if len(it.get("named_array_field", [])) == 3:
-            print("")
         csv_exporter.process_item(it)
 
     # Flatten headers
-    from pprint import pprint
-
-    pprint(csv_exporter.headers_meta, sort_dicts=False)
-    print("*" * 500)
+    # from pprint import pprint
+    # pprint(csv_exporter.headers_meta, sort_dicts=False)
+    # print("*" * 500)
     csv_exporter.flatten_headers()
-    pprint(csv_exporter.flat_headers, sort_dicts=False)
+    # pprint(csv_exporter.flat_headers, sort_dicts=False)
 
     with open("test_csv_export.csv", mode="w") as export_file:
         csv_writer = csv.writer(
