@@ -3,7 +3,7 @@ import json
 from typing import Dict, List, TypedDict
 
 # Using scalpl (instead of jmespath/etc.) as an existing fast backend dependency
-from scalpl import Cut
+from scalpl import Cut  # NOQA
 
 
 class Header(TypedDict, total=False):
