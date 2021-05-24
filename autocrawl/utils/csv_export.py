@@ -12,11 +12,12 @@ class Header(TypedDict, total=False):
 
 
 class CSVExporter:
-    def __init__(self, named_properties: Dict[str, str]):
+    def __init__(self, named_properties: Dict[str, str], array_limits: Dict[str, int]):
         # Insertion-ordered dict
         self.headers_meta: Dict[str, Header] = {}
         self.flat_headers: List[str] = []
         self.named_properties = named_properties
+        self.array_limits = array_limits
 
     def process_object(self, prefix: str, object_value: Dict):
         for property_name, property_value in object_value.items():
@@ -31,17 +32,19 @@ class CSVExporter:
     def process_array(self, prefix: str, array_value: List):
         if len(array_value) == 0:
             return
+        # Limit number of elements processed based on pre-defined limits
+        if prefix in self.array_limits:
+            array_value = array_value[:1]
         if self.headers_meta.get(prefix) is None:
             self.headers_meta[prefix] = {"count": 0, "properties": []}
-        # TODO: Currently there're no array of arrays, so arrays could be ignored
-        # Also assuming all elements of array are the same type
-        if type(array_value[0]) != dict:
+        # Assuming all elements of array are the same type
+        if type(array_value[0]) not in {dict, list}:
             if self.headers_meta[prefix]["count"] < len(array_value):
                 self.headers_meta[prefix]["count"] = len(array_value)
+        elif type(array_value[0]) == list:
+            # Skipping array of arrays for now, because it's impossible with Unified Schema
+            pass
         else:
-            # Process only the first offer
-            if prefix == "offers":
-                array_value = array_value[:1]
             if prefix in self.named_properties:
                 for element in array_value:
                     property_path = f"{prefix}.{element[self.named_properties[prefix]]}"
@@ -135,12 +138,14 @@ if __name__ == "__main__":
         "additionalProperty": "name",
         "ratingHistogram": "ratingOption",
     }
+    # Define how many elements of array to process
+    test_array_limits = {"offers": 1}
 
     # Load item list from JSON (simulate API response)
     with open("autocrawl/utils/csv_export_assets/articles_xod_test.json") as f:
         item_list = json.loads(f.read())
 
-    csv_exporter = CSVExporter(test_named_properties)
+    csv_exporter = CSVExporter(test_named_properties, test_array_limits)
 
     # Collect stats
     for it in item_list:
