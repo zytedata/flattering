@@ -34,7 +34,7 @@ class CSVExporter:
             return
         # Limit number of elements processed based on pre-defined limits
         if prefix in self.array_limits:
-            array_value = array_value[:1]
+            array_value = array_value[: self.array_limits[prefix]]
         if self.headers_meta.get(prefix) is None:
             self.headers_meta[prefix] = {"count": 0, "properties": []}
         # Assuming all elements of array are the same type
