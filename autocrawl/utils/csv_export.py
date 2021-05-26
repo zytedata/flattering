@@ -64,31 +64,18 @@ class CSVExporter:
                         elif type(property_value) == list:
                             self.process_array(property_path, property_value)
                         else:
-                            self.process_object(property_path, property_value)
+                            self.process_object(property_value, property_path)
 
-    def process_item(self, item: Dict):
-        for item_field, item_value in item.items():
-            if type(item_value) not in {dict, list}:
-                if self.headers_meta.get(item_field) is None:
-                    self.headers_meta[item_field] = {}
-            elif type(item_value) == list:
-                self.process_array(item_field, item_value)
-            else:
-                self.process_object(item_field, item_value)
-
-    # def process_object(self, object_value: Dict, prefix: str = ""):
-    #     for property_name, property_value in object_value.items():
-    #         property_path = f"{prefix}.{property_name}" if prefix else property_name
-    def process_object(self, prefix: str, object_value: Dict):
+    def process_object(self, object_value: Dict, prefix: str = ""):
         for property_name, property_value in object_value.items():
-            property_path = f"{prefix}.{property_name}"
+            property_path = f"{prefix}.{property_name}" if prefix else property_name
             if type(property_value) not in {dict, list}:
                 if self.headers_meta.get(property_path) is None:
                     self.headers_meta[property_path] = {}
             elif type(property_value) == list:
                 self.process_array(property_path, object_value[property_name])
             else:
-                self.process_object(property_path, object_value[property_name])
+                self.process_object(object_value[property_name], property_path)
 
     def flatten_headers(self):
         headers = []
@@ -157,7 +144,7 @@ if __name__ == "__main__":
 
     # Collect stats
     for it in item_list:
-        csv_exporter.process_item(it)
+        csv_exporter.process_object(it)
 
     # Flatten headers
     # from pprint import pprint

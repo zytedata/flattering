@@ -43,7 +43,7 @@ class TestCSV:
         csv_exporter = CSVExporter(named_properties, array_limits)
         # Collect stats
         for it in item_list:
-            csv_exporter.process_item(it)
+            csv_exporter.process_object(it)
         csv_exporter.flatten_headers()
         # Compare with pre-processed data
         csv_data = list(
