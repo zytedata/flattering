@@ -1,0 +1,19 @@
+[
+    {
+        "array_field": [
+            "base_element_1",
+            "base_element_2",
+            "base_element_3"
+        ],
+        "mixed_array_field": [
+            "mixed_element_1",
+            {
+                "mixed_element_2": "mixed_value_2"
+            },
+            [
+                "mixed_element_3"
+            ],
+            null
+        ]
+    }
+]
