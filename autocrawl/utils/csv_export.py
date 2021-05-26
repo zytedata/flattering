@@ -3,6 +3,7 @@ import json
 from typing import Dict, List, TypedDict
 
 # Using scalpl (instead of jmespath/etc.) as an existing fast backend dependency
+from pkg_resources import resource_string
 from scalpl import Cut  # NOQA
 
 
@@ -19,17 +20,8 @@ class CSVExporter:
         self.named_properties = named_properties
         self.array_limits = array_limits
 
-    def process_object(self, prefix: str, object_value: Dict):
-        for property_name, property_value in object_value.items():
-            property_path = f"{prefix}.{property_name}"
-            if type(property_value) not in {dict, list}:
-                if self.headers_meta.get(property_path) is None:
-                    self.headers_meta[property_path] = {}
-            elif type(property_value) == list:
-                self.process_array(property_path, object_value[property_name])
-            else:
-                self.process_object(property_path, object_value[property_name])
-
+    # TODO What if no prefix provided?
+    #  If the initial doc is not array of objects, but array of arrays?
     def process_array(self, prefix: str, array_value: List):
         if len(array_value) == 0:
             return
@@ -83,6 +75,20 @@ class CSVExporter:
                 self.process_array(item_field, item_value)
             else:
                 self.process_object(item_field, item_value)
+
+    # def process_object(self, object_value: Dict, prefix: str = ""):
+    #     for property_name, property_value in object_value.items():
+    #         property_path = f"{prefix}.{property_name}" if prefix else property_name
+    def process_object(self, prefix: str, object_value: Dict):
+        for property_name, property_value in object_value.items():
+            property_path = f"{prefix}.{property_name}"
+            if type(property_value) not in {dict, list}:
+                if self.headers_meta.get(property_path) is None:
+                    self.headers_meta[property_path] = {}
+            elif type(property_value) == list:
+                self.process_array(property_path, object_value[property_name])
+            else:
+                self.process_object(property_path, object_value[property_name])
 
     def flatten_headers(self):
         headers = []
@@ -142,8 +148,10 @@ if __name__ == "__main__":
     test_array_limits = {"offers": 1}
 
     # Load item list from JSON (simulate API response)
-    with open("autocrawl/utils/csv_export_assets/items_recursive_test.json") as f:
-        item_list = json.loads(f.read())
+    file_name = "products_xod_test.json"
+    item_list = json.loads(
+        resource_string(__name__, f"tests/assets/{file_name}").decode("utf-8")
+    )
 
     csv_exporter = CSVExporter(test_named_properties, test_array_limits)
 
@@ -158,7 +166,9 @@ if __name__ == "__main__":
     csv_exporter.flatten_headers()
     # pprint(csv_exporter.flat_headers, sort_dicts=False)
 
-    with open("test_csv_export.csv", mode="w") as export_file:
+    with open(
+        f"autocrawl/utils/tests/assets/{file_name.replace('.json', '.csv')}", mode="w"
+    ) as export_file:
         csv_writer = csv.writer(
             export_file, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL
         )
