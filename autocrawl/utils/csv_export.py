@@ -53,32 +53,9 @@ class CSVExporter:
             for i, element in enumerate(array_value):
                 property_path = f"{prefix}[{i}]"
                 self.process_array(property_path, element)
-
+        # Objects
         else:
-            if (
-                prefix in self.adjusted_properties
-                and self.adjusted_properties[prefix]["named"]
-            ):
-                for element in array_value:
-                    name = self.adjusted_properties[prefix]["name"]
-                    property_path = f"{prefix}.{element[name]}"
-                    value_properties = [x for x in element.keys() if x != name]
-                    if property_path in self.headers_meta:
-                        continue
-                    self.headers_meta[property_path] = {"properties": value_properties}
-            elif (
-                prefix in self.adjusted_properties
-                and self.adjusted_properties[prefix]["grouped"]
-            ):
-                properties = []
-                for element in array_value:
-                    for property_name in element:
-                        if property_name not in properties:
-                            properties.append(property_name)
-                for property_name in properties:
-                    property_path = f"{prefix}.{property_name}"
-                    self.headers_meta[property_path] = {}
-            else:
+            if prefix not in self.adjusted_properties:
                 if self.headers_meta[prefix]["count"] < len(array_value):
                     self.headers_meta[prefix]["count"] = len(array_value)
                 # Checking manually to keep properties order instead of checking subsets
@@ -95,6 +72,26 @@ class CSVExporter:
                             self.process_array(property_path, property_value)
                         else:
                             self.process_object(property_value, property_path)
+            elif self.adjusted_properties[prefix]["grouped"]:
+                if self.adjusted_properties[prefix]["named"]:
+                    self.headers_meta[prefix] = {}
+                    return
+                properties = []
+                for element in array_value:
+                    for property_name in element:
+                        if property_name not in properties:
+                            properties.append(property_name)
+                for property_name in properties:
+                    property_path = f"{prefix}.{property_name}"
+                    self.headers_meta[property_path] = {}
+            elif self.adjusted_properties[prefix]["named"]:
+                for element in array_value:
+                    name = self.adjusted_properties[prefix]["name"]
+                    property_path = f"{prefix}.{element[name]}"
+                    value_properties = [x for x in element.keys() if x != name]
+                    if property_path in self.headers_meta:
+                        continue
+                    self.headers_meta[property_path] = {"properties": value_properties}
 
     def process_object(self, object_value: Dict, prefix: str = ""):
         for property_name, property_value in object_value.items():
@@ -105,6 +102,9 @@ class CSVExporter:
             elif type(property_value) == list:
                 self.process_array(property_path, object_value[property_name])
             else:
+                if property_path in self.adjusted_properties and self.adjusted_properties[property_path]["grouped"]:
+                    self.headers_meta[property_path] = {}
+                    return
                 self.process_object(object_value[property_name], property_path)
 
     def flatten_headers(self):
@@ -155,33 +155,47 @@ class CSVExporter:
                 separator = self.adjusted_properties[header_path[0]]["separators"][
                     header
                 ]
-                if len(header_path) == 1:
-                    value = item_data.get(header_path[0])
-                    if not value:
+                if not self.adjusted_properties[header_path[0]].get("named"):
+                    if len(header_path) == 1:
+                        value = item_data.get(header_path[0])
+                        if not value:
+                            continue
+                        elif type(value) not in {list, dict}:
+                            row.append(value)
+                        elif type(value) == list:
+                            row.append(separator.join(value))
+                        else:
+                            row.append(separator.join([f"{pn}: {pv}" for pn, pv in value.items()]))
                         continue
-                    # Objects can't get here because path consists of only one element
-                    elif type(value) != list:
-                        row.append(value)
+                    # TODO What if more than 2 levels?
                     else:
+                        value = []
+                        for element in item_data.get(header_path[0], []):
+                            if element.get(header_path[1]) is not None:
+                                value.append(element[header_path[1]])
                         row.append(separator.join(value))
-                    continue
-                # TODO What if more than 2 levels?
+                        continue
                 else:
-                    value = []
+                    name = self.adjusted_properties[header_path[0]]["name"]
+                    values = []
                     for element in item_data.get(header_path[0], []):
-                        if element.get(header_path[1]) is not None:
-                            value.append(element[header_path[1]])
-                    row.append(separator.join(value))
-                    continue
+                        element_name = element.get(name, "")
+                        element_values = []
+                        for property_name, property_value in element.items():
+                            if property_name == name:
+                                continue
+                            element_values.append(property_value)
+                        values.append(f"{element_name}: {','.join(element_values)}")
+                    row.append(separator.join(values))
             # Assuming one nesting level of named properties
             # like `additionalProperty.Focus Type.value`, where
             # `name` (Focus Type) and `value` are on the same level
             elif self.adjusted_properties[header_path[0]].get("named"):
-                name = self.adjusted_properties[header_path[0]]["named"]
+                name = self.adjusted_properties[header_path[0]]["name"]
                 value_found = False
-                for pr in item_data.get(header_path[0], []):
-                    if pr.get(name) == header_path[1]:
-                        row.append(pr.get(header_path[2], ""))
+                for element in item_data.get(header_path[0], []):
+                    if element.get(name) == header_path[1]:
+                        row.append(element.get(header_path[2], ""))
                         value_found = True
                         break
                 if not value_found:
@@ -191,20 +205,31 @@ class CSVExporter:
 
 if __name__ == "__main__":
     # TODO Add input validation
+    # TODO Add escaping for key-value-elements if grouping
+    # Maybe using \n as a default separator should work, to don't mess up with escaping
     # Define fields where to use property values as column names
     test_adjusted_properties = {
-        "gtin": {"named": True, "grouped": False, "name": "type", "separators": {}},
+        "gtin": {
+            "named": True, "grouped": False, "name": "type",
+            "separators": {}
+        },
         "additionalProperty": {
             "named": True,
             "grouped": False,
             "name": "name",
-            "separators": {},
+            "separators": {"additionalProperty": "\n"},
         },
         "ratingHistogram": {
             "named": True,
             "grouped": False,
             "name": "ratingOption",
-            "separators": {},
+            "separators": {"ratingHistogram": "\n"},
+        },
+        "aggregateRating": {
+            "named": False,
+            "grouped": True,
+            "name": "",
+            "separators": {"aggregateRating": "\n"},
         },
         "named_array_field": {
             "named": True,
@@ -216,12 +241,13 @@ if __name__ == "__main__":
             "named": False,
             "grouped": True,
             "name": "",
-            "separators": {"images": ", \n"},
+            "separators": {"images": ",\n"},
         },
         "breadcrumbs": {
             "named": False,
             "grouped": True,
-            "separators": {"breadcrumbs.name": " >\n", "breadcrumbs.link": ",\n"},
+            "name": "",
+            "separators": {"breadcrumbs.name": " >\n", "breadcrumbs.link": "\n"},
         },
     }
     test_headers_remapping = [
