@@ -16,17 +16,15 @@ class Header(TypedDict, total=False):
 class CSVExporter:
     def __init__(
         self,
-        named_properties: Dict[str, str],
+        adjusted_properties: Dict,
         array_limits: Dict[str, int],
-        grouped_properties,
         headers_remapping,
     ):
         # Insertion-ordered dict
         self.headers_meta: Dict[str, Header] = {}
         self.flat_headers: List[str] = []
-        self.named_properties = named_properties
+        self.adjusted_properties = adjusted_properties
         self.array_limits = array_limits
-        self.grouped_properties = grouped_properties
         self.headers_remapping = headers_remapping
 
     # TODO What if no prefix provided?
@@ -45,7 +43,7 @@ class CSVExporter:
 
         # Assuming all elements of array are the same type
         if type(array_value[0]) not in {dict, list}:
-            if prefix not in self.grouped_properties:
+            if prefix not in self.adjusted_properties:
                 if self.headers_meta[prefix]["count"] < len(array_value):
                     self.headers_meta[prefix]["count"] = len(array_value)
             else:
@@ -57,16 +55,21 @@ class CSVExporter:
                 self.process_array(property_path, element)
 
         else:
-            if prefix in self.named_properties:
+            if (
+                prefix in self.adjusted_properties
+                and self.adjusted_properties[prefix]["named"]
+            ):
                 for element in array_value:
-                    property_path = f"{prefix}.{element[self.named_properties[prefix]]}"
-                    value_properties = [
-                        x for x in element.keys() if x != self.named_properties[prefix]
-                    ]
+                    name = self.adjusted_properties[prefix]["name"]
+                    property_path = f"{prefix}.{element[name]}"
+                    value_properties = [x for x in element.keys() if x != name]
                     if property_path in self.headers_meta:
                         continue
                     self.headers_meta[property_path] = {"properties": value_properties}
-            elif prefix in self.grouped_properties:
+            elif (
+                prefix in self.adjusted_properties
+                and self.adjusted_properties[prefix]["grouped"]
+            ):
                 properties = []
                 for element in array_value:
                     for property_name in element:
@@ -145,12 +148,13 @@ class CSVExporter:
         item_data = Cut(item)
         for header in self.flat_headers:
             header_path = header.split(".")
-            if (
-                header_path[0] not in self.named_properties
-                and header_path[0] not in self.grouped_properties
-            ):
+            if header_path[0] not in self.adjusted_properties:
                 row.append(item_data.get(header, ""))
-            elif header_path[0] in self.grouped_properties:
+                continue
+            elif self.adjusted_properties[header_path[0]].get("grouped"):
+                separator = self.adjusted_properties[header_path[0]]["separators"][
+                    header
+                ]
                 if len(header_path) == 1:
                     value = item_data.get(header_path[0])
                     if not value:
@@ -159,30 +163,24 @@ class CSVExporter:
                     elif type(value) != list:
                         row.append(value)
                     else:
-                        row.append(
-                            self.grouped_properties[header_path[0]]["separators"][
-                                header
-                            ].join(value)
-                        )
+                        row.append(separator.join(value))
+                    continue
                 # TODO What if more than 2 levels?
                 else:
                     value = []
                     for element in item_data.get(header_path[0], []):
                         if element.get(header_path[1]) is not None:
                             value.append(element[header_path[1]])
-                    row.append(
-                        self.grouped_properties[header_path[0]]["separators"][
-                            header
-                        ].join(value)
-                    )
+                    row.append(separator.join(value))
+                    continue
             # Assuming one nesting level of named properties
             # like `additionalProperty.Focus Type.value`, where
             # `name` (Focus Type) and `value` are on the same level
-            else:
-                name_property = self.named_properties[header_path[0]]
+            elif self.adjusted_properties[header_path[0]].get("named"):
+                name = self.adjusted_properties[header_path[0]]["named"]
                 value_found = False
                 for pr in item_data.get(header_path[0], []):
-                    if pr.get(name_property) == header_path[1]:
+                    if pr.get(name) == header_path[1]:
                         row.append(pr.get(header_path[2], ""))
                         value_found = True
                         break
@@ -192,17 +190,38 @@ class CSVExporter:
 
 
 if __name__ == "__main__":
+    # TODO Add input validation
     # Define fields where to use property values as column names
-    test_named_properties = {
-        "gtin": "type",
-        "additionalProperty": "name",
-        "ratingHistogram": "ratingOption",
-        "named_array_field": "name",
-    }
-    test_grouped_properties = {
-        "images": {"separators": {"images": ", \n"}},
+    test_adjusted_properties = {
+        "gtin": {"named": True, "grouped": False, "name": "type", "separators": {}},
+        "additionalProperty": {
+            "named": True,
+            "grouped": False,
+            "name": "name",
+            "separators": {},
+        },
+        "ratingHistogram": {
+            "named": True,
+            "grouped": False,
+            "name": "ratingOption",
+            "separators": {},
+        },
+        "named_array_field": {
+            "named": True,
+            "grouped": False,
+            "name": "name",
+            "separators": {},
+        },
+        "images": {
+            "named": False,
+            "grouped": True,
+            "name": "",
+            "separators": {"images": ", \n"},
+        },
         "breadcrumbs": {
-            "separators": {"breadcrumbs.name": " >\n", "breadcrumbs.link": ",\n"}
+            "named": False,
+            "grouped": True,
+            "separators": {"breadcrumbs.name": " >\n", "breadcrumbs.link": ",\n"},
         },
     }
     test_headers_remapping = [
@@ -222,9 +241,8 @@ if __name__ == "__main__":
     )
 
     csv_exporter = CSVExporter(
-        test_named_properties,
+        test_adjusted_properties,
         test_array_limits,
-        test_grouped_properties,
         test_headers_remapping,
     )
 
