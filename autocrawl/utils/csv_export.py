@@ -18,9 +18,23 @@ class Header(TypedDict, total=False):
     properties: List[str]
 
 
+def prepare_adjusted_properties(properties: Dict) -> Cut:
+    to_filter = set()
+    for property_name, property_value in properties.items():
+        if not property_value.get("named") and not property_value.get("grouped"):
+            logger.warning(
+                f"Adjusted properties ({property_name}) without either `named` or `grouped` "
+                "parameters enabled should be avoided or commented out."
+            )
+            to_filter.add(property_name)
+    for flt in to_filter:
+        properties.pop(flt, None)
+    return Cut(properties)
+
+
 @attr.s(auto_attribs=True)
 class CSVExporter:
-    adjusted_properties: Dict = attr.ib(converter=Cut)
+    adjusted_properties: Dict = attr.ib(converter=prepare_adjusted_properties)
     array_limits: Dict[str, int]
     headers_remapping: List[Tuple[str, str]] = attr.ib()
     grouped_separator: str = "\n"
@@ -42,10 +56,7 @@ class CSVExporter:
                     f"Named adjusted properties ({property_name}) must include `name` parameter."
                 )
             if not property_value.get("named") and not property_value.get("grouped"):
-                raise ValueError(
-                    f"Adjusted properties ({property_name}) without either `named` or `grouped` "
-                    "parameters enabled should be avoided or commented out."
-                )
+                raise ValueError
 
     @headers_remapping.validator
     def check_headers_remapping(self, attribute, value):
