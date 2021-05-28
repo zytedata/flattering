@@ -22,7 +22,7 @@ class Header(TypedDict, total=False):
 class CSVExporter:
     adjusted_properties: Dict = attr.ib(converter=Cut)
     array_limits: Dict[str, int]
-    headers_remapping: List[Tuple[str, str]]
+    headers_remapping: List[Tuple[str, str]] = attr.ib()
     grouped_separator: str = "\n"
     headers_meta: Dict[str, Header] = attr.Factory(dict)
 
@@ -47,6 +47,22 @@ class CSVExporter:
                     "parameters enabled should be avoided or commented out."
                 )
 
+    @headers_remapping.validator
+    def check_headers_remapping(self, attribute, value):
+        if type(value) != list:
+            raise ValueError("Headers remappings must be provided as a list of tuples.")
+        for rmp in value:
+            if type(rmp) not in {list, tuple}:
+                raise ValueError(f"Headers remappings ({rmp}) must be tuples.")
+            if len(rmp) != 2:
+                raise ValueError(
+                    f"Headers remappings ({rmp}) must include two elements: pattern and replacement."
+                )
+            if any([type(x) != str for x in rmp]):
+                raise ValueError(
+                    f"Headers remappings ({rmp}) elements must be strings."
+                )
+
     # TODO What if no prefix provided?
     #  If the initial doc is not array of objects, but array of arrays?
     def process_array(self, prefix: str, array_value: List):
@@ -67,42 +83,48 @@ class CSVExporter:
                 self.process_array(property_path, element)
         else:
             if prefix not in self.adjusted_properties:
-                if self.headers_meta[prefix]["count"] < len(array_value):
-                    self.headers_meta[prefix]["count"] = len(array_value)
-                # Checking manually to keep properties order instead of checking subsets
-                for i, element in enumerate(array_value):
-                    for property_name, property_value in element.items():
-                        property_path = f"{prefix}[{i}].{property_name}"
-                        if type(property_value) not in {dict, list}:
-                            if property_name in self.headers_meta[prefix]["properties"]:
-                                continue
-                            self.headers_meta[prefix]["properties"].append(
-                                property_name
-                            )
-                        elif type(property_value) == list:
-                            self.process_array(property_path, property_value)
-                        else:
-                            self.process_object(property_value, property_path)
-            elif self.adjusted_properties.get(f"{prefix}.grouped"):
-                if self.adjusted_properties[prefix]["named"]:
-                    self.headers_meta[prefix] = {}
-                    return
-                properties = []
-                for element in array_value:
-                    for property_name in element:
-                        if property_name not in properties:
-                            properties.append(property_name)
-                for property_name in properties:
-                    property_path = f"{prefix}.{property_name}"
-                    self.headers_meta[property_path] = {}
-            elif self.adjusted_properties.get(f"{prefix}.named"):
-                for element in array_value:
-                    name = self.adjusted_properties.get(f"{prefix}.name")
-                    property_path = f"{prefix}.{element[name]}"
-                    value_properties = [x for x in element.keys() if x != name]
-                    if property_path in self.headers_meta:
+                self.process_base_array(prefix, array_value)
+            else:
+                self.process_adjusted_array(prefix, array_value)
+
+    def process_base_array(self, prefix: str, array_value: List):
+        if self.headers_meta[prefix]["count"] < len(array_value):
+            self.headers_meta[prefix]["count"] = len(array_value)
+        # Checking manually to keep properties order instead of checking subsets
+        for i, element in enumerate(array_value):
+            for property_name, property_value in element.items():
+                property_path = f"{prefix}[{i}].{property_name}"
+                if type(property_value) not in {dict, list}:
+                    if property_name in self.headers_meta[prefix]["properties"]:
                         continue
-                    self.headers_meta[property_path] = {"properties": value_properties}
+                    self.headers_meta[prefix]["properties"].append(property_name)
+                elif type(property_value) == list:
+                    self.process_array(property_path, property_value)
+                else:
+                    self.process_object(property_value, property_path)
+
+    def process_adjusted_array(self, prefix: str, array_value: List):
+        if self.adjusted_properties.get(f"{prefix}.grouped"):
+            # Arrays that both grouped and named don't need stats to group data
+            if self.adjusted_properties[prefix]["named"]:
+                self.headers_meta[prefix] = {}
+                return
+            properties = []
+            for element in array_value:
+                for property_name in element:
+                    if property_name not in properties:
+                        properties.append(property_name)
+            for property_name in properties:
+                property_path = f"{prefix}.{property_name}"
+                self.headers_meta[property_path] = {}
+        elif self.adjusted_properties.get(f"{prefix}.named"):
+            for element in array_value:
+                name = self.adjusted_properties.get(f"{prefix}.name")
+                property_path = f"{prefix}.{element[name]}"
+                value_properties = [x for x in element.keys() if x != name]
+                if property_path in self.headers_meta:
+                    continue
+                self.headers_meta[property_path] = {"properties": value_properties}
 
     def process_object(self, object_value: Dict, prefix: str = ""):
         for property_name, property_value in object_value.items():
