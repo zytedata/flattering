@@ -4,9 +4,10 @@ import logging
 import re
 from typing import Dict, List, Tuple, TypedDict
 
-# Using scalpl (instead of jmespath/etc.) as an existing fast backend dependency
 import attr
 from pkg_resources import resource_string
+
+# Using scalpl (instead of jmespath/etc.) as an existing fast backend dependency
 from scalpl import Cut  # NOQA
 
 logger = logging.getLogger(__name__)
@@ -17,9 +18,16 @@ class Header(TypedDict, total=False):
     properties: List[str]
 
 
+class AdjustedProperty(TypedDict, total=False):
+    named: bool
+    name: str
+    grouped: bool
+    grouped_separators: Dict[str, str]
+
+
 @attr.s(auto_attribs=True)
 class CSVExporter:
-    adjusted_properties: Dict = attr.ib(converter=Cut)
+    adjusted_properties: AdjustedProperty = attr.ib(converter=Cut)
     array_limits: Dict[str, int]
     headers_remapping: List[Tuple[str, str]]
     grouped_separator: str = "\n"
