@@ -201,63 +201,64 @@ class CSVExporter:
             if header_path[0] not in self.adjusted_properties:
                 row.append(item_data.get(header, ""))
                 continue
-            elif self.adjusted_properties.get(f"{header_path[0]}.grouped"):
-                separator = (
-                    self.adjusted_properties.get(
-                        f"{header_path[0]}.grouped_separators.{header}"
-                    )
-                    or self.grouped_separator
+            else:
+                row.append(
+                    self.export_adjusted_property(header, header_path, item_data)
                 )
-                if not self.adjusted_properties.get(f"{header_path[0]}.named"):
-                    if len(header_path) == 1:
-                        value = item_data.get(header_path[0])
-                        if not value:
-                            continue
-                        elif type(value) not in {list, dict}:
-                            row.append(value)
-                        elif type(value) == list:
-                            row.append(separator.join(value))
-                        else:
-                            row.append(
-                                separator.join(
-                                    [f"{pn}: {pv}" for pn, pv in value.items()]
-                                )
-                            )
-                        continue
-                    # TODO What if more than 2 levels?
-                    else:
-                        value = []
-                        for element in item_data.get(header_path[0], []):
-                            if element.get(header_path[1]) is not None:
-                                value.append(element[header_path[1]])
-                        row.append(separator.join(value))
-                        continue
-                else:
-                    name = self.adjusted_properties.get(f"{header_path[0]}.name")
-                    values = []
-                    for element in item_data.get(header_path[0], []):
-                        element_name = element.get(name, "")
-                        element_values = []
-                        for property_name, property_value in element.items():
-                            if property_name == name:
-                                continue
-                            element_values.append(property_value)
-                        values.append(f"{element_name}: {','.join(element_values)}")
-                    row.append(separator.join(values))
-            # Assuming one nesting level of named properties
-            # like `additionalProperty.Focus Type.value`, where
-            # `name` (Focus Type) and `value` are on the same level
-            elif self.adjusted_properties.get(f"{header_path[0]}.named"):
-                name = self.adjusted_properties.get(f"{header_path[0]}.name")
-                value_found = False
-                for element in item_data.get(header_path[0], []):
-                    if element.get(name) == header_path[1]:
-                        row.append(element.get(header_path[2], ""))
-                        value_found = True
-                        break
-                if not value_found:
-                    row.append("")
         return row
+
+    def export_adjusted_property(
+        self, header: str, header_path: List[str], item_data: Cut
+    ):
+        if self.adjusted_properties.get(f"{header_path[0]}.grouped"):
+            separator = (
+                self.adjusted_properties.get(
+                    f"{header_path[0]}.grouped_separators.{header}"
+                )
+                or self.grouped_separator
+            )
+            # Grouped
+            if not self.adjusted_properties.get(f"{header_path[0]}.named"):
+                if len(header_path) == 1:
+                    value = item_data.get(header_path[0])
+                    if value is None:
+                        return ""
+                    elif type(value) not in {list, dict}:
+                        return value
+                    elif type(value) == list:
+                        return separator.join(value)
+                    else:
+                        return separator.join(
+                            [f"{pn}: {pv}" for pn, pv in value.items()]
+                        )
+                # TODO What if more than 2 levels?
+                else:
+                    value = []
+                    for element in item_data.get(header_path[0], []):
+                        if element.get(header_path[1]) is not None:
+                            value.append(element[header_path[1]])
+                    return separator.join(value)
+            # Grouped AND Named
+            else:
+                name = self.adjusted_properties.get(f"{header_path[0]}.name")
+                values = []
+                for element in item_data.get(header_path[0], []):
+                    element_name = element.get(name, "")
+                    element_values = []
+                    for property_name, property_value in element.items():
+                        if property_name == name:
+                            continue
+                        element_values.append(property_value)
+                    values.append(f"{element_name}: {','.join(element_values)}")
+                return separator.join(values)
+        # Named; if not grouped and not named - adjusted property was filtered
+        else:
+            name = self.adjusted_properties.get(f"{header_path[0]}.name")
+            for element in item_data.get(header_path[0], []):
+                if element.get(name) == header_path[1]:
+                    return element.get(header_path[2], "")
+            else:
+                return ""
 
 
 if __name__ == "__main__":
@@ -270,28 +271,16 @@ if __name__ == "__main__":
         },
         "additionalProperty": {
             "named": True,
-            "grouped": False,
+            "grouped": True,
             "name": "name",
             "grouped_separators": {"additionalProperty": "\n"},
         },
-        # "ratingHistogram": {
-        #     "named": True,
-        #     "grouped": False,
-        #     "name": "ratingOption",
-        #     "grouped_separators": {"ratingHistogram": "\n"},
-        # },
         "aggregateRating": {
             "named": False,
-            "grouped": True,
+            "grouped": False,
             "name": "",
             "grouped_separators": {"aggregateRating": "\n"},
         },
-        # "named_array_field": {
-        #     "named": True,
-        #     "grouped": False,
-        #     "name": "name",
-        #     "grouped_separators": {},
-        # },
         "images": {
             "named": False,
             "grouped": True,
@@ -302,14 +291,24 @@ if __name__ == "__main__":
             "named": False,
             "grouped": True,
             "name": "name",
-            # "grouped_separators": {"breadcrumbs.name": " >\n", "breadcrumbs.link": "\n"},
+            "grouped_separators": {
+                "breadcrumbs.name": " >\n",
+                "breadcrumbs.link": "\n",
+            },
         },
+        # "ratingHistogram": {
+        #     "named": True,
+        #     "grouped": False,
+        #     "name": "ratingOption",
+        #     "grouped_separators": {"ratingHistogram": "\n"},
+        # },
+        # "named_array_field": {
+        #     "named": True,
+        #     "grouped": False,
+        #     "name": "name",
+        #     "grouped_separators": {},
+        # }
     }
-    # TODO Validate input
-    # If not grouped and not names - show exception to not to add it or comment then
-    # If grouped and named separators must be set for the main field
-    # If named - name must be set
-    # If grouped - custom separator could be set
     test_headers_remapping = [
         (r"offers\[0\].", ""),
         (r"aggregateRating\.", ""),
@@ -339,10 +338,10 @@ if __name__ == "__main__":
     # Flatten headers
     from pprint import pprint
 
-    # pprint(csv_exporter.headers_meta, sort_dicts=False)
-    # print("*" * 500)
+    pprint(csv_exporter.headers_meta, sort_dicts=False)
+    print("*" * 500)
     csv_exporter.flatten_headers()
-    # pprint(csv_exporter.headers, sort_dicts=False)
+    pprint(csv_exporter.headers, sort_dicts=False)
 
     with open(
         f"autocrawl/utils/csv_assets/{file_name.replace('.json', '.csv')}", mode="w"
