@@ -18,16 +18,9 @@ class Header(TypedDict, total=False):
     properties: List[str]
 
 
-class AdjustedProperty(TypedDict, total=False):
-    named: bool
-    name: str
-    grouped: bool
-    grouped_separators: Dict[str, str]
-
-
 @attr.s(auto_attribs=True)
 class CSVExporter:
-    adjusted_properties: AdjustedProperty = attr.ib(converter=Cut)
+    adjusted_properties: Dict = attr.ib(converter=Cut)
     array_limits: Dict[str, int]
     headers_remapping: List[Tuple[str, str]]
     grouped_separator: str = "\n"
@@ -59,15 +52,8 @@ class CSVExporter:
     def process_array(self, prefix: str, array_value: List):
         if len(array_value) == 0:
             return
-
-        # TODO Move to export
-        # Limit number of elements processed based on pre-defined limits
-        if prefix in self.array_limits:
-            array_value = array_value[: self.array_limits[prefix]]
-
         if self.headers_meta.get(prefix) is None:
             self.headers_meta[prefix] = {"count": 0, "properties": []}
-
         # Assuming all elements of array are the same type
         if type(array_value[0]) not in {dict, list}:
             if prefix not in self.adjusted_properties:
@@ -175,6 +161,9 @@ class CSVExporter:
         row = []
         item_data = Cut(item)
         for header in self.flat_headers:
+            # Limit number of elements processed based on pre-defined limits
+            if header in self.array_limits and type(item_data.get(header)) == list:
+                item_data[header] = item_data[header][: self.array_limits[header]]
             header_path = header.split(".")
             if header_path[0] not in self.adjusted_properties:
                 row.append(item_data.get(header, ""))
