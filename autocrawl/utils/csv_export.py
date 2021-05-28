@@ -318,31 +318,25 @@ if __name__ == "__main__":
     ]
     # Define how many elements of array to process
     test_array_limits = {"offers": 1}
-
     # Load item list from JSON (simulate API response)
     file_name = "products_xod_test.json"
     item_list = json.loads(
         resource_string(__name__, f"tests/assets/{file_name}").decode("utf-8")
     )
-
     csv_exporter = CSVExporter(
         test_adjusted_properties,
         test_array_limits,
         test_headers_remapping,
     )
-
     # Collect stats
     for it in item_list:
         csv_exporter.process_object(it)
-
     # Flatten headers
-    from pprint import pprint
-
-    pprint(csv_exporter.headers_meta, sort_dicts=False)
-    print("*" * 500)
+    # from pprint import pprint
+    # pprint(csv_exporter.headers_meta, sort_dicts=False)
+    # print("*" * 500)
     csv_exporter.flatten_headers()
-    pprint(csv_exporter.headers, sort_dicts=False)
-
+    # pprint(csv_exporter.headers, sort_dicts=False)
     with open(
         f"autocrawl/utils/csv_assets/{file_name.replace('.json', '.csv')}", mode="w"
     ) as export_file:
@@ -352,7 +346,6 @@ if __name__ == "__main__":
         csv_writer.writerow(csv_exporter.remap_headers())
         for p in item_list:
             csv_writer.writerow(csv_exporter.export_item(p))
-
     # TODO Add input validation
     # TODO Add escaping for key-value-elements if grouping
     # Maybe using \n as a default separator should work, to don't mess up with escaping
