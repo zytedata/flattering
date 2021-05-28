@@ -1,9 +1,10 @@
 import csv
 import json
 import re
-from typing import Dict, List, TypedDict
+from typing import Dict, List, Tuple, TypedDict
 
 # Using scalpl (instead of jmespath/etc.) as an existing fast backend dependency
+import attr
 from pkg_resources import resource_string
 from scalpl import Cut  # NOQA
 
@@ -13,21 +14,13 @@ class Header(TypedDict, total=False):
     properties: List[str]
 
 
+@attr.s(auto_attribs=True)
 class CSVExporter:
-    def __init__(
-        self,
-        adjusted_properties: Dict,
-        array_limits: Dict[str, int],
-        headers_remapping,
-        grouped_separator="\n",
-    ):
-        # Insertion-ordered dict
-        self.headers_meta: Dict[str, Header] = {}
-        self.flat_headers: List[str] = []
-        self.adjusted_properties = Cut(adjusted_properties)
-        self.array_limits = array_limits
-        self.headers_remapping = headers_remapping
-        self.grouped_separator = grouped_separator
+    adjusted_properties: Dict = attr.ib(converter=Cut)
+    array_limits: Dict[str, int]
+    headers_remapping: List[Tuple[str, str]]
+    grouped_separator: str = "\n"
+    headers_meta: Dict[str, Header] = attr.Factory(dict)
 
     # TODO What if no prefix provided?
     #  If the initial doc is not array of objects, but array of arrays?
@@ -50,12 +43,10 @@ class CSVExporter:
                     self.headers_meta[prefix]["count"] = len(array_value)
             else:
                 self.headers_meta[prefix] = {}
-
         elif type(array_value[0]) == list:
             for i, element in enumerate(array_value):
                 property_path = f"{prefix}[{i}]"
                 self.process_array(property_path, element)
-        # Objects
         else:
             if prefix not in self.adjusted_properties:
                 if self.headers_meta[prefix]["count"] < len(array_value):
@@ -74,7 +65,7 @@ class CSVExporter:
                             self.process_array(property_path, property_value)
                         else:
                             self.process_object(property_value, property_path)
-            elif self.adjusted_properties[prefix]["grouped"]:
+            elif self.adjusted_properties.get(f"{prefix}.grouped"):
                 if self.adjusted_properties[prefix]["named"]:
                     self.headers_meta[prefix] = {}
                     return
