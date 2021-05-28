@@ -1,5 +1,6 @@
 import csv
 import json
+import logging
 import re
 from typing import Dict, List, Tuple, TypedDict
 
@@ -7,6 +8,8 @@ from typing import Dict, List, Tuple, TypedDict
 import attr
 from pkg_resources import resource_string
 from scalpl import Cut  # NOQA
+
+logger = logging.getLogger(__name__)
 
 
 class Header(TypedDict, total=False):
@@ -21,6 +24,27 @@ class CSVExporter:
     headers_remapping: List[Tuple[str, str]]
     grouped_separator: str = "\n"
     headers_meta: Dict[str, Header] = attr.Factory(dict)
+
+    @adjusted_properties.validator
+    def check_adjusted_properties(self, attribute, value):
+        for property_name, property_value in value.items():
+            for tp in {"named", "grouped"}:
+                if type(property_value.get(tp)) != bool:
+                    raise ValueError(
+                        f"Adjusted properties ({property_name}) must include `{tp}` parameter with boolean value."
+                    )
+            if (
+                property_value.get("named") is not None
+                and property_value.get("name") is None
+            ):
+                raise ValueError(
+                    f"Named adjusted properties ({property_name}) must include `name` parameter."
+                )
+            if not property_value.get("named") and not property_value.get("grouped"):
+                raise ValueError(
+                    f"Adjusted properties ({property_name}) without either `named` or `grouped` "
+                    "parameters enabled should be avoided or commented out."
+                )
 
     # TODO What if no prefix provided?
     #  If the initial doc is not array of objects, but array of arrays?
