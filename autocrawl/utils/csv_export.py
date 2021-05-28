@@ -38,6 +38,7 @@ class CSVExporter:
     array_limits: Dict[str, int]
     headers_remapping: List[Tuple[str, str]] = attr.ib()
     grouped_separator: str = "\n"
+    headers: List[str] = attr.Factory(list)
     headers_meta: Dict[str, Header] = attr.Factory(dict)
 
     @adjusted_properties.validator
@@ -175,14 +176,13 @@ class CSVExporter:
                 else:
                     for pr in meta.get("properties"):
                         headers.append(f"{field}.{pr}")
-        self.flat_headers = headers
+        self.headers = headers
 
-    @property
-    def remapped_headers(self, capitalize=True):
+    def remap_headers(self, capitalize=True):
         if not self.headers_remapping:
-            return self.flat_headers
+            return self.headers
         remapped_headers = []
-        for header in self.flat_headers:
+        for header in self.headers:
             for old, new in self.headers_remapping:
                 header = re.sub(old, new, header)
             if capitalize and header:
@@ -193,7 +193,7 @@ class CSVExporter:
     def export_item(self, item: Dict):
         row = []
         item_data = Cut(item)
-        for header in self.flat_headers:
+        for header in self.headers:
             # Limit number of elements processed based on pre-defined limits
             if header in self.array_limits and type(item_data.get(header)) == list:
                 item_data[header] = item_data[header][: self.array_limits[header]]
@@ -339,10 +339,10 @@ if __name__ == "__main__":
     # Flatten headers
     from pprint import pprint
 
-    pprint(csv_exporter.headers_meta, sort_dicts=False)
-    print("*" * 500)
+    # pprint(csv_exporter.headers_meta, sort_dicts=False)
+    # print("*" * 500)
     csv_exporter.flatten_headers()
-    pprint(csv_exporter.flat_headers, sort_dicts=False)
+    # pprint(csv_exporter.headers, sort_dicts=False)
 
     with open(
         f"autocrawl/utils/csv_assets/{file_name.replace('.json', '.csv')}", mode="w"
@@ -350,7 +350,7 @@ if __name__ == "__main__":
         csv_writer = csv.writer(
             export_file, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL
         )
-        csv_writer.writerow(csv_exporter.remapped_headers)
+        csv_writer.writerow(csv_exporter.remap_headers())
         for p in item_list:
             csv_writer.writerow(csv_exporter.export_item(p))
 
