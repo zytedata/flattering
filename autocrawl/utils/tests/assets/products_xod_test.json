@@ -41,11 +41,11 @@
         "additionalProperty": [
             {
                 "name": "heel height",
-                "value": "1 in"
+                "value": "1 in, 2 in"
             },
             {
                 "name": "weight",
-                "value": "1 lb 7 oz"
+                "value": "1 lb\n7 oz"
             },
             {
                 "name": "shaft",

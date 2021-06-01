@@ -235,10 +235,11 @@ class CSVExporter:
     def escape_grouped_data(value, separator):
         if not value:
             return value
+        escaped_separator = f"\\{separator}" if separator != "\n" else "\\n"
         if type(value) is list:
-            return [x.replace(separator, f"\\{separator}") for x in value]
+            return [x.replace(separator, escaped_separator) for x in value]
         else:
-            str(value).replace(separator, f"\\{separator}")
+            return str(value).replace(separator, escaped_separator)
 
     def export_adjusted_property(
         self, header: str, header_path: List[str], item_data: Cut
