@@ -214,13 +214,36 @@ class CSVExporter:
             remapped_headers.append(header)
         return remapped_headers
 
+    def limit_headers_meta(self):
+        """
+        Limit number of elements exported based on pre-defined limits
+        """
+        filters = set()
+        for key, value in self.array_limits.items():
+            if key not in self.headers_meta:
+                continue
+            if not self.headers_meta[key].get("count"):
+                continue
+            if self.headers_meta[key]["count"] <= value:
+                continue
+            for i in range(self.headers_meta[key]["count"]):
+                if i < value:
+                    continue
+                filters.add(f"{key}[{i}]")
+            self.headers_meta[key]["count"] = value
+        limited_headers_meta = {}
+        for field, meta in self.headers_meta.items():
+            for key in filters:
+                if field.startswith(key):
+                    break
+            else:
+                limited_headers_meta[field] = meta
+        self.headers_meta = limited_headers_meta
+
     def export_item(self, item: Dict):
         row = []
         item_data = Cut(item)
         for header in self.headers:
-            # Limit number of elements processed based on pre-defined limits
-            if header in self.array_limits and type(item_data.get(header)) == list:
-                item_data[header] = item_data[header][: self.array_limits[header]]
             header_path = header.split(".")
             if header_path[0] not in self.adjusted_properties:
                 row.append(item_data.get(header, ""))
@@ -358,7 +381,7 @@ if __name__ == "__main__":
     # Define how many elements of array to process
     test_array_limits = {"offers": 1}
     # Load item list from JSON (simulate API response)
-    file_name = "products_xod_test.json"
+    file_name = "products_full_schema_test.json"
     item_list = json.loads(
         resource_string(__name__, f"tests/assets/{file_name}").decode("utf-8")
     )
@@ -369,13 +392,11 @@ if __name__ == "__main__":
     )
     # Collect stats
     csv_exporter.process_items(item_list)
+    # Apply array limits
+    csv_exporter.limit_headers_meta()
     # Flatten headers
-    from pprint import pprint
-
-    pprint(csv_exporter.headers_meta, sort_dicts=False)
-    print("*" * 500)
     csv_exporter.flatten_headers()
-    pprint(csv_exporter.headers, sort_dicts=False)
+    # Export to CSV
     with open(
         f"autocrawl/utils/csv_assets/{file_name.replace('.json', '.csv')}", mode="w"
     ) as export_file:
@@ -385,6 +406,3 @@ if __name__ == "__main__":
         csv_writer.writerow(csv_exporter.remap_headers())
         for p in item_list:
             csv_writer.writerow(csv_exporter.export_item(p))
-    # TODO Add escaping for key-value-elements if grouping
-    # Maybe using \n as a default separator should work, to don't mess up with escaping
-    # Define fields where to use property values as column names
