@@ -381,7 +381,7 @@ if __name__ == "__main__":
     # Define how many elements of array to process
     test_array_limits = {"offers": 1}
     # Load item list from JSON (simulate API response)
-    file_name = "products_full_schema_test.json"
+    file_name = "products_xod_test.json"
     item_list = json.loads(
         resource_string(__name__, f"tests/assets/{file_name}").decode("utf-8")
     )
