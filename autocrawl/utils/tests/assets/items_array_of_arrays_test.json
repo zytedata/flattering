@@ -1,0 +1,36 @@
+[
+    [
+        {
+            "array_1_element_1_array_field": [
+                "array_1_element_1_base_element_1",
+                "array_1_element_1_base_element_2",
+                "array_1_element_1_base_element_3"
+            ],
+            "array_1_element_1_object_field": {
+                "array_1_element_1_object_key": "array_1_element_1_object_value"
+            }
+        },
+        {
+            "array_1_element_2_array_field": [
+                "array_1_element_1_base_element_1",
+                "array_1_element_1_base_element_2",
+                "array_1_element_1_base_element_3"
+            ],
+            "array_1_element_2_object_field": {
+                "array_1_element_2_object_key": "array_1_element_2_object_value"
+            }
+        }
+    ],
+    [
+        {
+            "array_2_element_1_array_field": [
+                "array_2_element_1_base_element_1",
+                "array_2_element_1_base_element_2",
+                "array_2_element_1_base_element_3"
+            ],
+            "array_2_element_1_object_field": {
+                "array_2_element_1_object_key": "array_2_element_1_object_value"
+            }
+        }
+    ]
+]

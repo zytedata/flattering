@@ -24,7 +24,7 @@ def prepare_adjusted_properties(properties: Dict) -> Cut:
         if not property_value.get("named") and not property_value.get("grouped"):
             logger.warning(
                 f"Adjusted properties ({property_name}) without either `named` or `grouped` "
-                "parameters enabled should be avoided or commented out."
+                "parameters will be skipped."
             )
             to_filter.add(property_name)
     for flt in to_filter:
@@ -43,21 +43,25 @@ class CSVExporter:
 
     @adjusted_properties.validator
     def check_adjusted_properties(self, attribute, value):
+        allowed_separators = (";", ",", "\n")
         for property_name, property_value in value.items():
             for tp in {"named", "grouped"}:
                 if type(property_value.get(tp)) != bool:
                     raise ValueError(
                         f"Adjusted properties ({property_name}) must include `{tp}` parameter with boolean value."
                     )
-            if (
-                property_value.get("named") is not None
-                and property_value.get("name") is None
-            ):
+            if property_value.get("named") and not property_value.get("name"):
                 raise ValueError(
                     f"Named adjusted properties ({property_name}) must include `name` parameter."
                 )
             if not property_value.get("named") and not property_value.get("grouped"):
                 raise ValueError
+            for key, value in property_value.get("grouped_separators", {}).items():
+                if value not in allowed_separators:
+                    raise ValueError(
+                        f"Only {allowed_separators} could be used"
+                        f" as custom grouped separators ({key}:{value})."
+                    )
 
     @headers_remapping.validator
     def check_headers_remapping(self, attribute, value):
@@ -75,11 +79,27 @@ class CSVExporter:
                     f"Headers remappings ({rmp}) elements must be strings."
                 )
 
-    # TODO What if no prefix provided?
-    #  If the initial doc is not array of objects, but array of arrays?
-    def process_array(self, prefix: str, array_value: List):
+    def process_items(self, items):
+        if type(items) != list:
+            raise ValueError(f"Initial items data must be array, not {type(items)}.")
+        if len(items) == 0:
+            logger.warning("No items provided.")
+            return
+        if type(items[0]) == dict:
+            for item in items:
+                self.process_object(item)
+        elif type(items[0]) == list:
+            raise TypeError("Arrays of arrays currently are not supported.")
+            # Temporary disabled until supported not only processing, but also export
+            # self.process_array(items)
+        else:
+            raise ValueError(f"Unsupported item type ({type(items[0])}).")
+
+    def process_array(self, array_value: List, prefix: str = ""):
         if len(array_value) == 0:
             return
+        if len(set([type(x) for x in array_value])) > 1:
+            raise ValueError(f"All array ({prefix}) elements must be of the same type.")
         if self.headers_meta.get(prefix) is None:
             self.headers_meta[prefix] = {"count": 0, "properties": []}
         # Assuming all elements of array are the same type
@@ -92,7 +112,7 @@ class CSVExporter:
         elif type(array_value[0]) == list:
             for i, element in enumerate(array_value):
                 property_path = f"{prefix}[{i}]"
-                self.process_array(property_path, element)
+                self.process_array(element, property_path)
         else:
             if prefix not in self.adjusted_properties:
                 self.process_base_array(prefix, array_value)
@@ -101,7 +121,11 @@ class CSVExporter:
 
     def process_base_array(self, prefix: str, array_value: List):
         if self.headers_meta[prefix]["count"] < len(array_value):
-            self.headers_meta[prefix]["count"] = len(array_value)
+            # If prefix is numeric on- skip count to avoid empty columns
+            if re.match(r"(?:\[\d+\])+", prefix):
+                self.headers_meta[prefix]["count"] = 0
+            else:
+                self.headers_meta[prefix]["count"] = len(array_value)
         # Checking manually to keep properties order instead of checking subsets
         for i, element in enumerate(array_value):
             for property_name, property_value in element.items():
@@ -111,7 +135,7 @@ class CSVExporter:
                         continue
                     self.headers_meta[prefix]["properties"].append(property_name)
                 elif type(property_value) == list:
-                    self.process_array(property_path, property_value)
+                    self.process_array(property_value, property_path)
                 else:
                     self.process_object(property_value, property_path)
 
@@ -145,7 +169,7 @@ class CSVExporter:
                 if self.headers_meta.get(property_path) is None:
                     self.headers_meta[property_path] = {}
             elif type(property_value) == list:
-                self.process_array(property_path, object_value[property_name])
+                self.process_array(object_value[property_name], property_path)
             else:
                 if (
                     property_path in self.adjusted_properties
@@ -207,6 +231,15 @@ class CSVExporter:
                 )
         return row
 
+    @staticmethod
+    def escape_grouped_data(value, separator):
+        if not value:
+            return value
+        if type(value) is list:
+            return [x.replace(separator, f"\\{separator}") for x in value]
+        else:
+            str(value).replace(separator, f"\\{separator}")
+
     def export_adjusted_property(
         self, header: str, header_path: List[str], item_data: Cut
     ):
@@ -226,10 +259,15 @@ class CSVExporter:
                     elif type(value) not in {list, dict}:
                         return value
                     elif type(value) == list:
-                        return separator.join(value)
+                        return separator.join(
+                            self.escape_grouped_data(value, separator)
+                        )
                     else:
                         return separator.join(
-                            [f"{pn}: {pv}" for pn, pv in value.items()]
+                            [
+                                f"{self.escape_grouped_data(pn, separator)}: {self.escape_grouped_data(pv, separator)}"
+                                for pn, pv in value.items()
+                            ]
                         )
                 # TODO What if more than 2 levels?
                 else:
@@ -237,7 +275,7 @@ class CSVExporter:
                     for element in item_data.get(header_path[0], []):
                         if element.get(header_path[1]) is not None:
                             value.append(element[header_path[1]])
-                    return separator.join(value)
+                    return separator.join(self.escape_grouped_data(value, separator))
             # Grouped AND Named
             else:
                 name = self.adjusted_properties.get(f"{header_path[0]}.name")
@@ -250,7 +288,7 @@ class CSVExporter:
                             continue
                         element_values.append(property_value)
                     values.append(f"{element_name}: {','.join(element_values)}")
-                return separator.join(values)
+                return separator.join(self.escape_grouped_data(values, separator))
         # Named; if not grouped and not named - adjusted property was filtered
         else:
             name = self.adjusted_properties.get(f"{header_path[0]}.name")
@@ -285,14 +323,14 @@ if __name__ == "__main__":
             "named": False,
             "grouped": True,
             "name": "",
-            "grouped_separators": {"images": ",\n"},
+            "grouped_separators": {"images": "\n"},
         },
         "breadcrumbs": {
             "named": False,
             "grouped": True,
             "name": "name",
             "grouped_separators": {
-                "breadcrumbs.name": " >\n",
+                "breadcrumbs.name": "\n",
                 "breadcrumbs.link": "\n",
             },
         },
@@ -329,14 +367,14 @@ if __name__ == "__main__":
         test_headers_remapping,
     )
     # Collect stats
-    for it in item_list:
-        csv_exporter.process_object(it)
+    csv_exporter.process_items(item_list)
     # Flatten headers
-    # from pprint import pprint
-    # pprint(csv_exporter.headers_meta, sort_dicts=False)
-    # print("*" * 500)
+    from pprint import pprint
+
+    pprint(csv_exporter.headers_meta, sort_dicts=False)
+    print("*" * 500)
     csv_exporter.flatten_headers()
-    # pprint(csv_exporter.headers, sort_dicts=False)
+    pprint(csv_exporter.headers, sort_dicts=False)
     with open(
         f"autocrawl/utils/csv_assets/{file_name.replace('.json', '.csv')}", mode="w"
     ) as export_file:
@@ -346,7 +384,6 @@ if __name__ == "__main__":
         csv_writer.writerow(csv_exporter.remap_headers())
         for p in item_list:
             csv_writer.writerow(csv_exporter.export_item(p))
-    # TODO Add input validation
     # TODO Add escaping for key-value-elements if grouping
     # Maybe using \n as a default separator should work, to don't mess up with escaping
     # Define fields where to use property values as column names
