@@ -10,7 +10,7 @@ from ..csv_export import CSVExporter
 
 class TestCSV:
     @pytest.mark.parametrize(
-        "case_name, adjusted_properties, array_limits",
+        "case_name, field_options, array_limits",
         [
             ("articles_xod_test", {}, {}),
             (
@@ -72,12 +72,12 @@ class TestCSV:
             ),
         ],
     )
-    def test_csv_export(self, case_name, adjusted_properties, array_limits):
+    def test_csv_export(self, case_name, field_options, array_limits):
         # Load item list from JSON (simulate API response)
         item_list = json.loads(
             resource_string(__name__, f"assets/{case_name}.json").decode("utf-8")
         )
-        csv_exporter = CSVExporter(adjusted_properties, array_limits, [])
+        csv_exporter = CSVExporter(field_options, array_limits, [])
         # Collect stats
         csv_exporter.process_items(item_list)
         csv_exporter.limit_headers_meta()

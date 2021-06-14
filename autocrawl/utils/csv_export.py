@@ -18,7 +18,7 @@ class Header(TypedDict, total=False):
     properties: List[str]
 
 
-def prepare_adjusted_properties(properties: Dict) -> Cut:
+def prepare_field_options(properties: Dict) -> Cut:
     to_filter = set()
     for property_name, property_value in properties.items():
         if not property_value.get("named") and not property_value.get("grouped"):
@@ -34,8 +34,13 @@ def prepare_adjusted_properties(properties: Dict) -> Cut:
 
 @attr.s(auto_attribs=True)
 class CSVExporter:
-    adjusted_properties: Dict = attr.ib(
-        converter=prepare_adjusted_properties, default=attr.Factory(dict)
+    """
+    Collects stats on processed items, generates headers based on field settings,
+    and export items to CSV based on generated headers
+    """
+
+    field_options: Dict = attr.ib(
+        converter=prepare_field_options, default=attr.Factory(dict)
     )
     array_limits: Dict[str, int] = attr.Factory(dict)
     headers_remapping: List[Tuple[str, str]] = attr.ib(default=attr.Factory(list))
@@ -43,8 +48,8 @@ class CSVExporter:
     _headers: List[str] = attr.ib(init=False, default=attr.Factory(list))
     _headers_meta: Dict[str, Header] = attr.ib(init=False, default=attr.Factory(dict))
 
-    @adjusted_properties.validator
-    def check_adjusted_properties(self, _, value):
+    @field_options.validator
+    def check_field_options(self, _, value):
         allowed_separators = (";", ",", "\n")
         for property_name, property_value in value.items():
             for tp in {"named", "grouped"}:
@@ -109,7 +114,7 @@ class CSVExporter:
         if self._headers_meta.get(prefix) is None:
             self._headers_meta[prefix] = {"count": 0, "properties": []}
         if not isinstance(array_value[0], (dict, list)):
-            if prefix not in self.adjusted_properties:
+            if prefix not in self.field_options:
                 if self._headers_meta[prefix]["count"] < len(array_value):
                     self._headers_meta[prefix]["count"] = len(array_value)
             else:
@@ -119,7 +124,7 @@ class CSVExporter:
                 property_path = f"{prefix}[{i}]"
                 self.process_array(element, property_path)
         else:
-            if prefix not in self.adjusted_properties:
+            if prefix not in self.field_options:
                 self.process_base_array(prefix, array_value)
             else:
                 self.process_adjusted_array(prefix, array_value)
@@ -145,9 +150,9 @@ class CSVExporter:
                     self.process_object(property_value, property_path)
 
     def process_adjusted_array(self, prefix: str, array_value: List):
-        if self.adjusted_properties.get(f"{prefix}.grouped"):
+        if self.field_options.get(f"{prefix}.grouped"):
             # Arrays that both grouped and named don't need stats to group data
-            if self.adjusted_properties[prefix]["named"]:
+            if self.field_options[prefix]["named"]:
                 self._headers_meta[prefix] = {}
                 return
             properties = []
@@ -158,9 +163,9 @@ class CSVExporter:
             for property_name in properties:
                 property_path = f"{prefix}.{property_name}"
                 self._headers_meta[property_path] = {}
-        elif self.adjusted_properties.get(f"{prefix}.named"):
+        elif self.field_options.get(f"{prefix}.named"):
             for element in array_value:
-                name = self.adjusted_properties.get(f"{prefix}.name")
+                name = self.field_options.get(f"{prefix}.name")
                 property_path = f"{prefix}.{element[name]}"
                 value_properties = [x for x in element.keys() if x != name]
                 if property_path in self._headers_meta:
@@ -176,9 +181,8 @@ class CSVExporter:
             elif isinstance(property_value, list):
                 self.process_array(object_value[property_name], property_path)
             else:
-                if (
-                    property_path in self.adjusted_properties
-                    and self.adjusted_properties.get(f"{property_path}.grouped")
+                if property_path in self.field_options and self.field_options.get(
+                    f"{property_path}.grouped"
                 ):
                     self._headers_meta[property_path] = {}
                     return
@@ -250,7 +254,7 @@ class CSVExporter:
         item_data = Cut(item)
         for header in self._headers:
             header_path = header.split(".")
-            if header_path[0] not in self.adjusted_properties:
+            if header_path[0] not in self.field_options:
                 row.append(item_data.get(header, ""))
                 continue
             else:
@@ -272,15 +276,13 @@ class CSVExporter:
     def export_adjusted_property(
         self, header: str, header_path: List[str], item_data: Cut
     ):
-        if self.adjusted_properties.get(f"{header_path[0]}.grouped"):
+        if self.field_options.get(f"{header_path[0]}.grouped"):
             separator = (
-                self.adjusted_properties.get(
-                    f"{header_path[0]}.grouped_separators.{header}"
-                )
+                self.field_options.get(f"{header_path[0]}.grouped_separators.{header}")
                 or self.grouped_separator
             )
             # Grouped
-            if not self.adjusted_properties.get(f"{header_path[0]}.named"):
+            if not self.field_options.get(f"{header_path[0]}.named"):
                 if len(header_path) == 1:
                     value = item_data.get(header_path[0])
                     if value is None:
@@ -307,7 +309,7 @@ class CSVExporter:
                     return separator.join(self.escape_grouped_data(value, separator))
             # Grouped AND Named
             else:
-                name = self.adjusted_properties.get(f"{header_path[0]}.name")
+                name = self.field_options.get(f"{header_path[0]}.name")
                 values = []
                 for element in item_data.get(header_path[0], []):
                     element_name = element.get(name, "")
@@ -320,7 +322,7 @@ class CSVExporter:
                 return separator.join(self.escape_grouped_data(values, separator))
         # Named; if not grouped and not named - adjusted property was filtered
         else:
-            name = self.adjusted_properties.get(f"{header_path[0]}.name")
+            name = self.field_options.get(f"{header_path[0]}.name")
             for element in item_data.get(header_path[0], []):
                 if element.get(name) == header_path[1]:
                     return element.get(header_path[2], "")
@@ -341,7 +343,7 @@ class CSVExporter:
 
 
 if __name__ == "__main__":
-    test_adjusted_properties = {
+    test_field_options = {
         "gtin": {
             "named": True,
             "grouped": False,
@@ -403,7 +405,7 @@ if __name__ == "__main__":
         resource_string(__name__, f"tests/assets/{file_name}").decode("utf-8")
     )
     csv_exporter = CSVExporter(
-        test_adjusted_properties,
+        test_field_options,
         test_array_limits,
         test_headers_remapping,
     )
