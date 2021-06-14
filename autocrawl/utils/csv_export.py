@@ -138,11 +138,7 @@ class CSVExporter:
 
     def process_base_array(self, prefix: str, array_value: List):
         if self._headers_meta[prefix]["count"] < len(array_value):
-            # If prefix is numeric on- skip count to avoid empty columns
-            if re.match(r"(?:\[\d+\])+", prefix):
-                self._headers_meta[prefix]["count"] = 0
-            else:
-                self._headers_meta[prefix]["count"] = len(array_value)
+            self._headers_meta[prefix]["count"] = len(array_value)
         # Checking manually to keep properties order instead of checking subsets
         for i, element in enumerate(array_value):
             for property_name, property_value in element.items():
