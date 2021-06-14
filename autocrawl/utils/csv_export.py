@@ -329,6 +329,22 @@ class CSVExporter:
             else:
                 return ""
 
+    def export_csv(self, items: list, export_path: str):
+        # Collect stats
+        self.process_items(items)
+        # Apply array limits
+        self.limit_headers_meta()
+        # Flatten headers
+        self.flatten_headers()
+        # Export to CSV
+        with open(export_path, mode="w") as export_file:
+            csv_writer = csv.writer(
+                export_file, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL
+            )
+            csv_writer.writerow(self.remap_headers())
+            for p in items:
+                csv_writer.writerow(self.export_item(p))
+
 
 if __name__ == "__main__":
     test_adjusted_properties = {
@@ -397,19 +413,6 @@ if __name__ == "__main__":
         test_array_limits,
         test_headers_remapping,
     )
-    # Collect stats
-    csv_exporter.process_items(item_list)
-    # Apply array limits
-    csv_exporter.limit_headers_meta()
-    # Flatten headers
-    csv_exporter.flatten_headers()
-    # Export to CSV
-    with open(
-        f"autocrawl/utils/csv_assets/{file_name.replace('.json', '.csv')}", mode="w"
-    ) as export_file:
-        csv_writer = csv.writer(
-            export_file, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL
-        )
-        csv_writer.writerow(csv_exporter.remap_headers())
-        for p in item_list:
-            csv_writer.writerow(csv_exporter.export_item(p))
+    csv_exporter.export_csv(
+        item_list, f"autocrawl/utils/csv_assets/{file_name.replace('.json', '.csv')}"
+    )
