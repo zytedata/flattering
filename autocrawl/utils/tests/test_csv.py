@@ -65,6 +65,11 @@ class TestCSV:
                 },
                 {"offers": 1},
             ),
+            (
+                "items_simple_test",
+                {},
+                {},
+            ),
         ],
     )
     def test_csv_export(self, case_name, adjusted_properties, array_limits):
@@ -90,4 +95,6 @@ class TestCSV:
         # Comparing row by row
         for item, row in zip(item_list, csv_data[1:]):
             # Stringify all values because to match string data from csv
-            assert [str(x) for x in csv_exporter.export_item(item)] == row
+            assert [
+                str(x) if x is not None else "" for x in csv_exporter.export_item(item)
+            ] == row

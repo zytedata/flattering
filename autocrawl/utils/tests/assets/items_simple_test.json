@@ -1,0 +1,14 @@
+[
+    {
+        "mixed_array_field": [
+            "base_element_1",
+            null,
+            "base_element_2",
+            0,
+            "base_element_3",
+            "12",
+            "base_element_4",
+            true
+        ]
+    }
+]

@@ -98,8 +98,13 @@ class CSVExporter:
     def process_array(self, array_value: List, prefix: str = ""):
         if len(array_value) == 0:
             return
-        if len(set([type(x) for x in array_value])) > 1:
-            raise ValueError(f"All array ({prefix}) elements must be of the same type.")
+        # TODO Return after adding new tests
+        array_types = set([type(x) for x in array_value])
+        for et in (dict, list, tuple, set):
+            if len(set([x == et for x in array_types])) > 1:
+                raise ValueError(
+                    f"{str(et)}'s can't be mixed with other types in an array ({prefix})."
+                )
         if self.headers_meta.get(prefix) is None:
             self.headers_meta[prefix] = {"count": 0, "properties": []}
         # Assuming all elements of array are the same type
@@ -381,7 +386,7 @@ if __name__ == "__main__":
     # Define how many elements of array to process
     test_array_limits = {"offers": 1}
     # Load item list from JSON (simulate API response)
-    file_name = "products_xod_test.json"
+    file_name = "items_simple_test.json"
     item_list = json.loads(
         resource_string(__name__, f"tests/assets/{file_name}").decode("utf-8")
     )
