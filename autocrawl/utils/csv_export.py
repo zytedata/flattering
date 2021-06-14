@@ -18,6 +18,13 @@ class Header(TypedDict, total=False):
     properties: List[str]
 
 
+class FieldOption(TypedDict, total=False):
+    name: int
+    named: bool
+    grouped: bool
+    grouped_separators: Dict[str, str]
+
+
 def prepare_field_options(properties: Dict) -> Cut:
     to_filter = set()
     for property_name, property_value in properties.items():
@@ -39,7 +46,7 @@ class CSVExporter:
     and export items to CSV based on generated headers
     """
 
-    field_options: Dict = attr.ib(
+    field_options: Dict[str, FieldOption] = attr.ib(
         converter=prepare_field_options, default=attr.Factory(dict)
     )
     array_limits: Dict[str, int] = attr.Factory(dict)
@@ -278,7 +285,9 @@ class CSVExporter:
     ):
         if self.field_options.get(f"{header_path[0]}.grouped"):
             separator = (
-                self.field_options.get(f"{header_path[0]}.grouped_separators.{header}")
+                self.field_options.get(header_path[0], {})
+                .get("grouped_separators", {})
+                .get(header)
                 or self.grouped_separator
             )
             # Grouped
