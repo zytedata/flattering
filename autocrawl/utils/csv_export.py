@@ -34,10 +34,12 @@ def prepare_adjusted_properties(properties: Dict) -> Cut:
 
 @attr.s(auto_attribs=True)
 class CSVExporter:
-    adjusted_properties: Dict = attr.ib(converter=prepare_adjusted_properties)
-    array_limits: Dict[str, int]
-    headers_remapping: List[Tuple[str, str]] = attr.ib()
-    grouped_separator: str = "\n"
+    adjusted_properties: Dict = attr.ib(
+        converter=prepare_adjusted_properties, default=attr.Factory(dict)
+    )
+    array_limits: Dict[str, int] = attr.Factory(dict)
+    headers_remapping: List[Tuple[str, str]] = attr.ib(default=attr.Factory(list))
+    grouped_separator: str = attr.ib(default="\n")
     headers: List[str] = attr.Factory(list)
     headers_meta: Dict[str, Header] = attr.Factory(dict)
 
@@ -245,7 +247,7 @@ class CSVExporter:
                 limited_headers_meta[field] = meta
         self.headers_meta = limited_headers_meta
 
-    def export_item(self, item: Dict):
+    def export_item(self, item: Dict) -> List:
         row = []
         item_data = Cut(item)
         for header in self.headers:
