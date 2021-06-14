@@ -40,8 +40,8 @@ class CSVExporter:
     array_limits: Dict[str, int] = attr.Factory(dict)
     headers_remapping: List[Tuple[str, str]] = attr.ib(default=attr.Factory(list))
     grouped_separator: str = attr.ib(default="\n")
-    headers: List[str] = attr.Factory(list)
-    headers_meta: Dict[str, Header] = attr.Factory(dict)
+    _headers: List[str] = attr.ib(init=False, default=attr.Factory(list))
+    _headers_meta: Dict[str, Header] = attr.ib(init=False, default=attr.Factory(dict))
 
     @adjusted_properties.validator
     def check_adjusted_properties(self, attribute, value):
