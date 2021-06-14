@@ -328,13 +328,9 @@ class CSVExporter:
                 return ""
 
     def export_csv(self, items: list, export_path: str):
-        # Collect stats
         self.process_items(items)
-        # Apply array limits
         self.limit_headers_meta()
-        # Flatten headers
         self.flatten_headers()
-        # Export to CSV
         with open(export_path, mode="w") as export_file:
             csv_writer = csv.writer(
                 export_file, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL
