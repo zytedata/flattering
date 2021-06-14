@@ -46,7 +46,7 @@ class CSVExporter:
         allowed_separators = (";", ",", "\n")
         for property_name, property_value in value.items():
             for tp in {"named", "grouped"}:
-                if type(property_value.get(tp)) != bool:
+                if not isinstance(property_value.get(tp), bool):
                     raise ValueError(
                         f"Adjusted properties ({property_name}) must include `{tp}` parameter with boolean value."
                     )
@@ -65,16 +65,16 @@ class CSVExporter:
 
     @headers_remapping.validator
     def check_headers_remapping(self, attribute, value):
-        if type(value) != list:
+        if not isinstance(value, list):
             raise ValueError("Headers remappings must be provided as a list of tuples.")
         for rmp in value:
-            if type(rmp) not in {list, tuple}:
+            if not isinstance(rmp, (list, tuple)):
                 raise ValueError(f"Headers remappings ({rmp}) must be tuples.")
             if len(rmp) != 2:
                 raise ValueError(
                     f"Headers remappings ({rmp}) must include two elements: pattern and replacement."
                 )
-            if any([type(x) != str for x in rmp]):
+            if any([not isinstance(x, str) for x in rmp]):
                 raise ValueError(
                     f"Headers remappings ({rmp}) elements must be strings."
                 )
