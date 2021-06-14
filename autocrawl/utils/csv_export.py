@@ -44,7 +44,7 @@ class CSVExporter:
     _headers_meta: Dict[str, Header] = attr.ib(init=False, default=attr.Factory(dict))
 
     @adjusted_properties.validator
-    def check_adjusted_properties(self, attribute, value):
+    def check_adjusted_properties(self, _, value):
         allowed_separators = (";", ",", "\n")
         for property_name, property_value in value.items():
             for tp in {"named", "grouped"}:
@@ -66,7 +66,7 @@ class CSVExporter:
                     )
 
     @headers_remapping.validator
-    def check_headers_remapping(self, attribute, value):
+    def check_headers_remapping(self, _, value):
         if not isinstance(value, list):
             raise ValueError("Headers remappings must be provided as a list of tuples.")
         for rmp in value:
@@ -82,15 +82,15 @@ class CSVExporter:
                 )
 
     def process_items(self, items):
-        if type(items) != list:
+        if not isinstance(items, list):
             raise ValueError(f"Initial items data must be array, not {type(items)}.")
         if len(items) == 0:
             logger.warning("No items provided.")
             return
-        if type(items[0]) == dict:
+        if isinstance(items[0], dict):
             for item in items:
                 self.process_object(item)
-        elif type(items[0]) == list:
+        elif isinstance(items[0], list):
             raise TypeError("Arrays of arrays currently are not supported.")
             # Temporary disabled until supported not only processing, but also export
             # self.process_array(items)
@@ -100,23 +100,21 @@ class CSVExporter:
     def process_array(self, array_value: List, prefix: str = ""):
         if len(array_value) == 0:
             return
-        # TODO Return after adding new tests
         array_types = set([type(x) for x in array_value])
         for et in (dict, list, tuple, set):
             if len(set([x == et for x in array_types])) > 1:
                 raise ValueError(
                     f"{str(et)}'s can't be mixed with other types in an array ({prefix})."
                 )
-        if self.headers_meta.get(prefix) is None:
-            self.headers_meta[prefix] = {"count": 0, "properties": []}
-        # Assuming all elements of array are the same type
-        if type(array_value[0]) not in {dict, list}:
+        if self._headers_meta.get(prefix) is None:
+            self._headers_meta[prefix] = {"count": 0, "properties": []}
+        if not isinstance(array_value[0], (dict, list)):
             if prefix not in self.adjusted_properties:
-                if self.headers_meta[prefix]["count"] < len(array_value):
-                    self.headers_meta[prefix]["count"] = len(array_value)
+                if self._headers_meta[prefix]["count"] < len(array_value):
+                    self._headers_meta[prefix]["count"] = len(array_value)
             else:
-                self.headers_meta[prefix] = {}
-        elif type(array_value[0]) == list:
+                self._headers_meta[prefix] = {}
+        elif isinstance(array_value[0], list):
             for i, element in enumerate(array_value):
                 property_path = f"{prefix}[{i}]"
                 self.process_array(element, property_path)
@@ -127,21 +125,21 @@ class CSVExporter:
                 self.process_adjusted_array(prefix, array_value)
 
     def process_base_array(self, prefix: str, array_value: List):
-        if self.headers_meta[prefix]["count"] < len(array_value):
+        if self._headers_meta[prefix]["count"] < len(array_value):
             # If prefix is numeric on- skip count to avoid empty columns
             if re.match(r"(?:\[\d+\])+", prefix):
-                self.headers_meta[prefix]["count"] = 0
+                self._headers_meta[prefix]["count"] = 0
             else:
-                self.headers_meta[prefix]["count"] = len(array_value)
+                self._headers_meta[prefix]["count"] = len(array_value)
         # Checking manually to keep properties order instead of checking subsets
         for i, element in enumerate(array_value):
             for property_name, property_value in element.items():
                 property_path = f"{prefix}[{i}].{property_name}"
-                if type(property_value) not in {dict, list}:
-                    if property_name in self.headers_meta[prefix]["properties"]:
+                if not isinstance(property_value, (dict, list)):
+                    if property_name in self._headers_meta[prefix]["properties"]:
                         continue
-                    self.headers_meta[prefix]["properties"].append(property_name)
-                elif type(property_value) == list:
+                    self._headers_meta[prefix]["properties"].append(property_name)
+                elif isinstance(property_value, list):
                     self.process_array(property_value, property_path)
                 else:
                     self.process_object(property_value, property_path)
@@ -150,7 +148,7 @@ class CSVExporter:
         if self.adjusted_properties.get(f"{prefix}.grouped"):
             # Arrays that both grouped and named don't need stats to group data
             if self.adjusted_properties[prefix]["named"]:
-                self.headers_meta[prefix] = {}
+                self._headers_meta[prefix] = {}
                 return
             properties = []
             for element in array_value:
@@ -159,36 +157,36 @@ class CSVExporter:
                         properties.append(property_name)
             for property_name in properties:
                 property_path = f"{prefix}.{property_name}"
-                self.headers_meta[property_path] = {}
+                self._headers_meta[property_path] = {}
         elif self.adjusted_properties.get(f"{prefix}.named"):
             for element in array_value:
                 name = self.adjusted_properties.get(f"{prefix}.name")
                 property_path = f"{prefix}.{element[name]}"
                 value_properties = [x for x in element.keys() if x != name]
-                if property_path in self.headers_meta:
+                if property_path in self._headers_meta:
                     continue
-                self.headers_meta[property_path] = {"properties": value_properties}
+                self._headers_meta[property_path] = {"properties": value_properties}
 
     def process_object(self, object_value: Dict, prefix: str = ""):
         for property_name, property_value in object_value.items():
             property_path = f"{prefix}.{property_name}" if prefix else property_name
-            if type(property_value) not in {dict, list}:
-                if self.headers_meta.get(property_path) is None:
-                    self.headers_meta[property_path] = {}
-            elif type(property_value) == list:
+            if not isinstance(property_value, (dict, list)):
+                if self._headers_meta.get(property_path) is None:
+                    self._headers_meta[property_path] = {}
+            elif isinstance(property_value, list):
                 self.process_array(object_value[property_name], property_path)
             else:
                 if (
                     property_path in self.adjusted_properties
                     and self.adjusted_properties.get(f"{property_path}.grouped")
                 ):
-                    self.headers_meta[property_path] = {}
+                    self._headers_meta[property_path] = {}
                     return
                 self.process_object(object_value[property_name], property_path)
 
     def flatten_headers(self):
         headers = []
-        for field, meta in self.headers_meta.items():
+        for field, meta in self._headers_meta.items():
             if meta.get("count") == 0:
                 continue
             elif meta.get("count") is not None:
@@ -207,13 +205,13 @@ class CSVExporter:
                 else:
                     for pr in meta.get("properties"):
                         headers.append(f"{field}.{pr}")
-        self.headers = headers
+        self._headers = headers
 
     def remap_headers(self, capitalize=True):
         if not self.headers_remapping:
-            return self.headers
+            return self._headers
         remapped_headers = []
-        for header in self.headers:
+        for header in self._headers:
             for old, new in self.headers_remapping:
                 header = re.sub(old, new, header)
             if capitalize and header:
@@ -227,30 +225,30 @@ class CSVExporter:
         """
         filters = set()
         for key, value in self.array_limits.items():
-            if key not in self.headers_meta:
+            if key not in self._headers_meta:
                 continue
-            if not self.headers_meta[key].get("count"):
+            if not self._headers_meta[key].get("count"):
                 continue
-            if self.headers_meta[key]["count"] <= value:
+            if self._headers_meta[key]["count"] <= value:
                 continue
-            for i in range(self.headers_meta[key]["count"]):
+            for i in range(self._headers_meta[key]["count"]):
                 if i < value:
                     continue
                 filters.add(f"{key}[{i}]")
-            self.headers_meta[key]["count"] = value
+            self._headers_meta[key]["count"] = value
         limited_headers_meta = {}
-        for field, meta in self.headers_meta.items():
+        for field, meta in self._headers_meta.items():
             for key in filters:
                 if field.startswith(key):
                     break
             else:
                 limited_headers_meta[field] = meta
-        self.headers_meta = limited_headers_meta
+        self._headers_meta = limited_headers_meta
 
     def export_item(self, item: Dict) -> List:
         row = []
         item_data = Cut(item)
-        for header in self.headers:
+        for header in self._headers:
             header_path = header.split(".")
             if header_path[0] not in self.adjusted_properties:
                 row.append(item_data.get(header, ""))
@@ -266,7 +264,7 @@ class CSVExporter:
         if not value:
             return value
         escaped_separator = f"\\{separator}" if separator != "\n" else "\\n"
-        if type(value) is list:
+        if isinstance(value, list):
             return [x.replace(separator, escaped_separator) for x in value]
         else:
             return str(value).replace(separator, escaped_separator)
@@ -287,9 +285,9 @@ class CSVExporter:
                     value = item_data.get(header_path[0])
                     if value is None:
                         return ""
-                    elif type(value) not in {list, dict}:
+                    elif not isinstance(value, (list, dict)):
                         return value
-                    elif type(value) == list:
+                    elif isinstance(value, list):
                         return separator.join(
                             self.escape_grouped_data(value, separator)
                         )

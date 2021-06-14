@@ -90,7 +90,7 @@ class TestCSV:
                 )
             )
         )
-        assert len([csv_exporter.headers] + item_list) == len(csv_data)
+        assert len([csv_exporter._headers] + item_list) == len(csv_data)
         # Comparing row by row
         for item, row in zip(item_list, csv_data[1:]):
             # Stringify all values because to match string data from csv
