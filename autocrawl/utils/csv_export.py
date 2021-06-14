@@ -132,11 +132,11 @@ class CSVExporter:
                 self.process_array(element, property_path)
         else:
             if prefix not in self.field_options:
-                self.process_base_array(prefix, array_value)
+                self.process_base_array(array_value, prefix)
             else:
-                self.process_adjusted_array(prefix, array_value)
+                self.process_adjusted_array(array_value, prefix)
 
-    def process_base_array(self, prefix: str, array_value: List):
+    def process_base_array(self, array_value: List, prefix: str):
         if self._headers_meta[prefix]["count"] < len(array_value):
             self._headers_meta[prefix]["count"] = len(array_value)
         # Checking manually to keep properties order instead of checking subsets
@@ -152,7 +152,7 @@ class CSVExporter:
                 else:
                     self.process_object(property_value, property_path)
 
-    def process_adjusted_array(self, prefix: str, array_value: List):
+    def process_adjusted_array(self, array_value: List, prefix: str):
         if self.field_options.get(f"{prefix}.grouped"):
             # Arrays that both grouped and named don't need stats to group data
             if self.field_options[prefix]["named"]:
