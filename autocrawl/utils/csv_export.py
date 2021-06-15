@@ -272,7 +272,7 @@ class CSVExporter:
             return value
         escaped_separator = f"\\{separator}" if separator != "\n" else "\\n"
         if isinstance(value, list):
-            return [x.replace(separator, escaped_separator) for x in value]
+            return [str(x).replace(separator, escaped_separator) for x in value]
         else:
             return str(value).replace(separator, escaped_separator)
 
@@ -323,7 +323,9 @@ class CSVExporter:
                         if property_name == name:
                             continue
                         element_values.append(property_value)
-                    values.append(f"{element_name}: {','.join(element_values)}")
+                    values.append(
+                        f"{element_name}: {','.join([str(x) for x in element_values])}"
+                    )
                 return separator.join(self.escape_grouped_data(values, separator))
         # Named; if not grouped and not named - adjusted property was filtered
         else:
@@ -357,7 +359,7 @@ if __name__ == "__main__":
         },
         "additionalProperty": {
             "named": True,
-            "grouped": True,
+            "grouped": False,
             "name": "name",
             "grouped_separators": {"additionalProperty": "\n"},
         },
