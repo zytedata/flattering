@@ -9,6 +9,7 @@
             "12",
             "base_element_4",
             true
-        ]
+        ],
+        "base_field": "base_value"
     }
 ]

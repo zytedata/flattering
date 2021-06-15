@@ -342,6 +342,18 @@ class CSVExporter:
                 csv_writer.writerow(self.export_item(p))
 
 
+def generate_max_item(fields):
+    item = {}
+    for field in fields:
+        array_data = re.findall(r"^(.*)\[(\d+)\]$", field)
+        if not array_data:
+            item[field] = ""
+        else:
+            item[array_data[0][0]] = ["" for x in range(int(array_data[0][1]))]
+    print("*" * 50)
+    print(item)
+
+
 if __name__ == "__main__":
     test_field_options = {
         "gtin": {
@@ -409,6 +421,17 @@ if __name__ == "__main__":
         test_array_limits,
         test_headers_renaming,
     )
-    csv_exporter.export_csv(
-        item_list, f"autocrawl/utils/csv_assets/{file_name.replace('.json', '.csv')}"
-    )
+
+    ###########################
+    csv_exporter.process_items(item_list)
+    csv_exporter.limit_headers_meta()
+    csv_exporter.flatten_headers()
+    print(csv_exporter._headers)
+
+    test_data = csv_exporter._headers
+    generate_max_item(test_data)
+
+    ###########################
+    # csv_exporter.export_csv(
+    #     item_list, f"autocrawl/utils/csv_assets/{file_name.replace('.json', '.csv')}"
+    # )
