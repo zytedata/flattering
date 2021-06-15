@@ -198,12 +198,10 @@ class CSVExporter:
                 if not meta.get("properties"):
                     for i in range(meta["count"]):
                         headers.append(f"{field}[{i}]")
-                    continue
                 else:
                     for i in range(meta["count"]):
                         for pr in meta["properties"]:
                             headers.append(f"{field}[{i}].{pr}")
-                    continue
             else:
                 if not meta.get("properties"):
                     headers.append(field)
@@ -257,7 +255,6 @@ class CSVExporter:
             header_path = header.split(".")
             if header_path[0] not in self.field_options:
                 row.append(item_data.get(header, ""))
-                continue
             else:
                 row.append(
                     self.export_adjusted_property(header, header_path, item_data)
