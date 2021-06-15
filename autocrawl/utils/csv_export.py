@@ -50,7 +50,7 @@ class CSVExporter:
         converter=prepare_field_options, default=attr.Factory(dict)
     )
     array_limits: Dict[str, int] = attr.Factory(dict)
-    headers_remapping: List[Tuple[str, str]] = attr.ib(default=attr.Factory(list))
+    headers_renaming: List[Tuple[str, str]] = attr.ib(default=attr.Factory(list))
     grouped_separator: str = attr.ib(default="\n")
     _headers: List[str] = attr.ib(init=False, default=attr.Factory(list))
     _headers_meta: Dict[str, Header] = attr.ib(init=False, default=attr.Factory(dict))
@@ -77,21 +77,19 @@ class CSVExporter:
                         f" as custom grouped separators ({key}:{value})."
                     )
 
-    @headers_remapping.validator
-    def check_headers_remapping(self, _, value):
+    @headers_renaming.validator
+    def check_headers_renaming(self, _, value):
         if not isinstance(value, list):
-            raise ValueError("Headers remappings must be provided as a list of tuples.")
+            raise ValueError("Headers renamings must be provided as a list of tuples.")
         for rmp in value:
             if not isinstance(rmp, (list, tuple)):
-                raise ValueError(f"Headers remappings ({rmp}) must be tuples.")
+                raise ValueError(f"Headers renamings ({rmp}) must be tuples.")
             if len(rmp) != 2:
                 raise ValueError(
-                    f"Headers remappings ({rmp}) must include two elements: pattern and replacement."
+                    f"Headers renamings ({rmp}) must include two elements: pattern and replacement."
                 )
             if any([not isinstance(x, str) for x in rmp]):
-                raise ValueError(
-                    f"Headers remappings ({rmp}) elements must be strings."
-                )
+                raise ValueError(f"Headers renamings ({rmp}) elements must be strings.")
 
     def process_items(self, items):
         if not isinstance(items, list):
@@ -214,17 +212,17 @@ class CSVExporter:
                         headers.append(f"{field}.{pr}")
         self._headers = headers
 
-    def remap_headers(self, capitalize=True):
-        if not self.headers_remapping:
+    def rename_headers(self, capitalize=True):
+        if not self.headers_renaming:
             return self._headers
-        remapped_headers = []
+        renamed_headers = []
         for header in self._headers:
-            for old, new in self.headers_remapping:
+            for old, new in self.headers_renaming:
                 header = re.sub(old, new, header)
             if capitalize and header:
                 header = header[:1].capitalize() + header[1:]
-            remapped_headers.append(header)
-        return remapped_headers
+            renamed_headers.append(header)
+        return renamed_headers
 
     def limit_headers_meta(self):
         """
@@ -344,7 +342,7 @@ class CSVExporter:
             csv_writer = csv.writer(
                 export_file, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL
             )
-            csv_writer.writerow(self.remap_headers())
+            csv_writer.writerow(self.rename_headers())
             for p in items:
                 csv_writer.writerow(self.export_item(p))
 
@@ -397,7 +395,7 @@ if __name__ == "__main__":
         #     "grouped_separators": {},
         # }
     }
-    test_headers_remapping = [
+    test_headers_renaming = [
         (r"offers\[0\].", ""),
         (r"aggregateRating\.", ""),
         (r"additionalProperty\.(.*)\.value", r"\1"),
@@ -414,7 +412,7 @@ if __name__ == "__main__":
     csv_exporter = CSVExporter(
         test_field_options,
         test_array_limits,
-        test_headers_remapping,
+        test_headers_renaming,
     )
     csv_exporter.export_csv(
         item_list, f"autocrawl/utils/csv_assets/{file_name.replace('.json', '.csv')}"
