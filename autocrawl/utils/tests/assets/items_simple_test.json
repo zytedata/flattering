@@ -10,6 +10,28 @@
             "base_element_4",
             true
         ],
-        "base_field": "base_value"
+        "base_field": "base_value",
+        "objects_array_field": [
+            {
+                "name": "some_name_1",
+                "value": "some_value_1"
+            },
+            {
+                "name": "some_name_2",
+                "value": "some_value_2"
+            }
+        ],
+        "object_field": {
+            "nested_object_field": "nested_object_value",
+            "nested_object_array": [
+                "nested_object_element_1",
+                "nested_object_element_2"
+            ],
+            "nested_object_array_of_objects": [
+                {
+                    "nested_object_array_element": "nested_object_array_element_value"
+                }
+            ]
+        }
     }
 ]

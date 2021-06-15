@@ -358,7 +358,14 @@ def generate_max_item(columns):
             if not array_data:
                 full_path.append(field)
                 field_path = ".".join(full_path)
-                item[field_path] = ""
+                # If object doesn't exist
+                if not item.get(field_path):
+                    # More elements in path means dict
+                    if i + 1 < len(column_path):
+                        item[field_path] = {}
+                    # Last element means simple type
+                    else:
+                        item[field_path] = ""
             else:
                 field_path = ".".join(full_path + [array_data[0][0]])
                 element_path = ".".join(full_path + [field])
@@ -367,13 +374,13 @@ def generate_max_item(columns):
                     item[field_path] = []
                 # If array element doesn't exist
                 if not item.get(element_path):
-                    # If more elements in path - it means array of dicts
+                    # More elements in path means array of dicts
                     if i + 1 < len(column_path):
                         item[field_path].append({})
-                    # If the last element - it means array of simple types
+                    # Last element means array of simple types
                     else:
                         item[field_path].append("")
-                full_path.append(element_path)
+                full_path.append(field)
     print("*" * 50)
     print(item)
 
@@ -436,14 +443,15 @@ if __name__ == "__main__":
     # Define how many elements of array to process
     test_array_limits = {"offers": 1}
     # Load item list from JSON (simulate API response)
-    file_name = "items_simple_test.json"
+    # TODO Test additionalProperties processing
+    file_name = "products_simple_xod_test.json"
     item_list = json.loads(
         resource_string(__name__, f"tests/assets/{file_name}").decode("utf-8")
     )
     csv_exporter = CSVExporter(
-        test_field_options,
-        test_array_limits,
-        test_headers_renaming,
+        # test_field_options,
+        # test_array_limits,
+        # test_headers_renaming,
     )
 
     ###########################
