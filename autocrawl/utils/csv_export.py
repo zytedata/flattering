@@ -342,14 +342,38 @@ class CSVExporter:
                 csv_writer.writerow(self.export_item(p))
 
 
-def generate_max_item(fields):
-    item = {}
-    for field in fields:
-        array_data = re.findall(r"^(.*)\[(\d+)\]$", field)
-        if not array_data:
-            item[field] = ""
-        else:
-            item[array_data[0][0]] = ["" for x in range(int(array_data[0][1]))]
+# def process_field_type(field):
+#     if f
+
+
+def generate_max_item(columns):
+    item = Cut({})
+    for column in columns:
+        full_path = []
+        column_path = column.split(".")
+        # Skipping array of arrays cases
+        for i, field in enumerate(column_path):
+            # Check if array or dict
+            array_data = re.findall(r"^(.+)\[(\d+)\]$", field)
+            if not array_data:
+                full_path.append(field)
+                field_path = ".".join(full_path)
+                item[field_path] = ""
+            else:
+                field_path = ".".join(full_path + [array_data[0][0]])
+                element_path = ".".join(full_path + [field])
+                # If array doesn't exist
+                if not item.get(field_path):
+                    item[field_path] = []
+                # If array element doesn't exist
+                if not item.get(element_path):
+                    # If more elements in path - it means array of dicts
+                    if i + 1 < len(column_path):
+                        item[field_path].append({})
+                    # If the last element - it means array of simple types
+                    else:
+                        item[field_path].append("")
+                full_path.append(element_path)
     print("*" * 50)
     print(item)
 
