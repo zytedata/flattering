@@ -102,8 +102,6 @@ class CSVExporter:
                 self.process_object(item)
         elif isinstance(items[0], list):
             raise TypeError("Arrays of arrays currently are not supported.")
-            # Temporary disabled until supported not only processing, but also export
-            # self.process_array(items)
         else:
             raise ValueError(f"Unsupported item type ({type(items[0])}).")
 
