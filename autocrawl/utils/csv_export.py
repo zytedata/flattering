@@ -39,21 +39,62 @@ def prepare_field_options(properties: Dict) -> Cut:
     return Cut(properties)
 
 
+def generate_max_item(columns):
+    """
+    Generate the largest possible item (max fields included)
+    based on the headers from CSVStatsCollector.
+    :param columns: List of column names
+    :return: Item with empty values
+    """
+    item = Cut({})
+    for column in columns:
+        full_path = []
+        column_path = column.split(".")
+        # Skipping array of arrays cases
+        for i, field in enumerate(column_path):
+            # Check if array or dict
+            array_data = re.findall(r"^(.+)\[(\d+)\]$", field)
+            if not array_data:
+                full_path.append(field)
+                field_path = ".".join(full_path)
+                # If object doesn't exist
+                if not item.get(field_path):
+                    # More elements in path means dict
+                    if i + 1 < len(column_path):
+                        item[field_path] = {}
+                    # Last element means simple type
+                    else:
+                        item[field_path] = ""
+            else:
+                field_path = ".".join(full_path + [array_data[0][0]])
+                element_path = ".".join(full_path + [field])
+                # If array doesn't exist
+                if not item.get(field_path):
+                    item[field_path] = []
+                # If array element doesn't exist
+                if not item.get(element_path):
+                    # More elements in path means array of dicts
+                    if i + 1 < len(column_path):
+                        item[field_path].append({})
+                    # Last element means array of simple types
+                    else:
+                        item[field_path].append("")
+                full_path.append(field)
+    return item
+
+
 @attr.s(auto_attribs=True)
-class CSVExporter:
-    """
-    Collects stats on processed items, generates headers based on field settings,
-    and export items to CSV based on generated headers
-    """
+class CSVStatsCollector:
+    """"""
 
     field_options: Dict[str, FieldOption] = attr.ib(
         converter=prepare_field_options, default=attr.Factory(dict)
     )
-    array_limits: Dict[str, int] = attr.Factory(dict)
-    headers_renaming: List[Tuple[str, str]] = attr.ib(default=attr.Factory(list))
-    grouped_separator: str = attr.ib(default="\n")
-    _headers: List[str] = attr.ib(init=False, default=attr.Factory(list))
-    _headers_meta: Dict[str, Header] = attr.ib(init=False, default=attr.Factory(dict))
+    _stats: Dict[str, Header] = attr.ib(init=False, default=attr.Factory(dict))
+
+    @property
+    def stats(self):
+        return self._stats
 
     @field_options.validator
     def check_field_options(self, _, value):
@@ -77,26 +118,18 @@ class CSVExporter:
                         f" as custom grouped separators ({key}:{value})."
                     )
 
-    @headers_renaming.validator
-    def check_headers_renaming(self, _, value):
-        if not isinstance(value, list):
-            raise ValueError("Headers renamings must be provided as a list of tuples.")
-        for rmp in value:
-            if not isinstance(rmp, (list, tuple)):
-                raise ValueError(f"Headers renamings ({rmp}) must be tuples.")
-            if len(rmp) != 2:
-                raise ValueError(
-                    f"Headers renamings ({rmp}) must include two elements: pattern and replacement."
-                )
-            if any([not isinstance(x, str) for x in rmp]):
-                raise ValueError(f"Headers renamings ({rmp}) elements must be strings.")
-
     def process_items(self, items):
         if not isinstance(items, list):
             raise ValueError(f"Initial items data must be array, not {type(items)}.")
         if len(items) == 0:
             logger.warning("No items provided.")
             return
+        item_types = set([type(x) for x in items])
+        if len(item_types) > 1:
+            raise TypeError(
+                f"All elements of the array must be "
+                f"of the same type instead of {item_types}."
+            )
         if isinstance(items[0], dict):
             for item in items:
                 self.process_object(item)
@@ -114,14 +147,14 @@ class CSVExporter:
                 raise ValueError(
                     f"{str(et)}'s can't be mixed with other types in an array ({prefix})."
                 )
-        if self._headers_meta.get(prefix) is None:
-            self._headers_meta[prefix] = {"count": 0, "properties": []}
+        if self._stats.get(prefix) is None:
+            self._stats[prefix] = {"count": 0, "properties": []}
         if not isinstance(array_value[0], (dict, list)):
             if prefix not in self.field_options:
-                if self._headers_meta[prefix]["count"] < len(array_value):
-                    self._headers_meta[prefix]["count"] = len(array_value)
+                if self._stats[prefix]["count"] < len(array_value):
+                    self._stats[prefix]["count"] = len(array_value)
             else:
-                self._headers_meta[prefix] = {}
+                self._stats[prefix] = {}
         elif isinstance(array_value[0], list):
             for i, element in enumerate(array_value):
                 property_path = f"{prefix}[{i}]"
@@ -133,16 +166,16 @@ class CSVExporter:
                 self.process_adjusted_array(array_value, prefix)
 
     def process_base_array(self, array_value: List, prefix: str):
-        if self._headers_meta[prefix]["count"] < len(array_value):
-            self._headers_meta[prefix]["count"] = len(array_value)
+        if self._stats[prefix]["count"] < len(array_value):
+            self._stats[prefix]["count"] = len(array_value)
         # Checking manually to keep properties order instead of checking subsets
         for i, element in enumerate(array_value):
             for property_name, property_value in element.items():
                 property_path = f"{prefix}[{i}].{property_name}"
                 if not isinstance(property_value, (dict, list)):
-                    if property_name in self._headers_meta[prefix]["properties"]:
+                    if property_name in self._stats[prefix]["properties"]:
                         continue
-                    self._headers_meta[prefix]["properties"].append(property_name)
+                    self._stats[prefix]["properties"].append(property_name)
                 elif isinstance(property_value, list):
                     self.process_array(property_value, property_path)
                 else:
@@ -152,7 +185,7 @@ class CSVExporter:
         if self.field_options.get(f"{prefix}.grouped"):
             # Arrays that both grouped and named don't need stats to group data
             if self.field_options[prefix]["named"]:
-                self._headers_meta[prefix] = {}
+                self._stats[prefix] = {}
                 return
             properties = []
             for element in array_value:
@@ -161,33 +194,59 @@ class CSVExporter:
                         properties.append(property_name)
             for property_name in properties:
                 property_path = f"{prefix}.{property_name}"
-                self._headers_meta[property_path] = {}
+                self._stats[property_path] = {}
         elif self.field_options.get(f"{prefix}.named"):
             for element in array_value:
                 name = self.field_options.get(f"{prefix}.name")
                 property_path = f"{prefix}.{element[name]}"
                 value_properties = [x for x in element.keys() if x != name]
-                if property_path in self._headers_meta:
+                if property_path in self._stats:
                     continue
-                self._headers_meta[property_path] = {"properties": value_properties}
+                self._stats[property_path] = {"properties": value_properties}
 
     def process_object(self, object_value: Dict, prefix: str = ""):
         for property_name, property_value in object_value.items():
             property_path = f"{prefix}.{property_name}" if prefix else property_name
             if not isinstance(property_value, (dict, list)):
-                if self._headers_meta.get(property_path) is None:
-                    self._headers_meta[property_path] = {}
+                if self._stats.get(property_path) is None:
+                    self._stats[property_path] = {}
             elif isinstance(property_value, list):
                 self.process_array(object_value[property_name], property_path)
             else:
                 if property_path in self.field_options and self.field_options.get(
                     f"{property_path}.grouped"
                 ):
-                    self._headers_meta[property_path] = {}
+                    self._stats[property_path] = {}
                     return
                 self.process_object(object_value[property_name], property_path)
 
-    def flatten_headers(self):
+
+@attr.s(auto_attribs=True)
+class CSVExporter:
+    """"""
+
+    default_stats: Dict[str, Header] = attr.ib()
+    stats_collector: CSVStatsCollector = attr.ib()
+    array_limits: Dict[str, int] = attr.Factory(dict)
+    headers_renaming: List[Tuple[str, str]] = attr.ib(default=attr.Factory(list))
+    grouped_separator: str = attr.ib(default="\n")
+    _headers: List[str] = attr.ib(init=False, default=attr.Factory(list))
+
+    @headers_renaming.validator
+    def check_headers_renaming(self, _, value):
+        if not isinstance(value, list):
+            raise ValueError("Headers renamings must be provided as a list of tuples.")
+        for rmp in value:
+            if not isinstance(rmp, (list, tuple)):
+                raise ValueError(f"Headers renamings ({rmp}) must be tuples.")
+            if len(rmp) != 2:
+                raise ValueError(
+                    f"Headers renamings ({rmp}) must include two elements: pattern and replacement."
+                )
+            if any([not isinstance(x, str) for x in rmp]):
+                raise ValueError(f"Headers renamings ({rmp}) elements must be strings.")
+
+    def stats_to_headers(self):
         headers = []
         for field, meta in self._headers_meta.items():
             if meta.get("count") == 0:
@@ -246,7 +305,17 @@ class CSVExporter:
                 limited_headers_meta[field] = meta
         self._headers_meta = limited_headers_meta
 
-    def export_item(self, item: Dict) -> List:
+    @staticmethod
+    def escape_grouped_data(value, separator):
+        if not value:
+            return value
+        escaped_separator = f"\\{separator}" if separator != "\n" else "\\n"
+        if isinstance(value, list):
+            return [str(x).replace(separator, escaped_separator) for x in value]
+        else:
+            return str(value).replace(separator, escaped_separator)
+
+    def export_item_as_row(self, item: Dict) -> List:
         row = []
         item_data = Cut(item)
         for header in self._headers:
@@ -258,16 +327,6 @@ class CSVExporter:
                     self.export_adjusted_property(header, header_path, item_data)
                 )
         return row
-
-    @staticmethod
-    def escape_grouped_data(value, separator):
-        if not value:
-            return value
-        escaped_separator = f"\\{separator}" if separator != "\n" else "\\n"
-        if isinstance(value, list):
-            return [str(x).replace(separator, escaped_separator) for x in value]
-        else:
-            return str(value).replace(separator, escaped_separator)
 
     def export_adjusted_property(
         self, header: str, header_path: List[str], item_data: Cut
@@ -339,131 +398,82 @@ class CSVExporter:
             )
             csv_writer.writerow(self.rename_headers())
             for p in items:
-                csv_writer.writerow(self.export_item(p))
-
-
-# def process_field_type(field):
-#     if f
-
-
-def generate_max_item(columns):
-    item = Cut({})
-    for column in columns:
-        full_path = []
-        column_path = column.split(".")
-        # Skipping array of arrays cases
-        for i, field in enumerate(column_path):
-            # Check if array or dict
-            array_data = re.findall(r"^(.+)\[(\d+)\]$", field)
-            if not array_data:
-                full_path.append(field)
-                field_path = ".".join(full_path)
-                # If object doesn't exist
-                if not item.get(field_path):
-                    # More elements in path means dict
-                    if i + 1 < len(column_path):
-                        item[field_path] = {}
-                    # Last element means simple type
-                    else:
-                        item[field_path] = ""
-            else:
-                field_path = ".".join(full_path + [array_data[0][0]])
-                element_path = ".".join(full_path + [field])
-                # If array doesn't exist
-                if not item.get(field_path):
-                    item[field_path] = []
-                # If array element doesn't exist
-                if not item.get(element_path):
-                    # More elements in path means array of dicts
-                    if i + 1 < len(column_path):
-                        item[field_path].append({})
-                    # Last element means array of simple types
-                    else:
-                        item[field_path].append("")
-                full_path.append(field)
-    print("*" * 50)
-    print(item)
+                csv_writer.writerow(self.export_item_as_row(p))
 
 
 if __name__ == "__main__":
-    test_field_options = {
-        "gtin": {
-            "named": True,
-            "grouped": False,
-            "name": "type",
-            "grouped_separators": {},
-        },
-        "additionalProperty": {
-            "named": True,
-            "grouped": False,
-            "name": "name",
-            "grouped_separators": {"additionalProperty": "\n"},
-        },
-        "aggregateRating": {
-            "named": False,
-            "grouped": False,
-            "name": "",
-            "grouped_separators": {"aggregateRating": "\n"},
-        },
-        "images": {
-            "named": False,
-            "grouped": True,
-            "name": "",
-            "grouped_separators": {"images": "\n"},
-        },
-        "breadcrumbs": {
-            "named": False,
-            "grouped": True,
-            "name": "name",
-            "grouped_separators": {
-                "breadcrumbs.name": "\n",
-                "breadcrumbs.link": "\n",
-            },
-        },
-        # "ratingHistogram": {
-        #     "named": True,
-        #     "grouped": False,
-        #     "name": "ratingOption",
-        #     "grouped_separators": {"ratingHistogram": "\n"},
-        # },
-        # "named_array_field": {
-        #     "named": True,
-        #     "grouped": False,
-        #     "name": "name",
-        #     "grouped_separators": {},
-        # }
-    }
-    test_headers_renaming = [
-        (r"offers\[0\].", ""),
-        (r"aggregateRating\.", ""),
-        (r"additionalProperty\.(.*)\.value", r"\1"),
-        (r"breadcrumbs\.name", "breadcrumbs"),
-        (r"breadcrumbs\.link", "breadcrumbs links"),
-    ]
-    # Define how many elements of array to process
-    test_array_limits = {"offers": 1}
+    # test_field_options = {
+    #     "gtin": {
+    #         "named": True,
+    #         "grouped": False,
+    #         "name": "type",
+    #         "grouped_separators": {},
+    #     },
+    #     "additionalProperty": {
+    #         "named": True,
+    #         "grouped": False,
+    #         "name": "name",
+    #         "grouped_separators": {"additionalProperty": "\n"},
+    #     },
+    #     "aggregateRating": {
+    #         "named": False,
+    #         "grouped": False,
+    #         "name": "",
+    #         "grouped_separators": {"aggregateRating": "\n"},
+    #     },
+    #     "images": {
+    #         "named": False,
+    #         "grouped": True,
+    #         "name": "",
+    #         "grouped_separators": {"images": "\n"},
+    #     },
+    #     "breadcrumbs": {
+    #         "named": False,
+    #         "grouped": True,
+    #         "name": "name",
+    #         "grouped_separators": {
+    #             "breadcrumbs.name": "\n",
+    #             "breadcrumbs.link": "\n",
+    #         },
+    #     },
+    #     # "ratingHistogram": {
+    #     #     "named": True,
+    #     #     "grouped": False,
+    #     #     "name": "ratingOption",
+    #     #     "grouped_separators": {"ratingHistogram": "\n"},
+    #     # },
+    #     # "named_array_field": {
+    #     #     "named": True,
+    #     #     "grouped": False,
+    #     #     "name": "name",
+    #     #     "grouped_separators": {},
+    #     # }
+    # }
+    # test_headers_renaming = [
+    #     (r"offers\[0\].", ""),
+    #     (r"aggregateRating\.", ""),
+    #     (r"additionalProperty\.(.*)\.value", r"\1"),
+    #     (r"breadcrumbs\.name", "breadcrumbs"),
+    #     (r"breadcrumbs\.link", "breadcrumbs links"),
+    # ]
+    # # Define how many elements of array to process
+    # test_array_limits = {"offers": 1}
     # Load item list from JSON (simulate API response)
     # TODO Test additionalProperties processing
     file_name = "products_simple_xod_test.json"
     item_list = json.loads(
         resource_string(__name__, f"tests/assets/{file_name}").decode("utf-8")
     )
-    csv_exporter = CSVExporter(
-        # test_field_options,
-        # test_array_limits,
-        # test_headers_renaming,
-    )
-
-    ###########################
-    csv_exporter.process_items(item_list)
-    csv_exporter.limit_headers_meta()
-    csv_exporter.flatten_headers()
-    print(csv_exporter._headers)
-
-    test_data = csv_exporter._headers
-    generate_max_item(test_data)
-
-    ###########################
-    # csv_exporter.export_csv(
-    #     item_list, f"autocrawl/utils/csv_assets/{file_name.replace('.json', '.csv')}"
-    # )
+    csv_sc = CSVStatsCollector()
+    csv_sc.process_items(item_list)
+    # csv_exporter.limit_headers_meta()
+    # csv_exporter.flatten_headers()
+    print(csv_sc.stats)
+    #
+    # test_data = csv_exporter._headers
+    # generate_max_item(test_data)
+    #
+    # ###########################
+    # # csv_exporter.export_csv(
+    # #     item_list, f"autocrawl/utils/csv_assets/{file_name.replace('.json', '.csv')}"
+    # # )
