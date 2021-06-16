@@ -74,7 +74,7 @@ class CSVStatsCollector:
                         f" as custom grouped separators ({key}:{value})."
                     )
 
-    def process_items(self, items):
+    def process_items(self, items: List[Dict]):
         if not isinstance(items, list):
             raise ValueError(f"Initial items data must be array, not {type(items)}.")
         if len(items) == 0:
@@ -203,7 +203,7 @@ class CSVExporter:
                 raise ValueError(f"Headers renamings ({rmp}) elements must be strings.")
 
     @staticmethod
-    def _generate_max_item(columns: List[str]) -> Cut:
+    def _generate_max_item(columns: List[str]) -> Dict:
         """
         Generate the largest possible item (max fields included)
         based on the headers from CSVStatsCollector.
@@ -244,7 +244,7 @@ class CSVExporter:
                         else:
                             item[field_path].append("")
                     full_path.append(field)
-        return item
+        return dict(item)
 
     @staticmethod
     def _convert_stats_to_headers(stats):
@@ -344,7 +344,8 @@ class CSVExporter:
                     else:
                         return separator.join(
                             [
-                                f"{self._escape_grouped_data(pn, separator)}: {self._escape_grouped_data(pv, separator)}"
+                                f"{self._escape_grouped_data(pn, separator)}"
+                                f": {self._escape_grouped_data(pv, separator)}"
                                 for pn, pv in value.items()
                             ]
                         )
@@ -491,11 +492,11 @@ if __name__ == "__main__":
     autocrawl_csv_sc = CSVStatsCollector()
     # Items could be processed in batch or one-by-one through `process_object`
     autocrawl_csv_sc.process_items(item_list)
-    stats = autocrawl_csv_sc.stats
+    autocrawl_stats = autocrawl_csv_sc.stats
 
     # BACKEND PART (assuming we send stats to backend)
     csv_exporter = CSVExporter(
-        default_stats=stats,
+        default_stats=autocrawl_stats,
         stats_collector=CSVStatsCollector(test_field_options),
         array_limits=test_array_limits,
         headers_renaming=test_headers_renaming,
