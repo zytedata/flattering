@@ -288,13 +288,14 @@ class CSVExporter:
         filters = set()
         # Find fields that need to be limited
         for key, value in self.array_limits.items():
+            count = self.default_stats[key].get("count")
             if key not in self.default_stats:
                 continue
-            if not self.default_stats[key].get("count"):
+            if not count:
                 continue
-            for i in range(value, self.default_stats[key]["count"]):
+            for i in range(value, count):
                 filters.add(f"{key}[{i}]")
-            if self.default_stats[key]["count"] > value:
+            if count > value:
                 self.default_stats[key]["count"] = value
         limited_default_stats = {}
         # Limit field elements
