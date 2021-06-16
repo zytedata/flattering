@@ -163,7 +163,7 @@ class CSVStatsCollector:
             if prefix not in self.field_options:
                 self.process_base_array(array_value, prefix)
             else:
-                self.process_adjusted_array(array_value, prefix)
+                self.process_array_with_options(array_value, prefix)
 
     def process_base_array(self, array_value: List, prefix: str):
         if self._stats[prefix]["count"] < len(array_value):
@@ -181,7 +181,7 @@ class CSVStatsCollector:
                 else:
                     self.process_object(property_value, property_path)
 
-    def process_adjusted_array(self, array_value: List, prefix: str):
+    def process_array_with_options(self, array_value: List, prefix: str):
         if self.field_options.get(f"{prefix}.grouped"):
             # Arrays that both grouped and named don't need stats to group data
             if self.field_options[prefix]["named"]:
@@ -227,7 +227,7 @@ class CSVExporter:
 
     default_stats: Dict[str, Header] = attr.ib()
     stats_collector: CSVStatsCollector = attr.ib()
-    array_limits: Dict[str, int] = attr.Factory(dict)
+    array_limits: Dict[str, int] = attr.ib(default=attr.Factory(dict))
     headers_renaming: List[Tuple[str, str]] = attr.ib(default=attr.Factory(list))
     grouped_separator: str = attr.ib(default="\n")
     _headers: List[str] = attr.ib(init=False, default=attr.Factory(list))
@@ -248,7 +248,7 @@ class CSVExporter:
 
     def stats_to_headers(self):
         headers = []
-        for field, meta in self._headers_meta.items():
+        for field, meta in self.default_stats.items():
             if meta.get("count") == 0:
                 continue
             elif meta.get("count") is not None:
@@ -279,31 +279,33 @@ class CSVExporter:
             renamed_headers.append(header)
         return renamed_headers
 
-    def limit_headers_meta(self):
+    def limit_field_elements(self):
         """
         Limit number of elements exported based on pre-defined limits
         """
         filters = set()
+        # Find fields that need to be limited
         for key, value in self.array_limits.items():
-            if key not in self._headers_meta:
+            if key not in self.default_stats:
                 continue
-            if not self._headers_meta[key].get("count"):
+            if not self.default_stats[key].get("count"):
                 continue
-            if self._headers_meta[key]["count"] <= value:
+            if self.default_stats[key]["count"] <= value:
                 continue
-            for i in range(self._headers_meta[key]["count"]):
+            for i in range(self.default_stats[key]["count"]):
                 if i < value:
                     continue
                 filters.add(f"{key}[{i}]")
-            self._headers_meta[key]["count"] = value
-        limited_headers_meta = {}
-        for field, meta in self._headers_meta.items():
+            self.default_stats[key]["count"] = value
+        limited_default_stats = {}
+        # Limit field elements
+        for field, stats in self.default_stats.items():
             for key in filters:
                 if field.startswith(key):
                     break
             else:
-                limited_headers_meta[field] = meta
-        self._headers_meta = limited_headers_meta
+                limited_default_stats[field] = stats
+        self.default_stats = limited_default_stats
 
     @staticmethod
     def escape_grouped_data(value, separator):
@@ -320,26 +322,26 @@ class CSVExporter:
         item_data = Cut(item)
         for header in self._headers:
             header_path = header.split(".")
-            if header_path[0] not in self.field_options:
+            if header_path[0] not in self.stats_collector.field_options:
                 row.append(item_data.get(header, ""))
             else:
                 row.append(
-                    self.export_adjusted_property(header, header_path, item_data)
+                    self.export_property_with_options(header, header_path, item_data)
                 )
         return row
 
-    def export_adjusted_property(
+    def export_property_with_options(
         self, header: str, header_path: List[str], item_data: Cut
     ):
-        if self.field_options.get(f"{header_path[0]}.grouped"):
+        if self.stats_collector.field_options.get(f"{header_path[0]}.grouped"):
             separator = (
-                self.field_options.get(header_path[0], {})
+                self.stats_collector.field_options.get(header_path[0], {})
                 .get("grouped_separators", {})
                 .get(header)
                 or self.grouped_separator
             )
             # Grouped
-            if not self.field_options.get(f"{header_path[0]}.named"):
+            if not self.stats_collector.field_options.get(f"{header_path[0]}.named"):
                 if len(header_path) == 1:
                     value = item_data.get(header_path[0])
                     if value is None:
@@ -366,7 +368,7 @@ class CSVExporter:
                     return separator.join(self.escape_grouped_data(value, separator))
             # Grouped AND Named
             else:
-                name = self.field_options.get(f"{header_path[0]}.name")
+                name = self.stats_collector.field_options.get(f"{header_path[0]}.name")
                 values = []
                 for element in item_data.get(header_path[0], []):
                     element_name = element.get(name, "")
@@ -381,7 +383,7 @@ class CSVExporter:
                 return separator.join(self.escape_grouped_data(values, separator))
         # Named; if not grouped and not named - adjusted property was filtered
         else:
-            name = self.field_options.get(f"{header_path[0]}.name")
+            name = self.stats_collector.field_options.get(f"{header_path[0]}.name")
             for element in item_data.get(header_path[0], []):
                 if element.get(name) == header_path[1]:
                     return element.get(header_path[2], "")
@@ -466,7 +468,7 @@ if __name__ == "__main__":
     )
     csv_sc = CSVStatsCollector()
     csv_sc.process_items(item_list)
-    # csv_exporter.limit_headers_meta()
+    # csv_exporter.limitdefault_stats()
     # csv_exporter.flatten_headers()
     print(csv_sc.stats)
     #
