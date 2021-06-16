@@ -319,23 +319,7 @@ class CSVExporter:
         else:
             return str(value).replace(separator, escaped_separator)
 
-    def _export_item_as_row(self, item: Dict) -> List:
-        # TODO Allow to use it separately
-        # But before that we need to check that headers were flattened
-        # max item collected, and export headers collected
-        row = []
-        item_data = Cut(item)
-        for header in self._headers:
-            header_path = header.split(".")
-            if header_path[0] not in self.stats_collector.field_options:
-                row.append(item_data.get(header, ""))
-            else:
-                row.append(
-                    self._export_property_with_options(header, header_path, item_data)
-                )
-        return row
-
-    def _export_property_with_options(
+    def _export_field_with_options(
         self, header: str, header_path: List[str], item_data: Cut
     ):
         if self.stats_collector.field_options.get(f"{header_path[0]}.grouped"):
@@ -395,7 +379,11 @@ class CSVExporter:
             else:
                 return ""
 
-    def export_csv(self, items: list, export_path: str):
+    def _prepare_for_export(self):
+        # If headers are set - they've been processed already and ready for export
+        if self._headers:
+            return
+        self._limit_field_elements()
         default_headers = self._convert_stats_to_headers(self.default_stats)
         # If no custom options were provided - no need to recreate headers
         if not self.stats_collector.field_options:
@@ -406,6 +394,23 @@ class CSVExporter:
             self.stats_collector.process_items([max_item])
             stats_with_options = self.stats_collector.stats
             self._headers = self._convert_stats_to_headers(stats_with_options)
+
+    def export_item_as_row(self, item: Dict) -> List:
+        self._prepare_for_export()
+        row = []
+        item_data = Cut(item)
+        for header in self._headers:
+            header_path = header.split(".")
+            if header_path[0] not in self.stats_collector.field_options:
+                row.append(item_data.get(header, ""))
+            else:
+                row.append(
+                    self._export_field_with_options(header, header_path, item_data)
+                )
+        return row
+
+    def export_csv(self, items: List[Dict], export_path: str):
+        self._prepare_for_export()
         with open(export_path, mode="w") as export_file:
             csv_writer = csv.writer(
                 export_file, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL
@@ -414,82 +419,88 @@ class CSVExporter:
                 self._get_renamed_headers(self._headers, self.headers_renaming)
             )
             for p in items:
-                csv_writer.writerow(self._export_item_as_row(p))
+                csv_writer.writerow(self.export_item_as_row(p))
 
 
 if __name__ == "__main__":
-    # test_field_options = {
-    #     "gtin": {
-    #         "named": True,
-    #         "grouped": False,
-    #         "name": "type",
-    #         "grouped_separators": {},
-    #     },
-    #     "additionalProperty": {
-    #         "named": True,
-    #         "grouped": False,
-    #         "name": "name",
-    #         "grouped_separators": {"additionalProperty": "\n"},
-    #     },
-    #     "aggregateRating": {
-    #         "named": False,
-    #         "grouped": False,
-    #         "name": "",
-    #         "grouped_separators": {"aggregateRating": "\n"},
-    #     },
-    #     "images": {
-    #         "named": False,
-    #         "grouped": True,
-    #         "name": "",
-    #         "grouped_separators": {"images": "\n"},
-    #     },
-    #     "breadcrumbs": {
-    #         "named": False,
-    #         "grouped": True,
-    #         "name": "name",
-    #         "grouped_separators": {
-    #             "breadcrumbs.name": "\n",
-    #             "breadcrumbs.link": "\n",
-    #         },
-    #     },
-    #     # "ratingHistogram": {
-    #     #     "named": True,
-    #     #     "grouped": False,
-    #     #     "name": "ratingOption",
-    #     #     "grouped_separators": {"ratingHistogram": "\n"},
-    #     # },
-    #     # "named_array_field": {
-    #     #     "named": True,
-    #     #     "grouped": False,
-    #     #     "name": "name",
-    #     #     "grouped_separators": {},
-    #     # }
-    # }
-    # test_headers_renaming = [
-    #     (r"offers\[0\].", ""),
-    #     (r"aggregateRating\.", ""),
-    #     (r"additionalProperty\.(.*)\.value", r"\1"),
-    #     (r"breadcrumbs\.name", "breadcrumbs"),
-    #     (r"breadcrumbs\.link", "breadcrumbs links"),
-    # ]
-    # # Define how many elements of array to process
-    # test_array_limits = {"offers": 1}
-    # Load item list from JSON (simulate API response)
-    # TODO Test additionalProperties processing
+    # CUSTOM OPTIONS
+    test_field_options = {
+        "gtin": {
+            "named": True,
+            "grouped": False,
+            "name": "type",
+            "grouped_separators": {},
+        },
+        "additionalProperty": {
+            "named": True,
+            "grouped": False,
+            "name": "name",
+            "grouped_separators": {"additionalProperty": "\n"},
+        },
+        "aggregateRating": {
+            "named": False,
+            "grouped": False,
+            "name": "",
+            "grouped_separators": {"aggregateRating": "\n"},
+        },
+        "images": {
+            "named": False,
+            "grouped": True,
+            "name": "",
+            "grouped_separators": {"images": "\n"},
+        },
+        "breadcrumbs": {
+            "named": False,
+            "grouped": True,
+            "name": "name",
+            "grouped_separators": {
+                "breadcrumbs.name": "\n",
+                "breadcrumbs.link": "\n",
+            },
+        },
+        # "ratingHistogram": {
+        #     "named": True,
+        #     "grouped": False,
+        #     "name": "ratingOption",
+        #     "grouped_separators": {"ratingHistogram": "\n"},
+        # },
+        # "named_array_field": {
+        #     "named": True,
+        #     "grouped": False,
+        #     "name": "name",
+        #     "grouped_separators": {},
+        # }
+    }
+    test_headers_renaming = [
+        (r"offers\[0\].", ""),
+        (r"aggregateRating\.", ""),
+        (r"additionalProperty\.(.*)\.value", r"\1"),
+        (r"breadcrumbs\.name", "breadcrumbs"),
+        (r"breadcrumbs\.link", "breadcrumbs links"),
+    ]
+    # Define how many elements of array to process
+    test_array_limits = {"offers": 1}
+
+    # DATA TO PROCESS
     file_name = "products_simple_xod_test.json"
     item_list = json.loads(
         resource_string(__name__, f"tests/assets/{file_name}").decode("utf-8")
     )
-    csv_sc = CSVStatsCollector()
-    csv_sc.process_items(item_list)
-    # csv_exporter.limitdefault_stats()
-    # csv_exporter.flatten_headers()
-    print(csv_sc.stats)
-    #
-    # test_data = csv_exporter._headers
-    # _generate_max_item(test_data)
-    #
-    # ###########################
-    # # csv_exporter.export_csv(
-    # #     item_list, f"autocrawl/utils/csv_assets/{file_name.replace('.json', '.csv')}"
-    # # )
+
+    # AUTOCRAWL PART
+    autocrawl_csv_sc = CSVStatsCollector()
+    # Items could be processed in batch or one-by-one through `process_object`
+    autocrawl_csv_sc.process_items(item_list)
+    stats = autocrawl_csv_sc.stats
+
+    # BACKEND PART (assuming we send stats to backend)
+    csv_exporter = CSVExporter(
+        default_stats=stats,
+        stats_collector=CSVStatsCollector(test_field_options),
+        array_limits=test_array_limits,
+        headers_renaming=test_headers_renaming,
+    )
+    # Items could be exported in batch or one-by-one through `export_item_as_row`
+    csv_exporter.export_csv(
+        item_list, f"autocrawl/utils/csv_assets/{file_name.replace('.json', '.csv')}"
+    )
