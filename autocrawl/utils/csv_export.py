@@ -39,50 +39,6 @@ def prepare_field_options(properties: Dict) -> Cut:
     return Cut(properties)
 
 
-def generate_max_item(columns):
-    """
-    Generate the largest possible item (max fields included)
-    based on the headers from CSVStatsCollector.
-    :param columns: List of column names
-    :return: Item with empty values
-    """
-    item = Cut({})
-    for column in columns:
-        full_path = []
-        column_path = column.split(".")
-        # Skipping array of arrays cases
-        for i, field in enumerate(column_path):
-            # Check if array or dict
-            array_data = re.findall(r"^(.+)\[(\d+)\]$", field)
-            if not array_data:
-                full_path.append(field)
-                field_path = ".".join(full_path)
-                # If object doesn't exist
-                if not item.get(field_path):
-                    # More elements in path means dict
-                    if i + 1 < len(column_path):
-                        item[field_path] = {}
-                    # Last element means simple type
-                    else:
-                        item[field_path] = ""
-            else:
-                field_path = ".".join(full_path + [array_data[0][0]])
-                element_path = ".".join(full_path + [field])
-                # If array doesn't exist
-                if not item.get(field_path):
-                    item[field_path] = []
-                # If array element doesn't exist
-                if not item.get(element_path):
-                    # More elements in path means array of dicts
-                    if i + 1 < len(column_path):
-                        item[field_path].append({})
-                    # Last element means array of simple types
-                    else:
-                        item[field_path].append("")
-                full_path.append(field)
-    return item
-
-
 @attr.s(auto_attribs=True)
 class CSVStatsCollector:
     """"""
@@ -161,11 +117,11 @@ class CSVStatsCollector:
                 self.process_array(element, property_path)
         else:
             if prefix not in self.field_options:
-                self.process_base_array(array_value, prefix)
+                self._process_base_array(array_value, prefix)
             else:
-                self.process_array_with_options(array_value, prefix)
+                self._process_array_with_options(array_value, prefix)
 
-    def process_base_array(self, array_value: List, prefix: str):
+    def _process_base_array(self, array_value: List, prefix: str):
         if self._stats[prefix]["count"] < len(array_value):
             self._stats[prefix]["count"] = len(array_value)
         # Checking manually to keep properties order instead of checking subsets
@@ -181,7 +137,7 @@ class CSVStatsCollector:
                 else:
                     self.process_object(property_value, property_path)
 
-    def process_array_with_options(self, array_value: List, prefix: str):
+    def _process_array_with_options(self, array_value: List, prefix: str):
         if self.field_options.get(f"{prefix}.grouped"):
             # Arrays that both grouped and named don't need stats to group data
             if self.field_options[prefix]["named"]:
@@ -246,7 +202,51 @@ class CSVExporter:
             if any([not isinstance(x, str) for x in rmp]):
                 raise ValueError(f"Headers renamings ({rmp}) elements must be strings.")
 
-    def stats_to_headers(self):
+    @staticmethod
+    def _generate_max_item(columns: List[str]) -> Cut:
+        """
+        Generate the largest possible item (max fields included)
+        based on the headers from CSVStatsCollector.
+        :param columns: List of column names
+        :return: Item with empty values
+        """
+        item = Cut({})
+        for column in columns:
+            full_path = []
+            column_path = column.split(".")
+            # Skipping array of arrays cases
+            for i, field in enumerate(column_path):
+                # Check if array or dict
+                array_data = re.findall(r"^(.+)\[(\d+)\]$", field)
+                if not array_data:
+                    full_path.append(field)
+                    field_path = ".".join(full_path)
+                    # If object doesn't exist
+                    if not item.get(field_path):
+                        # More elements in path means dict
+                        if i + 1 < len(column_path):
+                            item[field_path] = {}
+                        # Last element means simple type
+                        else:
+                            item[field_path] = ""
+                else:
+                    field_path = ".".join(full_path + [array_data[0][0]])
+                    element_path = ".".join(full_path + [field])
+                    # If array doesn't exist
+                    if not item.get(field_path):
+                        item[field_path] = []
+                    # If array element doesn't exist
+                    if not item.get(element_path):
+                        # More elements in path means array of dicts
+                        if i + 1 < len(column_path):
+                            item[field_path].append({})
+                        # Last element means array of simple types
+                        else:
+                            item[field_path].append("")
+                    full_path.append(field)
+        return item
+
+    def _convert_stats_to_headers(self):
         headers = []
         for field, meta in self.default_stats.items():
             if meta.get("count") == 0:
@@ -267,7 +267,7 @@ class CSVExporter:
                         headers.append(f"{field}.{pr}")
         self._headers = headers
 
-    def rename_headers(self, capitalize=True):
+    def _rename_headers(self, capitalize=True):
         if not self.headers_renaming:
             return self._headers
         renamed_headers = []
@@ -279,7 +279,7 @@ class CSVExporter:
             renamed_headers.append(header)
         return renamed_headers
 
-    def limit_field_elements(self):
+    def _limit_field_elements(self):
         """
         Limit number of elements exported based on pre-defined limits
         """
@@ -308,7 +308,7 @@ class CSVExporter:
         self.default_stats = limited_default_stats
 
     @staticmethod
-    def escape_grouped_data(value, separator):
+    def _escape_grouped_data(value, separator):
         if not value:
             return value
         escaped_separator = f"\\{separator}" if separator != "\n" else "\\n"
@@ -317,7 +317,10 @@ class CSVExporter:
         else:
             return str(value).replace(separator, escaped_separator)
 
-    def export_item_as_row(self, item: Dict) -> List:
+    def _export_item_as_row(self, item: Dict) -> List:
+        # TODO Allow to use it separately
+        # But before that we need to check that headers were flattened
+        # max item collected, and export headers collected
         row = []
         item_data = Cut(item)
         for header in self._headers:
@@ -326,11 +329,11 @@ class CSVExporter:
                 row.append(item_data.get(header, ""))
             else:
                 row.append(
-                    self.export_property_with_options(header, header_path, item_data)
+                    self._export_property_with_options(header, header_path, item_data)
                 )
         return row
 
-    def export_property_with_options(
+    def _export_property_with_options(
         self, header: str, header_path: List[str], item_data: Cut
     ):
         if self.stats_collector.field_options.get(f"{header_path[0]}.grouped"):
@@ -350,12 +353,12 @@ class CSVExporter:
                         return value
                     elif isinstance(value, list):
                         return separator.join(
-                            self.escape_grouped_data(value, separator)
+                            self._escape_grouped_data(value, separator)
                         )
                     else:
                         return separator.join(
                             [
-                                f"{self.escape_grouped_data(pn, separator)}: {self.escape_grouped_data(pv, separator)}"
+                                f"{self._escape_grouped_data(pn, separator)}: {self._escape_grouped_data(pv, separator)}"
                                 for pn, pv in value.items()
                             ]
                         )
@@ -365,7 +368,7 @@ class CSVExporter:
                     for element in item_data.get(header_path[0], []):
                         if element.get(header_path[1]) is not None:
                             value.append(element[header_path[1]])
-                    return separator.join(self.escape_grouped_data(value, separator))
+                    return separator.join(self._escape_grouped_data(value, separator))
             # Grouped AND Named
             else:
                 name = self.stats_collector.field_options.get(f"{header_path[0]}.name")
@@ -380,7 +383,7 @@ class CSVExporter:
                     values.append(
                         f"{element_name}: {','.join([str(x) for x in element_values])}"
                     )
-                return separator.join(self.escape_grouped_data(values, separator))
+                return separator.join(self._escape_grouped_data(values, separator))
         # Named; if not grouped and not named - adjusted property was filtered
         else:
             name = self.stats_collector.field_options.get(f"{header_path[0]}.name")
@@ -391,16 +394,17 @@ class CSVExporter:
                 return ""
 
     def export_csv(self, items: list, export_path: str):
-        self.process_items(items)
+        # Convert stats to headers
+        self._convert_stats_to_headers()
         self.limit_headers_meta()
         self.flatten_headers()
         with open(export_path, mode="w") as export_file:
             csv_writer = csv.writer(
                 export_file, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL
             )
-            csv_writer.writerow(self.rename_headers())
+            csv_writer.writerow(self._rename_headers())
             for p in items:
-                csv_writer.writerow(self.export_item_as_row(p))
+                csv_writer.writerow(self._export_item_as_row(p))
 
 
 if __name__ == "__main__":
@@ -473,7 +477,7 @@ if __name__ == "__main__":
     print(csv_sc.stats)
     #
     # test_data = csv_exporter._headers
-    # generate_max_item(test_data)
+    # _generate_max_item(test_data)
     #
     # ###########################
     # # csv_exporter.export_csv(
