@@ -246,9 +246,10 @@ class CSVExporter:
                     full_path.append(field)
         return item
 
-    def _convert_stats_to_headers(self):
+    @staticmethod
+    def _convert_stats_to_headers(stats):
         headers = []
-        for field, meta in self.default_stats.items():
+        for field, meta in stats.items():
             if meta.get("count") == 0:
                 continue
             elif meta.get("count") is not None:
@@ -265,14 +266,15 @@ class CSVExporter:
                 else:
                     for pr in meta.get("properties"):
                         headers.append(f"{field}.{pr}")
-        self._headers = headers
+        return headers
 
-    def _rename_headers(self, capitalize=True):
-        if not self.headers_renaming:
-            return self._headers
+    @staticmethod
+    def _get_renamed_headers(headers, headers_renaming, capitalize=True):
+        if not headers_renaming:
+            return headers
         renamed_headers = []
-        for header in self._headers:
-            for old, new in self.headers_renaming:
+        for header in headers:
+            for old, new in headers_renaming:
                 header = re.sub(old, new, header)
             if capitalize and header:
                 header = header[:1].capitalize() + header[1:]
@@ -394,15 +396,23 @@ class CSVExporter:
                 return ""
 
     def export_csv(self, items: list, export_path: str):
-        # Convert stats to headers
-        self._convert_stats_to_headers()
-        self.limit_headers_meta()
-        self.flatten_headers()
+        default_headers = self._convert_stats_to_headers(self.default_stats)
+        # If no custom options were provided - no need to recreate headers
+        if not self.stats_collector.field_options:
+            self._headers = default_headers
+        else:
+            max_item = self._generate_max_item(default_headers)
+            # Collect updated stats with field options included
+            self.stats_collector.process_items([max_item])
+            stats_with_options = self.stats_collector.stats
+            self._headers = self._convert_stats_to_headers(stats_with_options)
         with open(export_path, mode="w") as export_file:
             csv_writer = csv.writer(
                 export_file, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL
             )
-            csv_writer.writerow(self._rename_headers())
+            csv_writer.writerow(
+                self._get_renamed_headers(self._headers, self.headers_renaming)
+            )
             for p in items:
                 csv_writer.writerow(self._export_item_as_row(p))
 
