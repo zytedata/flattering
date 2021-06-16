@@ -292,13 +292,10 @@ class CSVExporter:
                 continue
             if not self.default_stats[key].get("count"):
                 continue
-            if self.default_stats[key]["count"] <= value:
-                continue
-            for i in range(self.default_stats[key]["count"]):
-                if i < value:
-                    continue
+            for i in range(value, self.default_stats[key]["count"]):
                 filters.add(f"{key}[{i}]")
-            self.default_stats[key]["count"] = value
+            if self.default_stats[key]["count"] > value:
+                self.default_stats[key]["count"] = value
         limited_default_stats = {}
         # Limit field elements
         for field, stats in self.default_stats.items():
@@ -483,7 +480,7 @@ if __name__ == "__main__":
     test_array_limits = {"offers": 1}
 
     # DATA TO PROCESS
-    file_name = "products_simple_xod_test.json"
+    file_name = "products_full_schema_test.json"
     item_list = json.loads(
         resource_string(__name__, f"tests/assets/{file_name}").decode("utf-8")
     )
