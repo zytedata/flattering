@@ -1,0 +1,213 @@
+[
+    {
+        "url": "https://books.toscrape.com/catalogue/grey-fifty-shades-4_592/index.html",
+        "probability": 0.9945426,
+        "name": "Grey (Fifty Shades #4)",
+        "offers": [
+            {
+                "price": "48.49",
+                "currency": "£",
+                "availability": "InStock"
+            }
+        ],
+        "aggregateRating": {
+            "ratingValue": 4.0,
+            "bestRating": 5.0,
+            "reviewCount": 24
+        },
+        "gtin": [
+            {
+                "type": "isbn13",
+                "value": "9781933624341"
+            }
+        ],
+        "sku": "b5953ca1f8a0b8d7",
+        "mpn": "b5953ca1f8a0b8d7",
+        "breadcrumbs": [
+            {
+                "name": "Home",
+                "link": "https://books.toscrape.com/index.html"
+            },
+            {
+                "name": "Books",
+                "link": "https://books.toscrape.com/catalogue/category/books_1/index.html"
+            },
+            {
+                "name": "Womens Fiction",
+                "link": "https://books.toscrape.com/catalogue/category/books/womens-fiction_9/index.html"
+            },
+            {
+                "name": "Grey (Fifty Shades #4)"
+            }
+        ],
+        "mainImage": "https://books.toscrape.com/media/cache/c8/06/c806501c08d2b2cd72f2362a3da6ab80.jpg",
+        "images": [
+            "https://books.toscrape.com/media/cache/c8/06/c806501c08d2b2cd72f2362a3da6ab80.jpg",
+            "https://books.toscrape.com/media/cache/c8/06/c806501c08d2b2cd72f2362a3da6ab81.jpg",
+            "https://books.toscrape.com/media/cache/c8/06/c806501c08d2b2cd72f2362a3da6ab82.jpg"
+        ],
+        "description": "See the world of Fifty Shades of Grey anew through the eyes of Christian Grey.In Christian's own words, and through his thoughts, reflections, and dreams, E L James offers a fresh perspective on the love story that has enthralled millions of readers around the world.Christian Grey exercises control in all things; his world is neat, disciplined, and utterly empty—until the See the world of Fifty Shades of Grey anew through the eyes of Christian Grey.In Christian's own words, and through his thoughts, reflections, and dreams, E L James offers a fresh perspective on the love story that has enthralled millions of readers around the world.Christian Grey exercises control in all things; his world is neat, disciplined, and utterly empty—until the day that Anastasia Steele falls into his office, in a tangle of shapely limbs and tumbling brown hair. He tries to forget her, but instead is swept up in a storm of emotion he cannot comprehend and cannot resist. Unlike any woman he has known before, shy, unworldly Ana seems to see right through him—past the business prodigy and the penthouse lifestyle to Christian’s cold, wounded heart. Will being with Ana dispel the horrors of his childhood that haunt Christian every night? Or will his dark sexual desires, his compulsion to control, and the self-loathing that fills his soul drive this girl away and destroy the fragile hope she offers him?This book is intended for mature audiences. ...more",
+        "additionalProperty": [
+            {
+                "name": "upc",
+                "value": "b5953ca1f8a0b8d7"
+            },
+            {
+                "name": "product type",
+                "value": "Books"
+            },
+            {
+                "name": "price (excl. tax)",
+                "value": "£48.49"
+            },
+            {
+                "name": "price (incl. tax)",
+                "value": "£48.49"
+            },
+            {
+                "name": "tax",
+                "value": "£0.00"
+            },
+            {
+                "name": "availability",
+                "value": "In stock (11 available)"
+            },
+            {
+                "name": "number of reviews",
+                "value": "0"
+            }
+        ],
+        "_key": "520186/1/1/0"
+    },
+    {
+        "url": "https://books.toscrape.com/catalogue/can-you-keep-a-secret_315/index.html",
+        "probability": 0.99443144,
+        "name": "Can You Keep a Secret?",
+        "offers": [
+            {
+                "price": "21.94",
+                "currency": "£",
+                "availability": "InStock"
+            }
+        ],
+        "breadcrumbs": [
+            {
+                "name": "Home",
+                "link": "https://books.toscrape.com/index.html"
+            },
+            {
+                "name": "Books",
+                "link": "https://books.toscrape.com/catalogue/category/books_1/index.html"
+            },
+            {
+                "name": "Womens Fiction",
+                "link": "https://books.toscrape.com/catalogue/category/books/womens-fiction_9/index.html"
+            },
+            {
+                "name": "Can You Keep a Secret?"
+            }
+        ],
+        "mainImage": "https://books.toscrape.com/media/cache/e1/24/e124fe015a3ffa6857eb35c39e89cd61.jpg",
+        "images": [
+            "https://books.toscrape.com/media/cache/e1/24/e124fe015a3ffa6857eb35c39e89cd61.jpg"
+        ],
+        "description": "Meet Emma Corrigan, a young woman with a huge heart, an irrepressible spirit, and a few little secrets: Secrets from her boyfriend: I've always thought Connor looks a bit like Ken. As in Barbie and Ken. Secrets from her mother: I lost my virginity in the spare bedroom with Danny Nussbaum while Mum and Dad were downstairs watching Ben-Hur. Secrets she wouldn't share with an Meet Emma Corrigan, a young woman with a huge heart, an irrepressible spirit, and a few little secrets: Secrets from her boyfriend: I've always thought Connor looks a bit like Ken. As in Barbie and Ken. Secrets from her mother: I lost my virginity in the spare bedroom with Danny Nussbaum while Mum and Dad were downstairs watching Ben-Hur. Secrets she wouldn't share with anyone in the world: I have no idea what NATO stands for. Or even what it is. Until she spills them all to a handsome stranger on a plane. At least, she thought he was a stranger.…Until Emma comes face-to-face with Jack Harper, the company's elusive CEO, a man who knows every single humiliating detail about her... ...more",
+        "additionalProperty": [
+            {
+                "name": "upc",
+                "value": "0812f54c93d726ce"
+            },
+            {
+                "name": "product type",
+                "value": "Books"
+            },
+            {
+                "name": "price (excl. tax)",
+                "value": "£21.94"
+            },
+            {
+                "name": "price (incl. tax)",
+                "value": "£21.94"
+            },
+            {
+                "name": "tax",
+                "value": "£0.00"
+            },
+            {
+                "name": "availability",
+                "value": "In stock (4 available)"
+            },
+            {
+                "name": "number of reviews",
+                "value": "0"
+            }
+        ],
+        "_key": "520186/1/1/1"
+    },
+    {
+        "url": "https://books.toscrape.com/catalogue/some-women_341/index.html",
+        "probability": 0.99283206,
+        "name": "Some Women",
+        "offers": [
+            {
+                "price": "13.73",
+                "currency": "£",
+                "availability": "InStock"
+            }
+        ],
+        "sku": "31f5bbf4974d29c9",
+        "breadcrumbs": [
+            {
+                "name": "Home",
+                "link": "https://books.toscrape.com/index.html"
+            },
+            {
+                "name": "Books",
+                "link": "https://books.toscrape.com/catalogue/category/books_1/index.html"
+            },
+            {
+                "name": "Womens Fiction",
+                "link": "https://books.toscrape.com/catalogue/category/books/womens-fiction_9/index.html"
+            },
+            {
+                "name": "Some Women"
+            }
+        ],
+        "mainImage": "https://books.toscrape.com/media/cache/2f/71/2f710e4c53d98e47b73e4d34702a6751.jpg",
+        "images": [
+            "https://books.toscrape.com/media/cache/2f/71/2f710e4c53d98e47b73e4d34702a6751.jpg"
+        ],
+        "description": "An engrossing and thought provoking novel that examines the intricacies of marriage, friendship, and the power of unexpected connections…Annabel Ford has everything under control, devoting her time to her twin five-year-old boys and to keeping her household running seamlessly. So when her husband of a decade announces that he’s leaving her, without warning, she’s blindside An engrossing and thought provoking novel that examines the intricacies of marriage, friendship, and the power of unexpected connections…Annabel Ford has everything under control, devoting her time to her twin five-year-old boys and to keeping her household running seamlessly. So when her husband of a decade announces that he’s leaving her, without warning, she’s blindsided. And suddenly her world begins to unravel.Single mother Piper Whitley has always done her best to balance it all—raising her daughter Fern by herself and advancing her career as a crime reporter. Only now that she’s finally met the man of her dreams, Fern’s absentee father arrives on the scene and throws everything into a tailspin.Married to the heir of a thriving media conglomerate, Mackenzie Mead has many reasons to count her blessings. But with an imperious mother-in-law—who’s also her boss—and a husband with whom she can no longer seem to connect, something has to give.On the surface, these three women may not have much in common. Yet when their lives are thrust together and unlikely friendships are formed—at a time when they all need someone to lean on—Annabel, Piper, and Mackenzie band together to help each navigate their new realities. ...more",
+        "additionalProperty": [
+            {
+                "name": "upc",
+                "value": "31f5bbf4974d29c9"
+            },
+            {
+                "name": "product type",
+                "value": "Books"
+            },
+            {
+                "name": "price (excl. tax)",
+                "value": "£13.73"
+            },
+            {
+                "name": "price (incl. tax)",
+                "value": "£13.73"
+            },
+            {
+                "name": "tax",
+                "value": "£0.00"
+            },
+            {
+                "name": "availability",
+                "value": "In stock (4 available)"
+            },
+            {
+                "name": "number of reviews",
+                "value": "0"
+            }
+        ],
+        "_key": "520186/1/1/2"
+    }
+]
