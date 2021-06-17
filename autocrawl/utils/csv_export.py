@@ -130,9 +130,8 @@ class CSVStatsCollector:
             for property_name, property_value in element.items():
                 property_path = f"{prefix}[{i}].{property_name}"
                 if not isinstance(property_value, (dict, list)):
-                    if property_name in self._stats[prefix]["properties"]:
-                        continue
-                    self._stats[prefix]["properties"].append(property_name)
+                    if property_name not in self._stats[prefix]["properties"]:
+                        self._stats[prefix]["properties"].append(property_name)
                 elif isinstance(property_value, list):
                     self.process_array(property_value, property_path)
                 else:
