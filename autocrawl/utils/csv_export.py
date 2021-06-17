@@ -107,8 +107,9 @@ class CSVStatsCollector:
             self._stats[prefix] = {"count": 0, "properties": []}
         if not isinstance(array_value[0], (dict, list)):
             if prefix not in self.field_options:
-                if self._stats[prefix]["count"] < len(array_value):
-                    self._stats[prefix]["count"] = len(array_value)
+                self._stats[prefix]["count"] = max(
+                    self._stats[prefix]["count"], len(array_value)
+                )
             else:
                 self._stats[prefix] = {}
         elif isinstance(array_value[0], list):
