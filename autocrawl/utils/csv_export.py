@@ -2,7 +2,7 @@ import csv
 import json
 import logging
 import re
-from typing import Dict, List, Tuple, TypedDict, Set
+from typing import Dict, List, Set, Tuple, TypedDict
 
 import attr
 from pkg_resources import resource_string
@@ -13,9 +13,14 @@ from scalpl import Cut  # NOQA
 logger = logging.getLogger(__name__)
 
 
+class Property(TypedDict):
+    values: set
+    limited: bool
+
+
 class Header(TypedDict, total=False):
     count: int
-    properties: Dict[str, Set]
+    properties: Dict[str, Property]
 
 
 class FieldOption(TypedDict, total=False):
@@ -46,6 +51,7 @@ class CSVStatsCollector:
     field_options: Dict[str, FieldOption] = attr.ib(
         converter=prepare_field_options, default=attr.Factory(dict)
     )
+    named_columns_limit: int = attr.ib(default=20)
     _stats: Dict[str, Header] = attr.ib(init=False, default=attr.Factory(dict))
 
     @property
@@ -131,8 +137,27 @@ class CSVStatsCollector:
                 property_path = f"{prefix}[{i}].{property_name}"
                 if not isinstance(property_value, (dict, list)):
                     if property_name not in self._stats[prefix]["properties"]:
-                        self._stats[prefix]["properties"][property_name] = set()
-                    self._stats[prefix]["properties"][property_name].add(property_value)
+                        self._stats[prefix]["properties"][property_name] = {
+                            "values": set(),
+                            "limited": False,
+                        }
+                    property_data = self._stats[prefix]["properties"][property_name]
+                    # If number of different values for property hits the limit of the allowed named columns
+                    # No values would be collected for such property
+                    if property_data.get("limited"):
+                        continue
+                    self._stats[prefix]["properties"][property_name]["values"].add(
+                        property_value
+                    )
+                    if len(property_data.get("values", [])) > self.named_columns_limit:
+                        # Clear previously collected values if the limit was hit to avoid partly processed columns
+                        self._stats[prefix]["properties"][property_name][
+                            "values"
+                        ] = set()
+                        self._stats[prefix]["properties"][property_name][
+                            "limited"
+                        ] = True
+                        continue
                 elif isinstance(property_value, list):
                     self.process_array(property_value, property_path)
                 else:
@@ -488,11 +513,12 @@ if __name__ == "__main__":
     )
 
     # AUTOCRAWL PART
-    autocrawl_csv_sc = CSVStatsCollector()
+    autocrawl_csv_sc = CSVStatsCollector(named_columns_limit=50)
     # Items could be processed in batch or one-by-one through `process_object`
     autocrawl_csv_sc.process_items(item_list)
     autocrawl_stats = autocrawl_csv_sc.stats
     from pprint import pprint
+
     pprint(autocrawl_stats)
 
     # # BACKEND PART (assuming we send stats to backend)
