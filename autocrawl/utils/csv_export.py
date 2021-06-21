@@ -2,7 +2,7 @@ import csv
 import json
 import logging
 import re
-from typing import Dict, List, Tuple, TypedDict
+from typing import Dict, List, Tuple, TypedDict, Set
 
 import attr
 from pkg_resources import resource_string
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 class Header(TypedDict, total=False):
     count: int
-    properties: List[str]
+    properties: Dict[str, Set]
 
 
 class FieldOption(TypedDict, total=False):
@@ -104,7 +104,7 @@ class CSVStatsCollector:
                     f"{str(et)}'s can't be mixed with other types in an array ({prefix})."
                 )
         if self._stats.get(prefix) is None:
-            self._stats[prefix] = {"count": 0, "properties": []}
+            self._stats[prefix] = {"count": 0, "properties": {}}
         if not isinstance(array_value[0], (dict, list)):
             if prefix not in self.field_options:
                 self._stats[prefix]["count"] = max(
@@ -131,7 +131,8 @@ class CSVStatsCollector:
                 property_path = f"{prefix}[{i}].{property_name}"
                 if not isinstance(property_value, (dict, list)):
                     if property_name not in self._stats[prefix]["properties"]:
-                        self._stats[prefix]["properties"].append(property_name)
+                        self._stats[prefix]["properties"][property_name] = set()
+                    self._stats[prefix]["properties"][property_name].add(property_value)
                 elif isinstance(property_value, list):
                     self.process_array(property_value, property_path)
                 else:
@@ -491,15 +492,17 @@ if __name__ == "__main__":
     # Items could be processed in batch or one-by-one through `process_object`
     autocrawl_csv_sc.process_items(item_list)
     autocrawl_stats = autocrawl_csv_sc.stats
+    from pprint import pprint
+    pprint(autocrawl_stats)
 
-    # BACKEND PART (assuming we send stats to backend)
-    csv_exporter = CSVExporter(
-        default_stats=autocrawl_stats,
-        stats_collector=CSVStatsCollector(test_field_options),
-        array_limits=test_array_limits,
-        headers_renaming=test_headers_renaming,
-    )
-    # Items could be exported in batch or one-by-one through `export_item_as_row`
-    csv_exporter.export_csv(
-        item_list, f"autocrawl/utils/csv_assets/{file_name.replace('.json', '.csv')}"
-    )
+    # # BACKEND PART (assuming we send stats to backend)
+    # csv_exporter = CSVExporter(
+    #     default_stats=autocrawl_stats,
+    #     stats_collector=CSVStatsCollector(test_field_options),
+    #     array_limits=test_array_limits,
+    #     headers_renaming=test_headers_renaming,
+    # )
+    # # Items could be exported in batch or one-by-one through `export_item_as_row`
+    # csv_exporter.export_csv(
+    #     item_list, f"autocrawl/utils/csv_assets/{file_name.replace('.json', '.csv')}"
+    # )
