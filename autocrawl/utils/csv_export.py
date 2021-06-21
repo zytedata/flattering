@@ -234,50 +234,7 @@ class CSVExporter:
             if any([not isinstance(x, str) for x in rmp]):
                 raise ValueError(f"Headers renamings ({rmp}) elements must be strings.")
 
-    @staticmethod
-    def _generate_max_item(columns: List[str]) -> Dict:
-        """
-        Generate the largest possible item (max fields included)
-        based on the headers from CSVStatsCollector.
-        :param columns: List of column names
-        :return: Item with empty values
-        """
-        item = Cut({})
-        for column in columns:
-            full_path = []
-            column_path = column.split(".")
-            # Skipping array of arrays cases
-            for i, field in enumerate(column_path):
-                # Check if array or dict
-                array_data = re.findall(r"^(.+)\[(\d+)\]$", field)
-                if not array_data:
-                    full_path.append(field)
-                    field_path = ".".join(full_path)
-                    # If object doesn't exist
-                    if not item.get(field_path):
-                        # More elements in path means dict
-                        if i + 1 < len(column_path):
-                            item[field_path] = {}
-                        # Last element means simple type
-                        else:
-                            item[field_path] = ""
-                else:
-                    field_path = ".".join(full_path + [array_data[0][0]])
-                    element_path = ".".join(full_path + [field])
-                    # If array doesn't exist
-                    if not item.get(field_path):
-                        item[field_path] = []
-                    # If array element doesn't exist
-                    if not item.get(element_path):
-                        # More elements in path means array of dicts
-                        if i + 1 < len(column_path):
-                            item[field_path].append({})
-                        # Last element means array of simple types
-                        else:
-                            item[field_path].append("")
-                    full_path.append(field)
-        return dict(item)
-
+    # TODO Check why "price including tax" and "price excluding tax" are missing
     @staticmethod
     def _generate_item_from_stats(stats):
         items = [{}]
