@@ -240,10 +240,13 @@ class CSVExporter:
             if any([not isinstance(x, str) for x in rmp]):
                 raise ValueError(f"Headers renamings ({rmp}) elements must be strings.")
 
-    # TODO Check why "price including tax" and "price excluding tax" are missing
     @staticmethod
-    def _generate_item_from_stats(stats):
-        items = [{}]
+    def _generate_items_from_stats(stats: Dict[str, Header]) -> List[Dict]:
+        """
+        Generate items from stats that would include all the
+        possible names and values within the named columns limit
+        """
+        items: List[Dict] = [{}]
         for field_name, field_value in stats.items():
             if not field_value:
                 items[0][field_name] = ""  # NOQA
@@ -253,7 +256,7 @@ class CSVExporter:
                     "" for _ in range(field_value.get("count", 1))
                 ]
                 continue
-            temp_items = []
+            temp_items: List[Dict] = []
             for property_name, property_value in field_value["properties"].items():
                 for i, value in enumerate((property_value.get("values") or [""])):
                     if len(temp_items) <= i:
@@ -418,7 +421,7 @@ class CSVExporter:
         if not self.stats_collector.field_options:
             self._headers = default_headers
         else:
-            max_items = self._generate_item_from_stats(self.default_stats)
+            max_items = self._generate_items_from_stats(self.default_stats)
             # Collect updated stats with field options included
             self.stats_collector.process_items(max_items)
             stats_with_options = self.stats_collector.stats
