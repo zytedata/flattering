@@ -2,7 +2,7 @@ import csv
 import json
 import logging
 import re
-from typing import Dict, List, Set, Tuple, TypedDict
+from typing import Dict, List, Set, Tuple, TypedDict, Union
 
 import attr
 from pkg_resources import resource_string
@@ -24,35 +24,25 @@ class Header(TypedDict, total=False):
 
 
 class FieldOption(TypedDict, total=False):
-    name: int
+    name: str
     named: bool
     grouped: bool
     grouped_separators: Dict[str, str]
-
-
-def prepare_field_options(properties: Dict) -> Cut:
-    to_filter = set()
-    for property_name, property_value in properties.items():
-        if not property_value.get("named") and not property_value.get("grouped"):
-            logger.warning(
-                f"Adjusted properties ({property_name}) without either `named` or `grouped` "
-                "parameters will be skipped."
-            )
-            to_filter.add(property_name)
-    for flt in to_filter:
-        properties.pop(flt, None)
-    return Cut(properties)
 
 
 @attr.s(auto_attribs=True)
 class CSVStatsCollector:
     """"""
 
-    field_options: Dict[str, FieldOption] = attr.ib(
-        converter=prepare_field_options, default=attr.Factory(dict)
-    )
+    field_options: Dict[str, FieldOption] = attr.ib(default=attr.Factory(dict))
     named_columns_limit: int = attr.ib(default=20)
+    cut_separator: str = attr.ib(default="->")
     _stats: Dict[str, Header] = attr.ib(init=False, default=attr.Factory(dict))
+
+    def __attrs_post_init__(self):
+        self.field_options: Union[
+            Dict[str, FieldOption], Cut
+        ] = self._prepare_field_options(self.field_options, self.cut_separator)
 
     @property
     def stats(self):
@@ -71,14 +61,26 @@ class CSVStatsCollector:
                 raise ValueError(
                     f"Named adjusted properties ({property_name}) must include `name` parameter."
                 )
-            if not property_value.get("named") and not property_value.get("grouped"):
-                raise ValueError
             for key, value in property_value.get("grouped_separators", {}).items():
                 if value not in allowed_separators:
                     raise ValueError(
                         f"Only {allowed_separators} could be used"
                         f" as custom grouped separators ({key}:{value})."
                     )
+
+    @staticmethod
+    def _prepare_field_options(properties: Dict, separator: str) -> Cut:
+        to_filter = set()
+        for property_name, property_value in properties.items():
+            if not property_value.get("named") and not property_value.get("grouped"):
+                logger.warning(
+                    f"Adjusted properties ({property_name}) without either `named` or `grouped` "
+                    "parameters will be skipped."
+                )
+                to_filter.add(property_name)
+        for flt in to_filter:
+            properties.pop(flt, None)
+        return Cut(properties, sep=separator)
 
     def process_items(self, items: List[Dict]):
         if not isinstance(items, list):
@@ -134,7 +136,7 @@ class CSVStatsCollector:
         # Checking manually to keep properties order instead of checking subsets
         for i, element in enumerate(array_value):
             for property_name, property_value in element.items():
-                property_path = f"{prefix}[{i}].{property_name}"
+                property_path = f"{prefix}[{i}]{self.cut_separator}{property_name}"
                 if not isinstance(property_value, (dict, list)):
                     if property_name not in self._stats[prefix]["properties"]:
                         self._stats[prefix]["properties"][property_name] = {
@@ -164,7 +166,7 @@ class CSVStatsCollector:
                     self.process_object(property_value, property_path)
 
     def _process_array_with_options(self, array_value: List, prefix: str):
-        if self.field_options.get(f"{prefix}.grouped"):
+        if self.field_options[prefix]["grouped"]:
             # Arrays that both grouped and named don't need stats to group data
             if self.field_options[prefix]["named"]:
                 self._stats[prefix] = {}
@@ -175,14 +177,14 @@ class CSVStatsCollector:
                     if property_name not in properties:
                         properties.append(property_name)
             for property_name in properties:
-                property_path = f"{prefix}.{property_name}"
+                property_path = f"{prefix}{self.cut_separator}{property_name}"
                 self._stats[property_path] = {}
-        elif self.field_options.get(f"{prefix}.named"):
+        elif self.field_options[prefix]["named"]:
             for element in array_value:
-                name = self.field_options.get(f"{prefix}.name")
+                name = self.field_options[prefix]["name"]
                 if not element.get("name"):
                     continue
-                property_path = f"{prefix}.{element[name]}"
+                property_path = f"{prefix}{self.cut_separator}{element[name]}"
                 if property_path in self._stats:
                     continue
                 for x in element.keys():
@@ -192,16 +194,13 @@ class CSVStatsCollector:
                         "properties": {x: {"values": set(), "limited": False}}
                     }
 
-    @staticmethod
-    def _escape_property_name(property_name):
-        if not property_name:
-            return property_name
-        return str(property_name).replace(".", "\\.")
-
     def process_object(self, object_value: Dict, prefix: str = ""):
         for property_name, property_value in object_value.items():
-            property_name = self._escape_property_name(property_name)
-            property_path = f"{prefix}.{property_name}" if prefix else property_name
+            property_path = (
+                f"{prefix}{self.cut_separator}{property_name}"
+                if prefix
+                else property_name
+            )
             if not isinstance(property_value, (dict, list)):
                 if self._stats.get(property_path) is None:
                     self._stats[property_path] = {}
@@ -209,7 +208,7 @@ class CSVStatsCollector:
                 self.process_array(object_value[property_name], property_path)
             else:
                 if property_path in self.field_options and self.field_options.get(
-                    f"{property_path}.grouped"
+                    f"{property_path}{self.cut_separator}grouped"
                 ):
                     self._stats[property_path] = {}
                     return
@@ -277,7 +276,7 @@ class CSVExporter:
         return items
 
     @staticmethod
-    def _convert_stats_to_headers(stats):
+    def _convert_stats_to_headers(stats, separator):
         headers = []
         for field, meta in stats.items():
             if meta.get("count") == 0:
@@ -289,13 +288,13 @@ class CSVExporter:
                 else:
                     for i in range(meta["count"]):
                         for pr in meta["properties"]:
-                            headers.append(f"{field}[{i}].{pr}")
+                            headers.append(f"{field}[{i}]{separator}{pr}")
             else:
                 if not meta.get("properties"):
                     headers.append(field)
                 else:
                     for pr in meta.get("properties"):
-                        headers.append(f"{field}.{pr}")
+                        headers.append(f"{field}{separator}{pr}")
         return headers
 
     @staticmethod
@@ -350,7 +349,7 @@ class CSVExporter:
     def _export_field_with_options(
         self, header: str, header_path: List[str], item_data: Cut
     ):
-        if self.stats_collector.field_options.get(f"{header_path[0]}.grouped"):
+        if self.stats_collector.field_options[header_path[0]]["grouped"]:
             separator = (
                 self.stats_collector.field_options.get(header_path[0], {})
                 .get("grouped_separators", {})
@@ -358,7 +357,7 @@ class CSVExporter:
                 or self.grouped_separator
             )
             # Grouped
-            if not self.stats_collector.field_options.get(f"{header_path[0]}.named"):
+            if not self.stats_collector.field_options[header_path[0]]["named"]:
                 if len(header_path) == 1:
                     value = item_data.get(header_path[0])
                     if value is None:
@@ -386,7 +385,7 @@ class CSVExporter:
                     return separator.join(self._escape_grouped_data(value, separator))
             # Grouped AND Named
             else:
-                name = self.stats_collector.field_options.get(f"{header_path[0]}.name")
+                name = self.stats_collector.field_options[header_path[0]]["name"]
                 values = []
                 for element in item_data.get(header_path[0], []):
                     element_name = element.get(name, "")
@@ -401,7 +400,7 @@ class CSVExporter:
                 return separator.join(self._escape_grouped_data(values, separator))
         # Named; if not grouped and not named - adjusted property was filtered
         else:
-            name = self.stats_collector.field_options.get(f"{header_path[0]}.name")
+            name = self.stats_collector.field_options[header_path[0]]["name"]
             for element in item_data.get(header_path[0], []):
                 if element.get(name) == header_path[1]:
                     return element.get(header_path[2], "")
@@ -413,7 +412,8 @@ class CSVExporter:
         if self._headers:
             return
         self._limit_field_elements()
-        default_headers = self._convert_stats_to_headers(self.default_stats)
+        separator = self.stats_collector.cut_separator
+        default_headers = self._convert_stats_to_headers(self.default_stats, separator)
         # If no custom options were provided - no need to recreate headers
         if not self.stats_collector.field_options:
             self._headers = default_headers
@@ -422,14 +422,17 @@ class CSVExporter:
             # Collect updated stats with field options included
             self.stats_collector.process_items(max_items)
             stats_with_options = self.stats_collector.stats
-            self._headers = self._convert_stats_to_headers(stats_with_options)
+            self._headers = self._convert_stats_to_headers(
+                stats_with_options, separator
+            )
 
     def export_item_as_row(self, item: Dict) -> List:
         self._prepare_for_export()
         row = []
-        item_data = Cut(item)
+        separator = self.stats_collector.cut_separator
+        item_data = Cut(item, sep=separator)
         for header in self._headers:
-            header_path = header.split(".")
+            header_path = header.split(separator)
             if header_path[0] not in self.stats_collector.field_options:
                 row.append(item_data.get(header, ""))
             else:
@@ -457,64 +460,55 @@ class CSVExporter:
 if __name__ == "__main__":
     # CUSTOM OPTIONS
     test_field_options = {
-        "gtin": {
-            "named": True,
-            "grouped": False,
-            "name": "type",
-            "grouped_separators": {},
-        },
-        "additionalProperty": {
-            "named": True,
-            "grouped": False,
-            "name": "name",
-            "grouped_separators": {"additionalProperty": "\n"},
-        },
-        "aggregateRating": {
-            "named": False,
-            "grouped": False,
-            "name": "",
-            "grouped_separators": {"aggregateRating": "\n"},
-        },
-        "images": {
-            "named": False,
-            "grouped": True,
-            "name": "",
-            "grouped_separators": {"images": "\n"},
-        },
-        "breadcrumbs": {
-            "named": False,
-            "grouped": True,
-            "name": "name",
-            "grouped_separators": {
+        "gtin": FieldOption(named=True, grouped=False, name="type"),
+        "additionalProperty": FieldOption(
+            named=True,
+            grouped=False,
+            name="name",
+            grouped_separators={"additionalProperty": "\n"},
+        ),
+        "aggregateRating": FieldOption(
+            named=False,
+            grouped=False,
+            name="",
+            grouped_separators={"aggregateRating": "\n"},
+        ),
+        "images": FieldOption(
+            named=False, grouped=True, name="", grouped_separators={"images": "\n"}
+        ),
+        "breadcrumbs": FieldOption(
+            named=False,
+            grouped=True,
+            name="name",
+            grouped_separators={
                 "breadcrumbs.name": "\n",
                 "breadcrumbs.link": "\n",
             },
-        },
-        # "ratingHistogram": {
-        #     "named": True,
-        #     "grouped": False,
-        #     "name": "ratingOption",
-        #     "grouped_separators": {"ratingHistogram": "\n"},
-        # },
-        # "named_array_field": {
-        #     "named": True,
-        #     "grouped": False,
-        #     "name": "name",
-        #     "grouped_separators": {},
-        # }
+        ),
+        # "ratingHistogram": FieldOption(
+        #     named=True,
+        #     grouped=False,
+        #     name="ratingOption",
+        #     grouped_separators={"ratingHistogram": "\n"}
+        # ),
+        # "named_array_field": FieldOption(
+        #     named=True,
+        #     grouped=False,
+        #     name="name"
+        # )
     }
     test_headers_renaming = [
-        (r"offers\[0\].", ""),
-        (r"aggregateRating\.", ""),
-        (r"additionalProperty\.(.*)\.value", r"\1"),
-        (r"breadcrumbs\.name", "breadcrumbs"),
-        (r"breadcrumbs\.link", "breadcrumbs links"),
+        (r"offers\[0\]->", ""),
+        (r"aggregateRating->", ""),
+        (r"additionalProperty->(.*)->value", r"\1"),
+        (r"breadcrumbs->name", "breadcrumbs"),
+        (r"breadcrumbs->link", "breadcrumbs links"),
     ]
     # Define how many elements of array to process
     test_array_limits = {"offers": 1}
 
     # DATA TO PROCESS
-    file_name = "items_simple_test_copy.json"
+    file_name = "products_simple_xod_test.json"
     item_list = json.loads(
         resource_string(__name__, f"tests/assets/{file_name}").decode("utf-8")
     )
