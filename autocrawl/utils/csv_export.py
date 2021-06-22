@@ -192,8 +192,15 @@ class CSVStatsCollector:
                         "properties": {x: {"values": set(), "limited": False}}
                     }
 
+    @staticmethod
+    def _escape_property_name(property_name):
+        if not property_name:
+            return property_name
+        return str(property_name).replace(".", "\\.")
+
     def process_object(self, object_value: Dict, prefix: str = ""):
         for property_name, property_value in object_value.items():
+            property_name = self._escape_property_name(property_name)
             property_path = f"{prefix}.{property_name}" if prefix else property_name
             if not isinstance(property_value, (dict, list)):
                 if self._stats.get(property_path) is None:
@@ -311,9 +318,9 @@ class CSVExporter:
         filters = set()
         # Find fields that need to be limited
         for key, value in self.array_limits.items():
-            count = self.default_stats[key].get("count")
             if key not in self.default_stats:
                 continue
+            count = self.default_stats[key].get("count")
             if not count:
                 continue
             for i in range(value, count):
@@ -429,6 +436,9 @@ class CSVExporter:
                 row.append(
                     self._export_field_with_options(header, header_path, item_data)
                 )
+        print("*" * 10)
+        print(row)
+        print("*" * 10)
         return row
 
     def export_csv(self, items: List[Dict], export_path: str):
@@ -504,7 +514,7 @@ if __name__ == "__main__":
     test_array_limits = {"offers": 1}
 
     # DATA TO PROCESS
-    file_name = "products_simple_xod_test.json"
+    file_name = "items_simple_test_copy.json"
     item_list = json.loads(
         resource_string(__name__, f"tests/assets/{file_name}").decode("utf-8")
     )
@@ -514,6 +524,9 @@ if __name__ == "__main__":
     # Items could be processed in batch or one-by-one through `process_object`
     autocrawl_csv_sc.process_items(item_list)
     autocrawl_stats = autocrawl_csv_sc.stats
+    from pprint import pprint
+
+    pprint(autocrawl_stats)
 
     # BACKEND PART (assuming we send stats to backend)
     csv_exporter = CSVExporter(
