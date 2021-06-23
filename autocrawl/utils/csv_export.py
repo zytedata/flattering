@@ -431,7 +431,7 @@ class CSVExporter:
             self._headers = self._convert_stats_to_headers(
                 stats_with_options, separator
             )
-            pass
+        # TODO Think about implementing custom headers sorting
 
     def export_item_as_row(self, item: Dict) -> List:
         self._prepare_for_export()
@@ -508,7 +508,7 @@ if __name__ == "__main__":
     test_array_limits = {"offers": 1}
 
     # DATA TO PROCESS
-    file_name = "products_full_schema_test.json"
+    file_name = "items_simple_test.json"
     item_list = json.loads(
         resource_string(__name__, f"tests/assets/{file_name}").decode("utf-8")
     )

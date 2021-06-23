@@ -1,2 +1,2 @@
-Mixed_array_field[0],Mixed_array_field[1],Mixed_array_field[2],Mixed_array_field[3],Mixed_array_field[4],Mixed_array_field[5],Mixed_array_field[6],Mixed_array_field[7]
-base_element_1,,base_element_2,0,base_element_3,12,base_element_4,True
+Mixed_array_field[0],Mixed_array_field[1],Mixed_array_field[2],Mixed_array_field[3],Mixed_array_field[4],Mixed_array_field[5],Mixed_array_field[6],Mixed_array_field[7],Base_field,Objects_array_field[0]->name,Objects_array_field[0]->value,Objects_array_field[1]->name,Objects_array_field[1]->value,Object_field->nested_object_field,Object_field->nested_object_array[0],Object_field->nested_object_array[1],Object_field->nested_object_array_of_objects[0]->nested_object_array_element
+base_element_1,,base_element_2,0,base_element_3,12,base_element_4,True,base_value,some_name_1,some_value_1,some_name_2,some_value_2,nested_object_value,nested_object_element_1,nested_object_element_2,nested_object_array_element_value
