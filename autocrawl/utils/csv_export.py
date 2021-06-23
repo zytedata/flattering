@@ -49,10 +49,10 @@ class CSVStatsCollector:
         return self._stats
 
     @field_options.validator
-    def check_field_options(self, _, value):
+    def check_field_options(self, _, value: Dict):
         allowed_separators = (";", ",", "\n")
         for property_name, property_value in value.items():
-            for tp in {"named", "grouped"}:
+            for tp in ["named", "grouped"]:
                 if not isinstance(property_value.get(tp), bool):
                     raise ValueError(
                         f"Adjusted properties ({property_name}) must include `{tp}` parameter with boolean value."
@@ -227,7 +227,7 @@ class CSVExporter:
     _headers: List[str] = attr.ib(init=False, default=attr.Factory(list))
 
     @headers_renaming.validator
-    def check_headers_renaming(self, _, value):
+    def check_headers_renaming(self, _, value: List[Tuple[str, str]]):
         if not isinstance(value, list):
             raise ValueError("Headers renamings must be provided as a list of tuples.")
         for rmp in value:
@@ -282,8 +282,10 @@ class CSVExporter:
         return items
 
     @staticmethod
-    def _convert_stats_to_headers(stats, separator):
-        headers = []
+    def _convert_stats_to_headers(
+        stats: Dict[str, Header], separator: str
+    ) -> List[str]:
+        headers: List[str] = []
         for field, meta in stats.items():
             if meta.get("count") == 0:
                 continue
@@ -299,12 +301,16 @@ class CSVExporter:
                 if not meta.get("properties"):
                     headers.append(field)
                 else:
-                    for pr in meta.get("properties"):
+                    for pr in meta.get("properties", []):
                         headers.append(f"{field}{separator}{pr}")
         return headers
 
     @staticmethod
-    def _get_renamed_headers(headers, headers_renaming, capitalize=True):
+    def _get_renamed_headers(
+        headers: List[str],
+        headers_renaming: List[Tuple[str, str]],
+        capitalize: bool = True,
+    ) -> List[str]:
         if not headers_renaming:
             return headers
         renamed_headers = []
@@ -354,7 +360,7 @@ class CSVExporter:
 
     def _export_field_with_options(
         self, header: str, header_path: List[str], item_data: Cut
-    ):
+    ) -> str:
         if self.stats_collector.field_options[header_path[0]]["grouped"]:
             separator = (
                 self.stats_collector.field_options.get(header_path[0], {})
