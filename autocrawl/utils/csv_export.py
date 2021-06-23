@@ -249,34 +249,36 @@ class CSVExporter:
         items: List[Dict] = [{}]
         for field_name, field_value in stats.items():
             if not field_value:
-                items[0][field_name] = ""  # NOQA
+                items[0][field_name] = ""
                 continue
             if not field_value.get("properties"):
-                items[0][field_name] = [  # NOQA
-                    "" for _ in range(field_value.get("count", 1))
-                ]
+                items[0][field_name] = ["" for _ in range(field_value.get("count", 1))]
                 continue
-            temp_items: List[Dict] = []
+            # Fillers to use all possible values and names (single-use, not combinations)
+            fillers: List[Dict] = []
             for property_name, property_value in field_value["properties"].items():
                 for i, value in enumerate((property_value.get("values") or {"": None})):
-                    if len(temp_items) <= i:
-                        temp_items.append(
+                    if len(fillers) <= i:
+                        fillers.append(
                             {k: "" for k in field_value["properties"].keys()}
                         )
-                    temp_items[i][property_name] = value
+                    fillers[i][property_name] = value
+            # If not enough fillers to hit the required count - copy the first item
+            if len(fillers) < field_value.get("count", 1):
+                for i in range(field_value.get("count", 1) - len(fillers)):
+                    fillers.append(fillers[0])
+            # Creating additional items, if required, to fit all possible values and names
             items[0][field_name] = []
             i = 0
-            for temp_item in temp_items:
+            for filler in fillers:
                 if len(items[i][field_name]) == field_value.get("count", 1):
                     i += 1
                     if len(items) > i:
-                        items[i][field_name] = items[i].get(field_name, []) + [
-                            temp_item
-                        ]
+                        items[i][field_name] = items[i].get(field_name, []) + [filler]
                     else:
-                        items.append({field_name: [temp_item]})
+                        items.append({field_name: [filler]})
                 else:
-                    items[i][field_name].append(temp_item)
+                    items[i][field_name].append(filler)
         return items
 
     @staticmethod
