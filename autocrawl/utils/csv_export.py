@@ -163,6 +163,7 @@ class CSVStatsCollector:
                     self.process_array(property_value, property_path)
                 else:
                     self.process_object(property_value, property_path)
+        pass
 
     def _process_array_with_options(self, array_value: List, prefix: str):
         if self.field_options[prefix]["grouped"]:
@@ -181,7 +182,7 @@ class CSVStatsCollector:
         elif self.field_options[prefix]["named"]:
             for element in array_value:
                 name = self.field_options[prefix]["name"]
-                if not element.get("name"):
+                if not element.get(name):
                     continue
                 property_path = f"{prefix}{self.cut_separator}{element[name]}"
                 if property_path in self._stats:
