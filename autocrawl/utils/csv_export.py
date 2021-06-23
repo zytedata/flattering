@@ -2,7 +2,7 @@ import csv
 import json
 import logging
 import re
-from typing import Dict, List, Set, Tuple, TypedDict, Union
+from typing import Dict, List, Tuple, TypedDict, Union
 
 import attr
 from pkg_resources import resource_string
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class Property(TypedDict):
-    values: Set
+    values: Dict[str, None]
     limited: bool
 
 
@@ -139,8 +139,9 @@ class CSVStatsCollector:
                 property_path = f"{prefix}[{i}]{self.cut_separator}{property_name}"
                 if not isinstance(property_value, (dict, list)):
                     if property_name not in self._stats[prefix]["properties"]:
+                        # Using dictionaries instead of sets to keep order
                         self._stats[prefix]["properties"][property_name] = {
-                            "values": set(),
+                            "values": {},
                             "limited": False,
                         }
                     property_data = self._stats[prefix]["properties"][property_name]
@@ -148,14 +149,12 @@ class CSVStatsCollector:
                     # No values would be collected for such property
                     if property_data.get("limited"):
                         continue
-                    self._stats[prefix]["properties"][property_name]["values"].add(
+                    self._stats[prefix]["properties"][property_name]["values"][
                         property_value
-                    )
-                    if len(property_data.get("values", [])) > self.named_columns_limit:
+                    ] = None
+                    if len(property_data.get("values", {})) > self.named_columns_limit:
                         # Clear previously collected values if the limit was hit to avoid partly processed columns
-                        self._stats[prefix]["properties"][property_name][
-                            "values"
-                        ] = set()
+                        self._stats[prefix]["properties"][property_name]["values"] = {}
                         self._stats[prefix]["properties"][property_name][
                             "limited"
                         ] = True
@@ -191,7 +190,7 @@ class CSVStatsCollector:
                     if x == name:
                         continue
                     self._stats[property_path] = {
-                        "properties": {x: {"values": set(), "limited": False}}
+                        "properties": {x: {"values": {}, "limited": False}}
                     }
 
     def process_object(self, object_value: Dict, prefix: str = ""):
@@ -258,7 +257,7 @@ class CSVExporter:
                 continue
             temp_items: List[Dict] = []
             for property_name, property_value in field_value["properties"].items():
-                for i, value in enumerate((property_value.get("values") or [""])):
+                for i, value in enumerate((property_value.get("values") or {"": None})):
                     if len(temp_items) <= i:
                         temp_items.append({property_name: value})
                     else:
@@ -494,11 +493,7 @@ if __name__ == "__main__":
         #     name="ratingOption",
         #     grouped_separators={"ratingHistogram": "\n"}
         # ),
-        # "named_array_field": FieldOption(
-        #     named=True,
-        #     grouped=False,
-        #     name="name"
-        # )
+        "named_array_field": FieldOption(named=True, name="name", grouped=False),
     }
     test_headers_renaming = [
         (r"offers\[0\]->", ""),
@@ -511,7 +506,7 @@ if __name__ == "__main__":
     test_array_limits = {"offers": 1}
 
     # DATA TO PROCESS
-    file_name = "products_simple_xod_test.json"
+    file_name = "items_recursive_test.json"
     item_list = json.loads(
         resource_string(__name__, f"tests/assets/{file_name}").decode("utf-8")
     )
