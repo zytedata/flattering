@@ -259,9 +259,10 @@ class CSVExporter:
             for property_name, property_value in field_value["properties"].items():
                 for i, value in enumerate((property_value.get("values") or {"": None})):
                     if len(temp_items) <= i:
-                        temp_items.append({property_name: value})
-                    else:
-                        temp_items[i][property_name] = value
+                        temp_items.append(
+                            {k: "" for k in field_value["properties"].keys()}
+                        )
+                    temp_items[i][property_name] = value
             items[0][field_name] = []
             i = 0
             for temp_item in temp_items:
@@ -427,6 +428,7 @@ class CSVExporter:
             self._headers = self._convert_stats_to_headers(
                 stats_with_options, separator
             )
+            pass
 
     def export_item_as_row(self, item: Dict) -> List:
         self._prepare_for_export()
@@ -484,12 +486,12 @@ if __name__ == "__main__":
                 "breadcrumbs.link": "\n",
             },
         ),
-        # "ratingHistogram": FieldOption(
-        #     named=True,
-        #     grouped=False,
-        #     name="ratingOption",
-        #     grouped_separators={"ratingHistogram": "\n"}
-        # ),
+        "ratingHistogram": FieldOption(
+            named=True,
+            grouped=False,
+            name="ratingOption",
+            grouped_separators={"ratingHistogram": "\n"},
+        ),
         "named_array_field": FieldOption(named=True, name="name", grouped=False),
     }
     test_headers_renaming = [
@@ -503,7 +505,7 @@ if __name__ == "__main__":
     test_array_limits = {"offers": 1}
 
     # DATA TO PROCESS
-    file_name = "items_recursive_test.json"
+    file_name = "products_full_schema_test.json"
     item_list = json.loads(
         resource_string(__name__, f"tests/assets/{file_name}").decode("utf-8")
     )
