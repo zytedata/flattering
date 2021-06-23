@@ -441,9 +441,6 @@ class CSVExporter:
                 row.append(
                     self._export_field_with_options(header, header_path, item_data)
                 )
-        print("*" * 10)
-        print(row)
-        print("*" * 10)
         return row
 
     def export_csv(self, items: List[Dict], export_path: str):
@@ -516,9 +513,6 @@ if __name__ == "__main__":
     # Items could be processed in batch or one-by-one through `process_object`
     autocrawl_csv_sc.process_items(item_list)
     autocrawl_stats = autocrawl_csv_sc.stats
-    from pprint import pprint
-
-    pprint(autocrawl_stats)
 
     # BACKEND PART (assuming we send stats to backend)
     csv_exporter = CSVExporter(
