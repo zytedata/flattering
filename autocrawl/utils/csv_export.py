@@ -1,4 +1,5 @@
 import csv
+import itertools
 import json
 import logging
 import re
@@ -285,25 +286,31 @@ class CSVExporter:
     def _convert_stats_to_headers(
         stats: Dict[str, Header], separator: str
     ) -> List[str]:
-        headers: List[str] = []
-        for field, meta in stats.items():
+        def _expand_field(field: str, meta: Header):
+            field_headers: List[str] = []
             if meta.get("count") == 0:
-                continue
+                return field_headers
             elif meta.get("count") is not None:
                 if not meta.get("properties"):
                     for i in range(meta["count"]):
-                        headers.append(f"{field}[{i}]")
+                        field_headers.append(f"{field}[{i}]")
                 else:
                     for i in range(meta["count"]):
                         for pr in meta["properties"]:
-                            headers.append(f"{field}[{i}]{separator}{pr}")
+                            field_headers.append(f"{field}[{i}]{separator}{pr}")
             else:
                 if not meta.get("properties"):
-                    headers.append(field)
+                    field_headers.append(field)
                 else:
                     for pr in meta.get("properties", []):
-                        headers.append(f"{field}{separator}{pr}")
-        return headers
+                        field_headers.append(f"{field}{separator}{pr}")
+            return field_headers
+
+        return list(
+            itertools.chain(
+                *[_expand_field(field, meta) for field, meta in stats.items()]
+            )
+        )
 
     @staticmethod
     def _get_renamed_headers(
