@@ -353,10 +353,7 @@ class CSVExporter:
         if not value:
             return value
         escaped_separator = f"\\{separator}" if separator != "\n" else "\\n"
-        if isinstance(value, list):
-            return [str(x).replace(separator, escaped_separator) for x in value]
-        else:
-            return str(value).replace(separator, escaped_separator)
+        return str(value).replace(separator, escaped_separator)
 
     def _export_field_with_options(
         self, header: str, header_path: List[str], item_data: Cut
@@ -378,7 +375,7 @@ class CSVExporter:
                         return value
                     elif isinstance(value, list):
                         return separator.join(
-                            self._escape_grouped_data(value, separator)
+                            [self._escape_grouped_data(x, separator) for x in value]
                         )
                     else:
                         return separator.join(
@@ -394,7 +391,9 @@ class CSVExporter:
                     for element in item_data.get(header_path[0], []):
                         if element.get(header_path[1]) is not None:
                             value.append(element[header_path[1]])
-                    return separator.join(self._escape_grouped_data(value, separator))
+                    return separator.join(
+                        [self._escape_grouped_data(x, separator) for x in value]
+                    )
             # Grouped AND Named
             else:
                 name = self.stats_collector.field_options[header_path[0]]["name"]
