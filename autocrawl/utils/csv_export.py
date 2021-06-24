@@ -164,7 +164,6 @@ class CSVStatsCollector:
                     self.process_array(property_value, property_path)
                 else:
                     self.process_object(property_value, property_path)
-        pass
 
     def _process_array_with_options(self, array_value: List, prefix: str):
         if self.field_options[prefix]["grouped"]:
@@ -415,7 +414,9 @@ class CSVExporter:
                     values.append(
                         f"{element_name}: {','.join([str(x) for x in element_values])}"
                     )
-                return separator.join(self._escape_grouped_data(values, separator))
+                return separator.join(
+                    [self._escape_grouped_data(x, separator) for x in values]
+                )
         # Named; if not grouped and not named - adjusted property was filtered
         else:
             name = self.stats_collector.field_options[header_path[0]]["name"]
@@ -476,38 +477,38 @@ class CSVExporter:
 if __name__ == "__main__":
     # CUSTOM OPTIONS
     test_field_options = {
-        "gtin": FieldOption(named=True, grouped=False, name="type"),
+        # "gtin": FieldOption(named=True, grouped=False, name="type"),
         "additionalProperty": FieldOption(
             named=True,
-            grouped=False,
+            grouped=True,
             name="name",
             grouped_separators={"additionalProperty": "\n"},
         ),
-        "aggregateRating": FieldOption(
-            named=False,
-            grouped=False,
-            name="",
-            grouped_separators={"aggregateRating": "\n"},
-        ),
-        "images": FieldOption(
-            named=False, grouped=True, name="", grouped_separators={"images": "\n"}
-        ),
-        "breadcrumbs": FieldOption(
-            named=False,
-            grouped=True,
-            name="name",
-            grouped_separators={
-                "breadcrumbs.name": "\n",
-                "breadcrumbs.link": "\n",
-            },
-        ),
-        "ratingHistogram": FieldOption(
-            named=True,
-            grouped=False,
-            name="ratingOption",
-            grouped_separators={"ratingHistogram": "\n"},
-        ),
-        "named_array_field": FieldOption(named=True, name="name", grouped=False),
+        # "aggregateRating": FieldOption(
+        #     named=False,
+        #     grouped=False,
+        #     name="",
+        #     grouped_separators={"aggregateRating": "\n"},
+        # ),
+        # "images": FieldOption(
+        #     named=False, grouped=True, name="", grouped_separators={"images": "\n"}
+        # ),
+        # "breadcrumbs": FieldOption(
+        #     named=False,
+        #     grouped=True,
+        #     name="name",
+        #     grouped_separators={
+        #         "breadcrumbs.name": "\n",
+        #         "breadcrumbs.link": "\n",
+        #     },
+        # ),
+        # "ratingHistogram": FieldOption(
+        #     named=True,
+        #     grouped=False,
+        #     name="ratingOption",
+        #     grouped_separators={"ratingHistogram": "\n"},
+        # ),
+        # "named_array_field": FieldOption(named=True, name="name", grouped=False),
     }
     test_headers_renaming = [
         (r"offers\[0\]->", ""),
@@ -520,7 +521,7 @@ if __name__ == "__main__":
     test_array_limits = {"offers": 1}
 
     # DATA TO PROCESS
-    file_name = "products_xod_100_test.json"
+    file_name = "products_simple_xod_test.json"
     item_list = json.loads(
         resource_string(__name__, f"tests/assets/{file_name}").decode("utf-8")
     )
