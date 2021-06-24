@@ -520,13 +520,13 @@ if __name__ == "__main__":
     test_array_limits = {"offers": 1}
 
     # DATA TO PROCESS
-    file_name = "items_simple_test.json"
+    file_name = "products_xod_100_test.json"
     item_list = json.loads(
         resource_string(__name__, f"tests/assets/{file_name}").decode("utf-8")
     )
 
     # AUTOCRAWL PART
-    autocrawl_csv_sc = CSVStatsCollector(named_columns_limit=50)
+    autocrawl_csv_sc = CSVStatsCollector()
     # Items could be processed in batch or one-by-one through `process_object`
     autocrawl_csv_sc.process_items(item_list)
     autocrawl_stats = autocrawl_csv_sc.stats

@@ -66,6 +66,18 @@ class TestCSV:
                 {"offers": 1},
             ),
             (
+                "products_xod_100_test",
+                {
+                    "gtin": {"named": True, "name": "type", "grouped": False},
+                    "additionalProperty": {
+                        "named": True,
+                        "name": "name",
+                        "grouped": False,
+                    },
+                },
+                {"offers": 1},
+            ),
+            (
                 "items_simple_test",
                 {},
                 {},
