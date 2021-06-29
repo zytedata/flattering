@@ -139,7 +139,7 @@ class TestCSV:
 #         # Failing
 #         # [
 #         #     FieldOption(named=True, name="name", grouped=True), {},
-#         #     [{'c': {'name': 'color', 'value': 'green'}}],
+#         #     [{'c': [{'name': 'color', 'value': 'green', "dfsfsd": ["432"]]}],
 #         #     [['c'],
 #         #      ['color: green']]
 #         # ],

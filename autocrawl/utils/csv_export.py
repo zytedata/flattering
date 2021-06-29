@@ -72,7 +72,7 @@ class CSVStatsCollector:
                     f"{str(et)}'s can't be mixed with other types in an array ({prefix})."
                 )
         if self._stats.get(prefix) is None:
-            self._stats[prefix] = {"count": 0, "properties": {}}
+            self._stats[prefix] = {"count": 0, "properties": {}, "type": "array"}
         if not isinstance(array_value[0], (dict, list)):
             self._stats[prefix]["count"] = max(
                 self._stats[prefix]["count"], len(array_value)
@@ -119,6 +119,67 @@ class CSVStatsCollector:
                     self.process_object(property_value, property_path)
 
     def process_object(self, object_value: Dict, prefix: str = ""):
+        if not prefix:
+            for property_name, property_value in object_value.items():
+                if not isinstance(property_value, (dict, list)):
+                    if self._stats.get(property_name) is None:
+                        self._stats[property_name] = {}
+                elif isinstance(property_value, list):
+                    self.process_array(object_value[property_name], property_name)
+                else:
+                    self.process_object(object_value[property_name], property_name)
+        else:
+            prefix_count = self._stats.get(prefix, {}).get("count")
+            # If prefix was filled with hashable data, but some items were unhashable
+            # so prefix was rebuilt into regular object headers, not saving values
+            if prefix_count == 0:
+                for property_name, property_value in object_value.items():
+                    property_path = (
+                        f"{prefix}{self.cut_separator}{property_name}"
+                        if prefix
+                        else property_name
+                    )
+                    if not isinstance(property_value, (dict, list)):
+                        if self._stats.get(property_path) is None:
+                            self._stats[property_path] = {}
+                    elif isinstance(property_value, list):
+                        self.process_array(object_value[property_name], property_path)
+                    else:
+                        self.process_object(object_value[property_name], property_path)
+                return
+            # Check that object has a single level and all values are hashable
+            all_hashable = all(
+                [not isinstance(x, (dict, list)) for x in object_value.values()]
+            )
+            # If everything is hashable - collect names and values, so the field could be grouped later
+            if all_hashable:
+                if not self._stats.get(prefix):
+                    self._stats[prefix] = {"properties": {}, "type": "object"}
+                for property_name, property_value in object_value.items():
+                    if not self._stats[prefix]["properties"].get(property_name):
+                        self._stats[prefix]["properties"][property_name] = {
+                            "values": {property_value: None},
+                            "limited": False,
+                        }
+                    else:
+                        self._stats[prefix]["properties"][property_name]["values"][
+                            property_value
+                        ] = None
+            else:
+                # If previous items with such prefix were all hashable, but new items are not (mixed), then
+                # we need to rebuild hashable stats to regular once and process every next item in regular mode
+                if self._stats.get(prefix, {}).get("properties"):
+                    prev_stats = self._stats.pop(prefix)
+                    # Mark prefix as rebuilt to avoid checking hashable types, because no values would be collected
+                    self._stats[prefix] = {"count": 0}
+                    # Rebuild previously collected starts
+                    for name, values in prev_stats.get("properties", {}).items():
+                        for value, _ in values.get("values", {}).items():
+                            print({name: value})
+                            self._process_base_object({name: value}, prefix)
+                self._process_base_object(object_value, prefix)
+
+    def _process_base_object(self, object_value: Dict, prefix: str = ""):
         for property_name, property_value in object_value.items():
             property_path = (
                 f"{prefix}{self.cut_separator}{property_name}"
@@ -230,9 +291,12 @@ class CSVExporter:
                 ]
                 return headers
             elif not named and grouped:
-                # One group per each property
-                headers = [f"{field}{separator}{key}" for key in properties]
-                return headers
+                if meta.get("type") == "array":
+                    # One group per each property if array
+                    return [f"{field}{separator}{key}" for key in properties]
+                else:
+                    # Group everything in a single cell if not
+                    return headers
             # Regular case. Handle arrays.
             if count is not None:
                 headers = [f"{f}[{i}]" for f in headers for i in range(count)]
@@ -370,6 +434,8 @@ class CSVExporter:
         self._headers = self._convert_stats_to_headers(
             self.default_stats, separator, self.field_options
         )
+        print("*" * 50)
+        print(self._headers)
         # TODO Think about implementing custom headers sorting
 
     def export_item_as_row(self, item: Dict) -> List:
@@ -403,13 +469,13 @@ class CSVExporter:
 if __name__ == "__main__":
     # CUSTOM OPTIONS
     test_field_options = {
-        "gtin": FieldOption(named=True, grouped=False, name="type"),
-        "additionalProperty": FieldOption(
-            named=True,
-            grouped=False,
-            name="name",
-            grouped_separators={"additionalProperty": "\n"},
-        ),
+        # "gtin": FieldOption(named=True, grouped=False, name="type"),
+        # "additionalProperty": FieldOption(
+        #     named=True,
+        #     grouped=False,
+        #     name="name",
+        #     grouped_separators={"additionalProperty": "\n"},
+        # ),
         # "aggregateRating": FieldOption(
         #     named=False,
         #     grouped=False,
@@ -434,8 +500,8 @@ if __name__ == "__main__":
         #     name="ratingOption",
         #     grouped_separators={"ratingHistogram": "\n"},
         # ),
-        # "named_array_field": FieldOption(named=True, name="name", grouped=False),
-        # "c": FieldOption(named=True, name="name", grouped=True)
+        # "named_array_field": FieldOption(named=True, name="name", grouped=True),
+        # "c": FieldOption(named=False, name="name", grouped=True)
     }
     test_headers_renaming = [
         (r"offers\[0\]->", ""),
@@ -448,16 +514,26 @@ if __name__ == "__main__":
     test_array_limits = {"offers": 1}
 
     # DATA TO PROCESS
-    file_name = "products_xod_test.json"
-    item_list = json.loads(
-        resource_string(__name__, f"tests/assets/{file_name}").decode("utf-8")
-    )
+    # file_name = "items_simple_test.json"
+    # item_list = json.loads(
+    #     resource_string(__name__, f"tests/assets/{file_name}").decode("utf-8")
+    # )
+    file_name = "waka.json"
+    item_list = [
+        {"c": {"name": "color", "value": "green"}},
+        {"c": {"name": "color", "value": {"some": "data"}}},
+        {"c": {"name": "color", "value": "blue"}},
+        {"c": {"name": "color", "value": None}},
+    ]
 
     # AUTOCRAWL PART
     autocrawl_csv_sc = CSVStatsCollector()
     # Items could be processed in batch or one-by-one through `process_object`
     autocrawl_csv_sc.process_items(item_list)
     autocrawl_stats = autocrawl_csv_sc.stats
+    from pprint import pprint
+
+    pprint(autocrawl_stats)
 
     # BACKEND PART (assuming we send stats to backend)
     csv_exporter = CSVExporter(
