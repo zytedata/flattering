@@ -1,11 +1,10 @@
 import csv
-import itertools
 import json
 import logging
 import re
 from typing import Dict, List, Tuple, TypedDict, Union
 
-import attr
+import attr  # NOQA
 from pkg_resources import resource_string
 
 # Using scalpl (instead of jmespath/etc.) as an existing fast backend dependency
@@ -35,53 +34,13 @@ class FieldOption(TypedDict, total=False):
 class CSVStatsCollector:
     """"""
 
-    field_options: Dict[str, FieldOption] = attr.ib(default=attr.Factory(dict))
     named_columns_limit: int = attr.ib(default=20)
     cut_separator: str = attr.ib(default="->")
     _stats: Dict[str, Header] = attr.ib(init=False, default=attr.Factory(dict))
 
-    def __attrs_post_init__(self):
-        self.field_options: Union[
-            Dict[str, FieldOption], Cut
-        ] = self._prepare_field_options(self.field_options, self.cut_separator)
-
     @property
     def stats(self):
         return self._stats
-
-    @field_options.validator
-    def check_field_options(self, _, value: Dict):
-        allowed_separators = (";", ",", "\n")
-        for property_name, property_value in value.items():
-            for tp in ["named", "grouped"]:
-                if not isinstance(property_value.get(tp), bool):
-                    raise ValueError(
-                        f"Adjusted properties ({property_name}) must include `{tp}` parameter with boolean value."
-                    )
-            if property_value.get("named") and not property_value.get("name"):
-                raise ValueError(
-                    f"Named adjusted properties ({property_name}) must include `name` parameter."
-                )
-            for key, value in property_value.get("grouped_separators", {}).items():
-                if value not in allowed_separators:
-                    raise ValueError(
-                        f"Only {allowed_separators} could be used"
-                        f" as custom grouped separators ({key}:{value})."
-                    )
-
-    @staticmethod
-    def _prepare_field_options(properties: Dict, separator: str) -> Cut:
-        to_filter = set()
-        for property_name, property_value in properties.items():
-            if not property_value.get("named") and not property_value.get("grouped"):
-                logger.warning(
-                    f"Adjusted properties ({property_name}) without either `named` or `grouped` "
-                    "parameters will be skipped."
-                )
-                to_filter.add(property_name)
-        for flt in to_filter:
-            properties.pop(flt, None)
-        return Cut(properties, sep=separator)
 
     def process_items(self, items: List[Dict]):
         if not isinstance(items, list):
@@ -115,21 +74,15 @@ class CSVStatsCollector:
         if self._stats.get(prefix) is None:
             self._stats[prefix] = {"count": 0, "properties": {}}
         if not isinstance(array_value[0], (dict, list)):
-            if prefix not in self.field_options:
-                self._stats[prefix]["count"] = max(
-                    self._stats[prefix]["count"], len(array_value)
-                )
-            else:
-                self._stats[prefix] = {}
+            self._stats[prefix]["count"] = max(
+                self._stats[prefix]["count"], len(array_value)
+            )
         elif isinstance(array_value[0], list):
             for i, element in enumerate(array_value):
                 property_path = f"{prefix}[{i}]"
                 self.process_array(element, property_path)
         else:
-            if prefix not in self.field_options:
-                self._process_base_array(array_value, prefix)
-            else:
-                self._process_array_with_options(array_value, prefix)
+            self._process_base_array(array_value, prefix)
 
     def _process_base_array(self, array_value: List, prefix: str):
         if self._stats[prefix]["count"] < len(array_value):
@@ -165,35 +118,6 @@ class CSVStatsCollector:
                 else:
                     self.process_object(property_value, property_path)
 
-    def _process_array_with_options(self, array_value: List, prefix: str):
-        if self.field_options[prefix]["grouped"]:
-            # Arrays that both grouped and named don't need stats to group data
-            if self.field_options[prefix]["named"]:
-                self._stats[prefix] = {}
-                return
-            properties = []
-            for element in array_value:
-                for property_name in element:
-                    if property_name not in properties:
-                        properties.append(property_name)
-            for property_name in properties:
-                property_path = f"{prefix}{self.cut_separator}{property_name}"
-                self._stats[property_path] = {}
-        elif self.field_options[prefix]["named"]:
-            for element in array_value:
-                name = self.field_options[prefix]["name"]
-                if not element.get(name):
-                    continue
-                property_path = f"{prefix}{self.cut_separator}{element[name]}"
-                if property_path in self._stats:
-                    continue
-                for x in element.keys():
-                    if x == name:
-                        continue
-                    self._stats[property_path] = {
-                        "properties": {x: {"values": {}, "limited": False}}
-                    }
-
     def process_object(self, object_value: Dict, prefix: str = ""):
         for property_name, property_value in object_value.items():
             property_path = (
@@ -207,11 +131,6 @@ class CSVStatsCollector:
             elif isinstance(property_value, list):
                 self.process_array(object_value[property_name], property_path)
             else:
-                if property_path in self.field_options and self.field_options.get(
-                    f"{property_path}{self.cut_separator}grouped"
-                ):
-                    self._stats[property_path] = {}
-                    return
                 self.process_object(object_value[property_name], property_path)
 
 
@@ -220,11 +139,51 @@ class CSVExporter:
     """"""
 
     default_stats: Dict[str, Header] = attr.ib()
-    stats_collector: CSVStatsCollector = attr.ib()
+    field_options: Dict[str, FieldOption] = attr.ib(default=attr.Factory(dict))
     array_limits: Dict[str, int] = attr.ib(default=attr.Factory(dict))
     headers_renaming: List[Tuple[str, str]] = attr.ib(default=attr.Factory(list))
     grouped_separator: str = attr.ib(default="\n")
+    cut_separator: str = attr.ib(default="->")
     _headers: List[str] = attr.ib(init=False, default=attr.Factory(list))
+
+    def __attrs_post_init__(self):
+        self.field_options: Union[
+            Dict[str, FieldOption], Cut
+        ] = self._prepare_field_options(self.field_options, self.cut_separator)
+
+    @field_options.validator
+    def check_field_options(self, _, value: Dict):
+        allowed_separators = (";", ",", "\n")
+        for property_name, property_value in value.items():
+            for tp in ["named", "grouped"]:
+                if not isinstance(property_value.get(tp), bool):
+                    raise ValueError(
+                        f"Adjusted properties ({property_name}) must include `{tp}` parameter with boolean value."
+                    )
+            if property_value.get("named") and not property_value.get("name"):
+                raise ValueError(
+                    f"Named adjusted properties ({property_name}) must include `name` parameter."
+                )
+            for key, value in property_value.get("grouped_separators", {}).items():
+                if value not in allowed_separators:
+                    raise ValueError(
+                        f"Only {allowed_separators} could be used"
+                        f" as custom grouped separators ({key}:{value})."
+                    )
+
+    @staticmethod
+    def _prepare_field_options(properties: Dict, separator: str) -> Cut:
+        to_filter = set()
+        for property_name, property_value in properties.items():
+            if not property_value.get("named") and not property_value.get("grouped"):
+                logger.warning(
+                    f"Adjusted properties ({property_name}) without either `named` or `grouped` "
+                    "parameters will be skipped."
+                )
+                to_filter.add(property_name)
+        for flt in to_filter:
+            properties.pop(flt, None)
+        return Cut(properties, sep=separator)
 
     @headers_renaming.validator
     def check_headers_renaming(self, _, value: List[Tuple[str, str]]):
@@ -241,75 +200,51 @@ class CSVExporter:
                 raise ValueError(f"Headers renamings ({rmp}) elements must be strings.")
 
     @staticmethod
-    def _generate_items_from_stats(stats: Dict[str, Header]) -> List[Dict]:
-        """
-        Generate items from stats that would include all the
-        possible names and values within the named columns limit
-        """
-        items: List[Dict] = [{}]
-        for field_name, field_value in stats.items():
-            if not field_value:
-                items[0][field_name] = ""
-                continue
-            if not field_value.get("properties"):
-                items[0][field_name] = ["" for _ in range(field_value.get("count", 1))]
-                continue
-            # Fillers to use all possible values and names (single-use, not combinations)
-            fillers: List[Dict] = []
-            for property_name, property_value in field_value["properties"].items():
-                for i, value in enumerate((property_value.get("values") or {"": None})):
-                    if len(fillers) <= i:
-                        fillers.append(
-                            {k: "" for k in field_value["properties"].keys()}
-                        )
-                    fillers[i][property_name] = value
-            # If not enough fillers to hit the required count - copy the first item
-            if len(fillers) < field_value.get("count", 1):
-                for i in range(field_value.get("count", 1) - len(fillers)):
-                    fillers.append(fillers[0])
-            # Creating additional items, if required, to fit all possible values and names
-            items[0][field_name] = []
-            i = 0
-            for filler in fillers:
-                if len(items[i][field_name]) == field_value.get("count", 1):
-                    i += 1
-                    if len(items) > i:
-                        items[i][field_name] = items[i].get(field_name, []) + [filler]
-                    else:
-                        items.append({field_name: [filler]})
-                else:
-                    items[i][field_name].append(filler)
-        return items
-
-    @staticmethod
     def _convert_stats_to_headers(
-        stats: Dict[str, Header], separator: str
+        stats: Dict[str, Header], separator: str, field_options: Dict[str, FieldOption]
     ) -> List[str]:
-        def _expand_field(field: str, meta: Header):
-            field_headers: List[str] = []
-            if meta.get("count") == 0:
-                return field_headers
-            elif meta.get("count") is not None:
-                if not meta.get("properties"):
-                    for i in range(meta["count"]):
-                        field_headers.append(f"{field}[{i}]")
-                else:
-                    for i in range(meta["count"]):
-                        for pr in meta["properties"]:
-                            field_headers.append(f"{field}[{i}]{separator}{pr}")
-            else:
-                if not meta.get("properties"):
-                    field_headers.append(field)
-                else:
-                    for pr in meta.get("properties", []):
-                        field_headers.append(f"{field}{separator}{pr}")
-            return field_headers
-
-        return list(
-            itertools.chain(
-                *[_expand_field(field, meta) for field, meta in stats.items()]
+        def expand(field, meta, field_option: FieldOption):
+            field_option = field_option or {}
+            headers = [field]
+            count, properties = meta.get("count"), meta.get("properties", [])
+            if count == 0:
+                return []  # If no count, then no content at all
+            named, grouped = field_option.get("named", False), field_option.get(
+                "grouped", False
             )
-        )
+            if named and grouped:
+                # Everything will be summarized in a single cell
+                return headers
+            elif named and not grouped:
+                # Each value for the named property will be a new column
+                name = field_option["name"]
+                named_prop = properties[name]
+                if named_prop.get("limited", False):
+                    raise NotImplementedError()  # TODO: deal with the limited case
+                values = named_prop.get("values", {})
+                rest_of_keys = [key for key in properties if key != name]
+                headers = [
+                    f"{field}{separator}{value}{separator}{key}"
+                    for value in values
+                    for key in rest_of_keys
+                ]
+                return headers
+            elif not named and grouped:
+                # One group per each property
+                headers = [f"{field}{separator}{key}" for key in properties]
+                return headers
+            # Regular case. Handle arrays.
+            if count is not None:
+                headers = [f"{f}[{i}]" for f in headers for i in range(count)]
+            if properties:
+                headers = [f"{f}{separator}{pr}" for f in headers for pr in properties]
+            return headers
+
+        return [
+            f
+            for field, meta in stats.items()
+            for f in expand(field, meta, field_options.get(field, {}))
+        ]
 
     @staticmethod
     def _get_renamed_headers(
@@ -364,15 +299,15 @@ class CSVExporter:
     def _export_field_with_options(
         self, header: str, header_path: List[str], item_data: Cut
     ) -> str:
-        if self.stats_collector.field_options[header_path[0]]["grouped"]:
+        if self.field_options[header_path[0]]["grouped"]:
             separator = (
-                self.stats_collector.field_options.get(header_path[0], {})
+                self.field_options.get(header_path[0], {})
                 .get("grouped_separators", {})
                 .get(header)
                 or self.grouped_separator
             )
             # Grouped
-            if not self.stats_collector.field_options[header_path[0]]["named"]:
+            if not self.field_options[header_path[0]]["named"]:
                 if len(header_path) == 1:
                     value = item_data.get(header_path[0])
                     if value is None:
@@ -402,7 +337,7 @@ class CSVExporter:
                     )
             # Grouped AND Named
             else:
-                name = self.stats_collector.field_options[header_path[0]]["name"]
+                name = self.field_options[header_path[0]]["name"]
                 values = []
                 for element in item_data.get(header_path[0], []):
                     element_name = element.get(name, "")
@@ -419,7 +354,7 @@ class CSVExporter:
                 )
         # Named; if not grouped and not named - adjusted property was filtered
         else:
-            name = self.stats_collector.field_options[header_path[0]]["name"]
+            name = self.field_options[header_path[0]]["name"]
             for element in item_data.get(header_path[0], []):
                 if element.get(name) == header_path[1]:
                     return element.get(header_path[2], "")
@@ -431,29 +366,20 @@ class CSVExporter:
         if self._headers:
             return
         self._limit_field_elements()
-        separator = self.stats_collector.cut_separator
-        default_headers = self._convert_stats_to_headers(self.default_stats, separator)
-        # If no custom options were provided - no need to recreate headers
-        if not self.stats_collector.field_options:
-            self._headers = default_headers
-        else:
-            max_items = self._generate_items_from_stats(self.default_stats)
-            # Collect updated stats with field options included
-            self.stats_collector.process_items(max_items)
-            stats_with_options = self.stats_collector.stats
-            self._headers = self._convert_stats_to_headers(
-                stats_with_options, separator
-            )
+        separator = self.cut_separator
+        self._headers = self._convert_stats_to_headers(
+            self.default_stats, separator, self.field_options
+        )
         # TODO Think about implementing custom headers sorting
 
     def export_item_as_row(self, item: Dict) -> List:
         self._prepare_for_export()
         row = []
-        separator = self.stats_collector.cut_separator
+        separator = self.cut_separator
         item_data = Cut(item, sep=separator)
         for header in self._headers:
             header_path = header.split(separator)
-            if header_path[0] not in self.stats_collector.field_options:
+            if header_path[0] not in self.field_options:
                 row.append(item_data.get(header, ""))
             else:
                 row.append(
@@ -477,10 +403,10 @@ class CSVExporter:
 if __name__ == "__main__":
     # CUSTOM OPTIONS
     test_field_options = {
-        # "gtin": FieldOption(named=True, grouped=False, name="type"),
+        "gtin": FieldOption(named=True, grouped=False, name="type"),
         "additionalProperty": FieldOption(
             named=True,
-            grouped=True,
+            grouped=False,
             name="name",
             grouped_separators={"additionalProperty": "\n"},
         ),
@@ -509,6 +435,7 @@ if __name__ == "__main__":
         #     grouped_separators={"ratingHistogram": "\n"},
         # ),
         # "named_array_field": FieldOption(named=True, name="name", grouped=False),
+        # "c": FieldOption(named=True, name="name", grouped=True)
     }
     test_headers_renaming = [
         (r"offers\[0\]->", ""),
@@ -521,7 +448,7 @@ if __name__ == "__main__":
     test_array_limits = {"offers": 1}
 
     # DATA TO PROCESS
-    file_name = "products_simple_xod_test.json"
+    file_name = "products_xod_test.json"
     item_list = json.loads(
         resource_string(__name__, f"tests/assets/{file_name}").decode("utf-8")
     )
@@ -535,11 +462,12 @@ if __name__ == "__main__":
     # BACKEND PART (assuming we send stats to backend)
     csv_exporter = CSVExporter(
         default_stats=autocrawl_stats,
-        stats_collector=CSVStatsCollector(test_field_options),
+        field_options=test_field_options,
         array_limits=test_array_limits,
         headers_renaming=test_headers_renaming,
     )
     # Items could be exported in batch or one-by-one through `export_item_as_row`
+
     csv_exporter.export_csv(
         item_list, f"autocrawl/utils/csv_assets/{file_name.replace('.json', '.csv')}"
     )
