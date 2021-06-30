@@ -217,6 +217,51 @@ class TestCSV:
             ],
             [["c"], ["color: green\nsize: XL"]],
         ],
+        [
+            {},
+            {},
+            [{"c": "somevalue"}],
+            [["c"], ["somevalue"]],
+        ],
+        [
+            {"c": FieldOption(grouped=False, named=True, name="name")},
+            {},
+            [{"c": {"name": "color", "value": "green"}, "b": [1, 2]}],
+            [["c->color->value", "b[0]", "b[1]"], ["green", 1, 2]],
+        ],
+        [
+            {},
+            {},
+            [{"c": {"name": "color", "value": "green"}, "b": [1, 2]}],
+            [["c->name", "c->value", "b[0]", "b[1]"], ["color", "green", 1, 2]],
+        ],
+        [
+            {"b": FieldOption(named=False, name="name", grouped=False)},
+            {},
+            [{"b": [1, 2]}],
+            [["b[0]", "b[1]"], [1, 2]],
+        ],
+        [
+            {"b": FieldOption(named=False, name="name", grouped=True)},
+            {},
+            [{"b": [1, 2]}],
+            [["b"], ["1\n2"]],
+        ],
+        [
+            {"b": FieldOption(named=False, name="name", grouped=True)},
+            {},
+            [{"c": {"name": "color", "value": "green"}, "b": [1, 2]}],
+            [["c->name", "c->value", "b"], ["color", "green", "1\n2"]],
+        ],
+        [
+            {
+                "b": FieldOption(named=False, name="name", grouped=True),
+                "c": FieldOption(grouped=True, named=False, name="name"),
+            },
+            {},
+            [{"c": {"name": "color", "value": "green"}, "b": [1, 2]}],
+            [["c", "b"], ["name: color\nvalue: green", "1\n2"]],
+        ],
     ],
 )
 def test_csv(

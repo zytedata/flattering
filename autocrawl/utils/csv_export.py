@@ -1,11 +1,9 @@
 import csv
-import json
 import logging
 import re
 from typing import Dict, List, Tuple, TypedDict, Union
 
 import attr  # NOQA
-from pkg_resources import resource_string
 
 # Using scalpl (instead of jmespath/etc.) as an existing fast backend dependency
 from scalpl import Cut  # NOQA
@@ -21,6 +19,7 @@ class Property(TypedDict):
 class Header(TypedDict, total=False):
     count: int
     properties: Dict[str, Property]
+    type: str
 
 
 class FieldOption(TypedDict, total=False):
@@ -126,71 +125,34 @@ class CSVStatsCollector:
             return True
 
     def process_object(self, object_value: Dict, prefix: str = ""):
-        if not prefix:
-            for property_name, property_value in object_value.items():
-                if self._is_hashable(property_value):
-                    if self._stats.get(property_name) is None:
-                        self._stats[property_name] = {}
-                elif isinstance(property_value, list):
-                    self.process_array(object_value[property_name], property_name)
-                else:
-                    self.process_object(object_value[property_name], property_name)
+        if self._stats.get(prefix, {}).get("count") == 0:
+            self._process_base_object(object_value, prefix)
+            return
+        # Check that object has a single level and all values are hashable
+        values_hashable = {k: self._is_hashable(v) for k, v in object_value.items()}
+        # If everything is hashable - collect names and values, so the field could be grouped later
+        # Skip if init (no prefix) to avoid parenting like `->value` because no parent is present
+        if all(values_hashable.values()) and prefix:
+            self._process_hashable_object(object_value, prefix)
         else:
-            # If prefix was filled with hashable data, but some items were unhashable
-            # so prefix was rebuilt into regular object headers, not saving values
-            if self._stats.get(prefix, {}).get("count") == 0:
-                for property_name, property_value in object_value.items():
-                    property_path = (
-                        f"{prefix}{self.cut_separator}{property_name}"
-                        if prefix
-                        else property_name
-                    )
-                    if self._is_hashable(property_value):
-                        if self._stats.get(property_path) is None:
-                            self._stats[property_path] = {}
-                    elif isinstance(property_value, list):
-                        self.process_array(object_value[property_name], property_path)
-                    else:
-                        self.process_object(object_value[property_name], property_path)
-                return
-
-            # Check that object has a single level and all values are hashable
-            values_hashable = {k: self._is_hashable(v) for k, v in object_value.items()}
-            # # If everything is hashable - collect names and values, so the field could be grouped later
-            if all(values_hashable.values()):
-                if not self._stats.get(prefix):
-                    self._stats[prefix] = {"properties": {}, "type": "object"}
-                for property_name, property_value in object_value.items():
-                    if not self._stats[prefix]["properties"].get(property_name):
-                        self._stats[prefix]["properties"][property_name] = {
-                            "values": {property_value: None},
-                            # "is_hashable": self._is_hashable(property_value),
-                            "limited": False,
-                        }
-                    else:
-                        # properties = self._stats[prefix]["properties"]
-                        # if self._is_hashable(property_value) != properties[property_name]["is_hashable"]:
-                        #     raise ValueError(f"Value of property \"{property_name}\" should be stable "
-                        #                      "(hashable or non-hashable) between items.")
-                        self._stats[prefix]["properties"][property_name]["values"][
-                            property_value
-                        ] = None
-            else:
-                # If property values are not all hashable, but there're properties saved for the prefix
-                # it means that for previous items they were all hashable, so need to rebuild previous stats
-                # and process all the next values for this prefix as non-hashable
-                if self._stats.get(prefix, {}).get("properties"):
-                    prev_stats = self._stats.pop(prefix)
-                    # Mark prefix as rebuilt to avoid checking hashable types, because no values would be collected
-                    self._stats[prefix] = {"count": 0}
-                    # Rebuild previously collected starts
-                    for name, values in prev_stats.get("properties", {}).items():
-                        for value, _ in values.get("values", {}).items():
-                            self._process_base_object({name: value}, prefix)
-                self._process_base_object(object_value, prefix, values_hashable)
+            # If property values are not all hashable, but there're properties saved for the prefix
+            # it means that for previous items they were all hashable, so need to rebuild previous stats
+            # and process all the next values for this prefix as non-hashable
+            if self._stats.get(prefix, {}).get("properties"):
+                prev_stats = self._stats.pop(prefix)
+                # Mark prefix as rebuilt to avoid checking hashable types, because no values would be collected
+                self._stats[prefix] = {"count": 0}
+                # Rebuild previously collected starts
+                for name, values in prev_stats.get("properties", {}).items():
+                    for value, _ in values.get("values", {}).items():
+                        self._process_base_object({name: value}, prefix)
+            self._process_base_object(object_value, prefix, values_hashable)
 
     def _process_base_object(
-        self, object_value: Dict, prefix: str = "", values_hashable: Dict[str, bool] = None
+        self,
+        object_value: Dict,
+        prefix: str = "",
+        values_hashable: Dict[str, bool] = None,
     ):
         for property_name, property_value in object_value.items():
             property_path = (
@@ -223,6 +185,20 @@ class CSVStatsCollector:
                 self.process_array(object_value[property_name], property_path)
             else:
                 self.process_object(object_value[property_name], property_path)
+
+    def _process_hashable_object(self, object_value: Dict, prefix: str = ""):
+        if not self._stats.get(prefix):
+            self._stats[prefix] = {"properties": {}, "type": "object"}
+        for property_name, property_value in object_value.items():
+            if not self._stats[prefix]["properties"].get(property_name):
+                self._stats[prefix]["properties"][property_name] = {
+                    "values": {property_value: None},
+                    "limited": False,
+                }
+            else:
+                self._stats[prefix]["properties"][property_name]["values"][
+                    property_value
+                ] = None
 
 
 @attr.s(auto_attribs=True)
@@ -323,7 +299,10 @@ class CSVExporter:
             elif not named and grouped:
                 if meta.get("type") == "array":
                     # One group per each property if array
-                    return [f"{field}{separator}{key}" for key in properties]
+                    if properties:
+                        return [f"{field}{separator}{key}" for key in properties]
+                    else:
+                        return headers
                 else:
                     # Group everything in a single cell if not
                     return headers
@@ -449,11 +428,23 @@ class CSVExporter:
         # Named; if not grouped and not named - adjusted property was filtered
         else:
             name = self.field_options[header_path[0]]["name"]
-            for element in item_data.get(header_path[0], []):
-                if element.get(name) == header_path[1]:
-                    return element.get(header_path[2], "")
+            elements = item_data.get(header_path[0], [])
+            if isinstance(elements, list):
+                for element in elements:
+                    if element.get(name) == header_path[1]:
+                        return element.get(header_path[2], "")
+                else:
+                    return ""
+            elif isinstance(elements, dict):
+                for element_key, element_value in elements.items():
+                    if element_key == header_path[2]:
+                        return element_value
+                else:
+                    return ""
             else:
-                return ""
+                raise ValueError(
+                    f"Unexpected value type ({type(elements)}) for field ({header_path}): {elements}"
+                )
 
     def _prepare_for_export(self):
         # If headers are set - they've been processed already and ready for export
@@ -532,7 +523,10 @@ if __name__ == "__main__":
         #     grouped_separators={"ratingHistogram": "\n"},
         # ),
         # "named_array_field": FieldOption(named=True, name="name", grouped=True),
-        "c": FieldOption(named=False, name="name", grouped=True)
+        "c": FieldOption(named=False, name="name", grouped=True),
+        "b": FieldOption(named=False, name="name", grouped=True)
+        # TODO What should happend if hashable dict if both grouped and named?
+        # I assume, that should be impossible?
     }
     test_headers_renaming = [
         (r"offers\[0\]->", ""),
@@ -551,8 +545,10 @@ if __name__ == "__main__":
     # )
     file_name = "waka.json"
     item_list = [
-        {"c": {"name": "color", "value": "green"}},
-        {"c": {"name": "color", "value": None}},
+        # {"c": {"name": "color", "value": "green", "other": "some"}},
+        {"c": {"name": "color", "value": "green"}, "b": [1, 2]}
+        # {"c": "somevalue"}
+        # {"c": {"name": "color", "value": None}},
         # {"c": {"name": "color", "value": [1, 2, 3]}},
         # {"c": {"name": "color", "value": "cyan", "meta": {"some": "data"}}},
         # {"c": {"name": "color", "value": "blue", "meta_list": [1, 2, 3]}},
