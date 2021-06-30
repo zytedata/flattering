@@ -137,8 +137,6 @@ class CSVStatsCollector:
         if all(values_hashable.values()) and prefix:
             self._process_hashable_object(object_value, prefix)
         else:
-            # Mark that prefix has non-hashable values, so no need to collect properties/values/names
-            self._stats[prefix] = {"count": 0}
             # If property values are not all hashable, but there're properties saved for the prefix
             # it means that for previous items they were all hashable, so need to rebuild previous stats
             # and process all the next values for this prefix as non-hashable
@@ -148,6 +146,8 @@ class CSVStatsCollector:
                 for name, values in prev_stats.get("properties", {}).items():
                     for value, _ in values.get("values", {}).items():
                         self._process_base_object({name: value}, prefix)
+            # Mark that prefix has non-hashable values, so no need to collect properties/values/names
+            self._stats[prefix] = {"count": 0}
             self._process_base_object(object_value, prefix, values_hashable)
 
     def _process_base_object(
