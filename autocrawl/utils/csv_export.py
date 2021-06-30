@@ -118,10 +118,17 @@ class CSVStatsCollector:
                 else:
                     self.process_object(property_value, property_path)
 
+    @staticmethod
+    def _is_hashable(value):
+        if isinstance(value, (dict, list)):
+            return False
+        else:
+            return True
+
     def process_object(self, object_value: Dict, prefix: str = ""):
         if not prefix:
             for property_name, property_value in object_value.items():
-                if not isinstance(property_value, (dict, list)):
+                if self._is_hashable(property_value):
                     if self._stats.get(property_name) is None:
                         self._stats[property_name] = {}
                 elif isinstance(property_value, list):
@@ -129,17 +136,20 @@ class CSVStatsCollector:
                 else:
                     self.process_object(object_value[property_name], property_name)
         else:
-            prefix_count = self._stats.get(prefix, {}).get("count")
+
+            # IMPORTANT Values for specific property mustn't change from hashable to non-hashable types
+            # during the run
+            # TODO: Initialize type when adding first property to "properties" and then compare with it
             # If prefix was filled with hashable data, but some items were unhashable
             # so prefix was rebuilt into regular object headers, not saving values
-            if prefix_count == 0:
+            if self._stats.get(prefix, {}).get("count") == 0:
                 for property_name, property_value in object_value.items():
                     property_path = (
                         f"{prefix}{self.cut_separator}{property_name}"
                         if prefix
                         else property_name
                     )
-                    if not isinstance(property_value, (dict, list)):
+                    if self._is_hashable(property_value):
                         if self._stats.get(property_path) is None:
                             self._stats[property_path] = {}
                     elif isinstance(property_value, list):
@@ -148,44 +158,69 @@ class CSVStatsCollector:
                         self.process_object(object_value[property_name], property_path)
                 return
             # Check that object has a single level and all values are hashable
-            all_hashable = all(
-                [not isinstance(x, (dict, list)) for x in object_value.values()]
-            )
-            # If everything is hashable - collect names and values, so the field could be grouped later
-            if all_hashable:
+            values_hashable = {k: self._is_hashable(v) for k, v in object_value.items()}
+            # # If everything is hashable - collect names and values, so the field could be grouped later
+            if all(values_hashable.values()):
                 if not self._stats.get(prefix):
                     self._stats[prefix] = {"properties": {}, "type": "object"}
                 for property_name, property_value in object_value.items():
                     if not self._stats[prefix]["properties"].get(property_name):
                         self._stats[prefix]["properties"][property_name] = {
                             "values": {property_value: None},
+                            # "is_hashable": self._is_hashable(property_value),
                             "limited": False,
                         }
                     else:
+                        # properties = self._stats[prefix]["properties"]
+                        # if self._is_hashable(property_value) != properties[property_name]["is_hashable"]:
+                        #     raise ValueError(f"Value of property \"{property_name}\" should be stable "
+                        #                      "(hashable or non-hashable) between items.")
                         self._stats[prefix]["properties"][property_name]["values"][
                             property_value
                         ] = None
             else:
-                # If previous items with such prefix were all hashable, but new items are not (mixed), then
-                # we need to rebuild hashable stats to regular once and process every next item in regular mode
+                # IMPORTANT What if just new non-hashable field was added? :)
+                # If property values are not all hashable, but there're properties saved
+                # it means that type
                 if self._stats.get(prefix, {}).get("properties"):
+                    # raise ValueError(f"Properties types can't change their type "
+                    #                  "from hashable to non-hashable: {object_value}")
                     prev_stats = self._stats.pop(prefix)
                     # Mark prefix as rebuilt to avoid checking hashable types, because no values would be collected
                     self._stats[prefix] = {"count": 0}
                     # Rebuild previously collected starts
                     for name, values in prev_stats.get("properties", {}).items():
                         for value, _ in values.get("values", {}).items():
-                            print({name: value})
                             self._process_base_object({name: value}, prefix)
-                self._process_base_object(object_value, prefix)
+                self._process_base_object(object_value, prefix, values_hashable)
 
-    def _process_base_object(self, object_value: Dict, prefix: str = ""):
+    def _process_base_object(
+        self, object_value: Dict, prefix: str = "", values_hashable: Dict = None
+    ):
         for property_name, property_value in object_value.items():
             property_path = (
                 f"{prefix}{self.cut_separator}{property_name}"
                 if prefix
                 else property_name
             )
+            if values_hashable:
+                property_stats = self._stats.get(property_path)
+                # If hashable, but have existing non-empty properties
+                if (
+                    values_hashable[property_name]
+                    and property_stats != {}
+                    and property_stats is not None
+                ):
+                    raise ValueError(
+                        f"Field {property_name} was processed as non-hashable "
+                        f"but later got hashable value: ({property_value})"
+                    )
+                # If not hashable, but doesn't have properties
+                if not values_hashable[property_name] and property_stats == {}:
+                    raise ValueError(
+                        f"Field {property_name} was processed as hashable "
+                        f"but later got non-hashable value: ({property_value})"
+                    )
             if not isinstance(property_value, (dict, list)):
                 if self._stats.get(property_path) is None:
                     self._stats[property_path] = {}
@@ -521,9 +556,10 @@ if __name__ == "__main__":
     file_name = "waka.json"
     item_list = [
         {"c": {"name": "color", "value": "green"}},
-        {"c": {"name": "color", "value": {"some": "data"}}},
-        {"c": {"name": "color", "value": "blue"}},
         {"c": {"name": "color", "value": None}},
+        {"c": {"name": "color", "value": [1, 2, 3]}},
+        # {"c": {"name": "color", "value": "cyan", "meta": {"some": "data"}}},
+        # {"c": {"name": "color", "value": "blue"}},
     ]
 
     # AUTOCRAWL PART
