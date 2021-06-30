@@ -1,11 +1,12 @@
 import codecs
 import csv
 import json
+from typing import Dict
 
 import pytest  # NOQA
 from pkg_resources import resource_stream, resource_string
 
-from ..csv_export import CSVExporter, CSVStatsCollector
+from ..csv_export import CSVExporter, CSVStatsCollector, FieldOption
 
 
 class TestCSV:
@@ -121,105 +122,106 @@ class TestCSV:
             ] == row
 
 
-# @pytest.mark.parametrize(
-#     "field_options, array_limits, items, expected",
-#     [
-#         [
-#             {},
-#             {},
-#             [{"c": {"name": "color", "value": "green"}}],
-#             [["c->name", "c->value"], ["color", "green"]],
-#         ],
-#         # Failing
-#         # [
-#         #     FieldOption(named=True, name="name"), {},
-#         #     [{'c': {'name': 'color', 'value': 'green'}}],
-#         #     [...]
-#         # ],
-#         # Failing
-#         # [
-#         #     FieldOption(named=True, name="name", grouped=True), {},
-#         #     [{'c': [{'name': 'color', 'value': 'green', "dfsfsd": ["432"]]}],
-#         #     [['c'],
-#         #      ['color: green']]
-#         # ],
-#         # Failing
-#         # [
-#         #     {"c": FieldOption(grouped=True, named=False)}, {},
-#         #     [{'c': {'name': 'color', 'value': 'green'}}],
-#         #     [['c'],
-#         #      ['name: color\nvalue: green']]
-#         # ],
-#         [
-#             {},
-#             {},
-#             [
-#                 {
-#                     "c": [
-#                         {"name": "color", "value": "green"},
-#                         {"name": "size", "value": "XL"},
-#                     ]
-#                 }
-#             ],
-#             [
-#                 ["c[0]->name", "c[0]->value", "c[1]->name", "c[1]->value"],
-#                 ["color", "green", "size", "XL"],
-#             ],
-#         ],
-#         [
-#             {"c": FieldOption(grouped=False, named=True, name="name")},
-#             {},
-#             [
-#                 {
-#                     "c": [
-#                         {"name": "color", "value": "green"},
-#                         {"name": "size", "value": "XL"},
-#                     ]
-#                 }
-#             ],
-#             [["c->color->value", "c->size->value"], ["green", "XL"]],
-#         ],
-#         [
-#             {"c": FieldOption(grouped=True, named=False)},
-#             {},
-#             [
-#                 {
-#                     "c": [
-#                         {"name": "color", "value": "green"},
-#                         {"name": "size", "value": "XL"},
-#                     ]
-#                 }
-#             ],
-#             [["c->name", "c->value"], ["color\nsize", "green\nXL"]],
-#         ],
-#         [
-#             {"c": FieldOption(grouped=True, named=True, name="name")},
-#             {},
-#             [
-#                 {
-#                     "c": [
-#                         {"name": "color", "value": "green"},
-#                         {"name": "size", "value": "XL"},
-#                     ]
-#                 }
-#             ],
-#             [["c"], ["color: green\nsize: XL"]],
-#         ],
-#     ],
-# )
-# def test_csv(field_options, array_limits, items, expected):
-#     csv_stats_col = CSVStatsCollector(named_columns_limit=50)
-#     csv_stats_col.process_items(items)
-#
-#     csv_exporter = CSVExporter(
-#         default_stats=csv_stats_col.stats,
-#         field_options=field_options,
-#         array_limits=array_limits,
-#     )
-#
-#     csv_exporter._prepare_for_export()
-#     headers = csv_exporter._get_renamed_headers(
-#         csv_exporter._headers, csv_exporter.headers_renaming
-#     )
-#     exp_items = [csv_exporter.export_item_as_row(item) for item in items]
-#     assert [headers] + exp_items == expected
+@pytest.mark.parametrize(
+    "field_options, array_limits, items, expected",
+    [
+        [
+            {},
+            {},
+            [{"c": {"name": "color", "value": "green"}}],
+            [["c->name", "c->value"], ["color", "green"]],
+        ],
+        # Failing
+        # [
+        #     {"c": FieldOption(named=True, name="name", grouped=False)}, {},
+        #     [{'c': {'name': 'color', 'value': 'green'}}],
+        #     [...]
+        # ],
+        # Failing
+        # [
+        #     {"c": FieldOption(named=True, name="name", grouped=True)}, {},
+        #     [{'c': [{'name': 'color', 'value': 'green', "dfsfsd": ["432"]}]}],
+        #     [['c'],
+        #      ['color: green']]
+        # ],
+        [
+            {"c": FieldOption(grouped=True, named=False)},
+            {},
+            [{"c": {"name": "color", "value": "green"}}],
+            [["c"], ["name: color\nvalue: green"]],
+        ],
+        [
+            {},
+            {},
+            [
+                {
+                    "c": [
+                        {"name": "color", "value": "green"},
+                        {"name": "size", "value": "XL"},
+                    ]
+                }
+            ],
+            [
+                ["c[0]->name", "c[0]->value", "c[1]->name", "c[1]->value"],
+                ["color", "green", "size", "XL"],
+            ],
+        ],
+        [
+            {"c": FieldOption(grouped=False, named=True, name="name")},
+            {},
+            [
+                {
+                    "c": [
+                        {"name": "color", "value": "green"},
+                        {"name": "size", "value": "XL"},
+                    ]
+                }
+            ],
+            [["c->color->value", "c->size->value"], ["green", "XL"]],
+        ],
+        [
+            {"c": FieldOption(grouped=True, named=False)},
+            {},
+            [
+                {
+                    "c": [
+                        {"name": "color", "value": "green"},
+                        {"name": "size", "value": "XL"},
+                    ]
+                }
+            ],
+            [["c->name", "c->value"], ["color\nsize", "green\nXL"]],
+        ],
+        [
+            {"c": FieldOption(grouped=True, named=True, name="name")},
+            {},
+            [
+                {
+                    "c": [
+                        {"name": "color", "value": "green"},
+                        {"name": "size", "value": "XL"},
+                    ]
+                }
+            ],
+            [["c"], ["color: green\nsize: XL"]],
+        ],
+    ],
+)
+def test_csv(
+    field_options: Dict[str, FieldOption], array_limits: Dict[str, int], items, expected
+):
+    csv_stats_col = CSVStatsCollector(named_columns_limit=50)
+    csv_stats_col.process_items(items)
+
+    csv_exporter = CSVExporter(
+        default_stats=csv_stats_col.stats,
+        field_options=field_options,
+        array_limits=array_limits,
+    )
+
+    csv_exporter._prepare_for_export()
+    headers = csv_exporter._get_renamed_headers(
+        csv_exporter._headers, csv_exporter.headers_renaming
+    )
+    exp_items = [csv_exporter.export_item_as_row(item) for item in items]
+    assert [headers] + exp_items == expected
