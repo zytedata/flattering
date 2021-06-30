@@ -131,12 +131,18 @@ class TestCSV:
             [{"c": {"name": "color", "value": "green"}}],
             [["c->name", "c->value"], ["color", "green"]],
         ],
-        # Failing
-        # [
-        #     {"c": FieldOption(named=True, name="name", grouped=False)}, {},
-        #     [{'c': {'name': 'color', 'value': 'green'}}],
-        #     [...]
-        # ],
+        [
+            {"c": FieldOption(named=True, name="name", grouped=False)},
+            {},
+            [{"c": {"name": "color", "value": "green"}}],
+            [["c->color->value"], ["green"]],
+        ],
+        [
+            {"c": FieldOption(named=True, name="name", grouped=False)},
+            {},
+            [{"c": {"name": "color", "value": "green", "other": "some"}}],
+            [["c->color->value", "c->color->other"], ["green", "some"]],
+        ],
         # Failing
         # [
         #     {"c": FieldOption(named=True, name="name", grouped=True)}, {},
@@ -149,6 +155,12 @@ class TestCSV:
             {},
             [{"c": {"name": "color", "value": "green"}}],
             [["c"], ["name: color\nvalue: green"]],
+        ],
+        [
+            {"c": FieldOption(grouped=True, named=False)},
+            {},
+            [{"c": {"name": "color", "value": "green", "other": "some"}}],
+            [["c"], ["name: color\nvalue: green\nother: some"]],
         ],
         [
             {},
