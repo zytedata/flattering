@@ -136,10 +136,6 @@ class CSVStatsCollector:
                 else:
                     self.process_object(object_value[property_name], property_name)
         else:
-
-            # IMPORTANT Values for specific property mustn't change from hashable to non-hashable types
-            # during the run
-            # TODO: Initialize type when adding first property to "properties" and then compare with it
             # If prefix was filled with hashable data, but some items were unhashable
             # so prefix was rebuilt into regular object headers, not saving values
             if self._stats.get(prefix, {}).get("count") == 0:
@@ -157,6 +153,7 @@ class CSVStatsCollector:
                     else:
                         self.process_object(object_value[property_name], property_path)
                 return
+
             # Check that object has a single level and all values are hashable
             values_hashable = {k: self._is_hashable(v) for k, v in object_value.items()}
             # # If everything is hashable - collect names and values, so the field could be grouped later
@@ -179,12 +176,10 @@ class CSVStatsCollector:
                             property_value
                         ] = None
             else:
-                # IMPORTANT What if just new non-hashable field was added? :)
-                # If property values are not all hashable, but there're properties saved
-                # it means that type
+                # If property values are not all hashable, but there're properties saved for the prefix
+                # it means that for previous items they were all hashable, so need to rebuild previous stats
+                # and process all the next values for this prefix as non-hashable
                 if self._stats.get(prefix, {}).get("properties"):
-                    # raise ValueError(f"Properties types can't change their type "
-                    #                  "from hashable to non-hashable: {object_value}")
                     prev_stats = self._stats.pop(prefix)
                     # Mark prefix as rebuilt to avoid checking hashable types, because no values would be collected
                     self._stats[prefix] = {"count": 0}
@@ -195,7 +190,7 @@ class CSVStatsCollector:
                 self._process_base_object(object_value, prefix, values_hashable)
 
     def _process_base_object(
-        self, object_value: Dict, prefix: str = "", values_hashable: Dict = None
+        self, object_value: Dict, prefix: str = "", values_hashable: Dict[str, bool] = None
     ):
         for property_name, property_value in object_value.items():
             property_path = (
@@ -486,6 +481,7 @@ class CSVExporter:
                 row.append(
                     self._export_field_with_options(header, header_path, item_data)
                 )
+        print(row)
         return row
 
     def export_csv(self, items: List[Dict], export_path: str):
@@ -536,7 +532,7 @@ if __name__ == "__main__":
         #     grouped_separators={"ratingHistogram": "\n"},
         # ),
         # "named_array_field": FieldOption(named=True, name="name", grouped=True),
-        # "c": FieldOption(named=False, name="name", grouped=True)
+        "c": FieldOption(named=False, name="name", grouped=True)
     }
     test_headers_renaming = [
         (r"offers\[0\]->", ""),
@@ -557,9 +553,9 @@ if __name__ == "__main__":
     item_list = [
         {"c": {"name": "color", "value": "green"}},
         {"c": {"name": "color", "value": None}},
-        {"c": {"name": "color", "value": [1, 2, 3]}},
+        # {"c": {"name": "color", "value": [1, 2, 3]}},
         # {"c": {"name": "color", "value": "cyan", "meta": {"some": "data"}}},
-        # {"c": {"name": "color", "value": "blue"}},
+        # {"c": {"name": "color", "value": "blue", "meta_list": [1, 2, 3]}},
     ]
 
     # AUTOCRAWL PART
