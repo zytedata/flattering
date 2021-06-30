@@ -1,7 +1,7 @@
 import csv
 import logging
 import re
-from typing import Dict, List, Tuple, TypedDict, Union
+from typing import Dict, List, Tuple, TypedDict
 
 import attr  # NOQA
 
@@ -214,9 +214,7 @@ class CSVExporter:
     _headers: List[str] = attr.ib(init=False, default=attr.Factory(list))
 
     def __attrs_post_init__(self):
-        self.field_options: Union[
-            Dict[str, FieldOption], Cut
-        ] = self._prepare_field_options(self.field_options, self.cut_separator)
+        self.field_options = self._prepare_field_options(self.field_options)
 
     @field_options.validator
     def check_field_options(self, _, value: Dict):
@@ -239,7 +237,9 @@ class CSVExporter:
                     )
 
     @staticmethod
-    def _prepare_field_options(properties: Dict, separator: str) -> Cut:
+    def _prepare_field_options(
+        properties: Dict[str, FieldOption]
+    ) -> Dict[str, FieldOption]:
         to_filter = set()
         for property_name, property_value in properties.items():
             if not property_value.get("named") and not property_value.get("grouped"):
@@ -250,7 +250,7 @@ class CSVExporter:
                 to_filter.add(property_name)
         for flt in to_filter:
             properties.pop(flt, None)
-        return Cut(properties, sep=separator)
+        return properties
 
     @headers_renaming.validator
     def check_headers_renaming(self, _, value: List[Tuple[str, str]]):
@@ -466,6 +466,7 @@ class CSVExporter:
         item_data = Cut(item, sep=separator)
         for header in self._headers:
             header_path = header.split(separator)
+            # TODO Check nested grouping as `c[0]->list | grouped=True`
             if header_path[0] not in self.field_options:
                 row.append(item_data.get(header, ""))
             else:
@@ -490,7 +491,7 @@ class CSVExporter:
 
 if __name__ == "__main__":
     # CUSTOM OPTIONS
-    test_field_options = {
+    test_field_options: Dict[str, FieldOption] = {
         # "gtin": FieldOption(named=True, grouped=False, name="type"),
         # "additionalProperty": FieldOption(
         #     named=True,
@@ -523,8 +524,9 @@ if __name__ == "__main__":
         #     grouped_separators={"ratingHistogram": "\n"},
         # ),
         # "named_array_field": FieldOption(named=True, name="name", grouped=True),
-        "c": FieldOption(named=False, name="name", grouped=True),
-        "b": FieldOption(named=False, name="name", grouped=True)
+        # "c": FieldOption(named=False, name="name", grouped=True),
+        # "c[0]->list": FieldOption(named=False, name="name", grouped=True),
+        # "b": FieldOption(named=False, name="name", grouped=True)
         # TODO What should happend if hashable dict if both grouped and named?
         # I assume, that should be impossible?
     }
@@ -543,15 +545,16 @@ if __name__ == "__main__":
     # item_list = json.loads(
     #     resource_string(__name__, f"tests/assets/{file_name}").decode("utf-8")
     # )
-    file_name = "waka.json"
-    item_list = [
+    file_name = "custom.json"
+    item_list: List[Dict] = [
         # {"c": {"name": "color", "value": "green", "other": "some"}},
-        {"c": {"name": "color", "value": "green"}, "b": [1, 2]}
+        # {"c": {"name": "color", "value": "green"}, "b": [1, 2]}
         # {"c": "somevalue"}
         # {"c": {"name": "color", "value": None}},
         # {"c": {"name": "color", "value": [1, 2, 3]}},
         # {"c": {"name": "color", "value": "cyan", "meta": {"some": "data"}}},
         # {"c": {"name": "color", "value": "blue", "meta_list": [1, 2, 3]}},
+        # {'c': [{'name': 'color', 'value': 'green', 'list': ['el1', 'el2']}]}
     ]
 
     # AUTOCRAWL PART

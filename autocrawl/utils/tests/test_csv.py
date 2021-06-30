@@ -143,10 +143,28 @@ class TestCSV:
             [{"c": {"name": "color", "value": "green", "other": "some"}}],
             [["c->color->value", "c->color->other"], ["green", "some"]],
         ],
+        [
+            {"c": FieldOption(named=True, name="name", grouped=False)},
+            {},
+            [{"c": [{"name": "color", "value": "green", "list": ["el1", "el2"]}]}],
+            [
+                ["c->color->value", "c[0]->list[0]", "c[0]->list[1]"],
+                ["green", "el1", "el2"],
+            ],
+        ],
+        [
+            {},
+            {},
+            [{"c": [{"name": "color", "value": "green", "list": ["el1", "el2"]}]}],
+            [
+                ["c[0]->name", "c[0]->value", "c[0]->list[0]", "c[0]->list[1]"],
+                ["color", "green", "el1", "el2"],
+            ],
+        ],
         # Failing
         # [
         #     {"c": FieldOption(named=True, name="name", grouped=True)}, {},
-        #     [{'c': [{'name': 'color', 'value': 'green', "dfsfsd": ["432"]}]}],
+        #     [{'c': [{'name': 'color', 'value': 'green', 'list': ['el1', 'el2']}]}],
         #     [['c'],
         #      ['color: green']]
         # ],
