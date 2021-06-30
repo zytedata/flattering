@@ -125,13 +125,14 @@ class CSVStatsCollector:
             return True
 
     def process_object(self, object_value: Dict, prefix: str = ""):
+        values_hashable = {k: self._is_hashable(v) for k, v in object_value.items()}
+
         # `count: 0` for objects means that some items for this prefix
         # had non-hashable values, so all next values should be processed as non-hashable ones
         if self._stats.get(prefix, {}).get("count") == 0:
-            self._process_base_object(object_value, prefix)
+            self._process_base_object(object_value, prefix, values_hashable)
             return
-        # Check that object has a single level and all values are hashable
-        values_hashable = {k: self._is_hashable(v) for k, v in object_value.items()}
+
         # If everything is hashable - collect names and values, so the field could be grouped later
         # Skip if init (no prefix) to avoid parenting like `->value` because no parent is present
         if all(values_hashable.values()) and prefix:
@@ -139,10 +140,8 @@ class CSVStatsCollector:
         else:
             # If property values are not all hashable, but there're properties saved for the prefix
             # it means that for previous items they were all hashable, so need to rebuild previous stats
-            # and process all the next values for this prefix as non-hashable
             if self._stats.get(prefix, {}).get("properties"):
                 prev_stats = self._stats.pop(prefix)
-                # Rebuild previously collected starts
                 for name, values in prev_stats.get("properties", {}).items():
                     for value, _ in values.get("values", {}).items():
                         self._process_base_object({name: value}, prefix)
@@ -171,13 +170,13 @@ class CSVStatsCollector:
                     and property_stats is not None
                 ):
                     raise ValueError(
-                        f"Field {property_name} was processed as non-hashable "
+                        f"Field ({property_name}) was processed as non-hashable "
                         f"but later got hashable value: ({property_value})"
                     )
                 # If not hashable, but doesn't have properties
                 if not values_hashable[property_name] and property_stats == {}:
                     raise ValueError(
-                        f"Field {property_name} was processed as hashable "
+                        f"Field ({property_name}) was processed as hashable "
                         f"but later got non-hashable value: ({property_value})"
                     )
             if not isinstance(property_value, (dict, list)):
@@ -552,9 +551,10 @@ if __name__ == "__main__":
         # {"c": {"name": "color", "value": "green", "other": "some"}},
         # {"c": {"name": "color", "value": "green"}, "b": [1, 2]}
         # {"c": "somevalue"}
+        {"c": {"name": "color", "value": [1, 2]}},
         {"c": {"name": "color", "value": "green"}},
         # {"c": {"name": "color", "value": None}},
-        {"c": {"name": "color", "value": "blue", "list": [1, 2]}},
+        # {"c": {"name": "color", "value": "blue", "list": [1, 2]}},
         # {"c": {"name": "color", "value": "cyan", "meta": {"some": "data"}}},
         # {"c": {"name": "color", "value": "blue", "meta_list": [1, 2, 3]}},
         # {'c': [{'name': 'color', 'value': 'green', 'list': ['el1', 'el2']}]}

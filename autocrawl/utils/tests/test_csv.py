@@ -355,3 +355,42 @@ class TestCSV:
         )
         exp_items = [csv_exporter.export_item_as_row(item) for item in items]
         assert [headers] + exp_items == expected
+
+    @pytest.mark.parametrize(
+        "field_options, array_limits, items, exception_type, exception_pattern",
+        [
+            # Value changed type from hashable to non-hashable
+            [
+                {},
+                {},
+                [
+                    {"c": {"name": "color", "value": "green"}},
+                    {"c": {"name": "color", "value": [1, 2]}},
+                ],
+                ValueError,
+                r"Field \(.*\) was processed as hashable but later got non-hashable value: \(.*\)",
+            ],
+            # Value changed type from non-hashable to hashable
+            [
+                {},
+                {},
+                [
+                    {"c": {"name": "color", "value": [1, 2]}},
+                    {"c": {"name": "color", "value": "green"}},
+                ],
+                ValueError,
+                r"Field \(.*\) was processed as non-hashable but later got hashable value: \(.*\)",
+            ],
+        ],
+    )
+    def test_exceptions(
+        self,
+        field_options: Dict[str, FieldOption],
+        array_limits: Dict[str, int],
+        items,
+        exception_type,
+        exception_pattern,
+    ):
+        with pytest.raises(exception_type, match=exception_pattern) as _:
+            csv_stats_col = CSVStatsCollector(named_columns_limit=50)
+            csv_stats_col.process_items(items)
