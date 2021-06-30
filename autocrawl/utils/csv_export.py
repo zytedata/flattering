@@ -321,7 +321,7 @@ class CSVExporter:
         ]
 
     @staticmethod
-    def _get_renamed_headers(
+    def _export_headers_as_row(
         headers: List[str],
         headers_renaming: List[Tuple[str, str]],
         capitalize: bool = True,
@@ -484,7 +484,7 @@ class CSVExporter:
                 export_file, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL
             )
             csv_writer.writerow(
-                self._get_renamed_headers(self._headers, self.headers_renaming)
+                self._export_headers_as_row(self._headers, self.headers_renaming)
             )
             for p in items:
                 csv_writer.writerow(self.export_item_as_row(p))

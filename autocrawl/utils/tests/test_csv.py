@@ -298,7 +298,7 @@ class TestCSV:
         )
 
         csv_exporter._prepare_for_export()
-        headers = csv_exporter._get_renamed_headers(
+        headers = csv_exporter._export_headers_as_row(
             csv_exporter._headers, csv_exporter.headers_renaming
         )
         exp_items = [csv_exporter.export_item_as_row(item) for item in items]
@@ -350,7 +350,7 @@ class TestCSV:
         )
 
         csv_exporter._prepare_for_export()
-        headers = csv_exporter._get_renamed_headers(
+        headers = csv_exporter._export_headers_as_row(
             csv_exporter._headers, csv_exporter.headers_renaming
         )
         exp_items = [csv_exporter.export_item_as_row(item) for item in items]
