@@ -125,6 +125,8 @@ class CSVStatsCollector:
             return True
 
     def process_object(self, object_value: Dict, prefix: str = ""):
+        # `count: 0` for objects means that some items for this prefix
+        # had non-hashable values, so all next values should be processed as non-hashable ones
         if self._stats.get(prefix, {}).get("count") == 0:
             self._process_base_object(object_value, prefix)
             return
