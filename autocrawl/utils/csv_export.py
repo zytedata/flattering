@@ -1,7 +1,8 @@
 import csv
 import logging
 import re
-from typing import Dict, List, Tuple, TypedDict
+from os import PathLike
+from typing import Dict, List, TextIO, Tuple, TypedDict, Union
 
 import attr  # NOQA
 
@@ -477,17 +478,28 @@ class CSVExporter:
         print(row)
         return row
 
-    def export_csv(self, items: List[Dict], export_path: str):
+    def export_csv(
+        self, items: List[Dict], export_path: Union[str, bytes, PathLike, TextIO]
+    ):
         self._prepare_for_export()
-        with open(export_path, mode="w") as export_file:
-            csv_writer = csv.writer(
-                export_file, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL
-            )
-            csv_writer.writerow(
-                self._export_headers_as_row(self._headers, self.headers_renaming)
-            )
-            for p in items:
-                csv_writer.writerow(self.export_item_as_row(p))
+        file_not_closed = False
+        if isinstance(export_path, (str, bytes, PathLike)):
+            export_file = open(export_path, mode="w", newline="")
+            file_not_closed = True
+        elif hasattr(export_path, "write"):
+            export_file = export_path
+        else:
+            raise TypeError(f"Unexpeted export_path type ({type(export_path)}).")
+        csv_writer = csv.writer(
+            export_file, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL
+        )
+        csv_writer.writerow(
+            self._export_headers_as_row(self._headers, self.headers_renaming)
+        )
+        for p in items:
+            csv_writer.writerow(self.export_item_as_row(p))
+        if file_not_closed:
+            export_file.close()
 
 
 if __name__ == "__main__":
@@ -552,7 +564,7 @@ if __name__ == "__main__":
         # {"c": {"name": "color", "value": "green"}, "b": [1, 2]}
         # {"c": "somevalue"}
         {"c": {"name": "color", "value": [1, 2]}},
-        {"c": {"name": "color", "value": "green"}},
+        # {"c": {"name": "color", "value": "green"}},
         # {"c": {"name": "color", "value": None}},
         # {"c": {"name": "color", "value": "blue", "list": [1, 2]}},
         # {"c": {"name": "color", "value": "cyan", "meta": {"some": "data"}}},
