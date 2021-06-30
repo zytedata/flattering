@@ -552,8 +552,9 @@ if __name__ == "__main__":
         # {"c": {"name": "color", "value": "green", "other": "some"}},
         # {"c": {"name": "color", "value": "green"}, "b": [1, 2]}
         # {"c": "somevalue"}
+        {"c": {"name": "color", "value": "green"}},
         # {"c": {"name": "color", "value": None}},
-        # {"c": {"name": "color", "value": [1, 2, 3]}},
+        {"c": {"name": "color", "value": "blue", "list": [1, 2]}},
         # {"c": {"name": "color", "value": "cyan", "meta": {"some": "data"}}},
         # {"c": {"name": "color", "value": "blue", "meta_list": [1, 2, 3]}},
         # {'c': [{'name': 'color', 'value': 'green', 'list': ['el1', 'el2']}]}
