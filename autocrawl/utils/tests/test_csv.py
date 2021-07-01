@@ -1,7 +1,7 @@
 import codecs
 import csv
 import json
-from typing import Dict
+from typing import Dict, List
 
 import pytest  # NOQA
 from pkg_resources import resource_stream, resource_string
@@ -381,16 +381,38 @@ class TestCSV:
                 ValueError,
                 r"Field \(.*\) was processed as non-hashable but later got hashable value: \(.*\)",
             ],
+            # Value changed type from dict to array
+            [
+                {},
+                {},
+                [
+                    {"c": {"name": "color", "value": "blue"}},
+                    {"c": [{"name": "color", "value": "green"}]},
+                ],
+                ValueError,
+                r"Field \(.*?\) value changed the type from \"object\" to <class 'list'>.*",
+            ],
+            # Value changed from array to dict
+            [
+                {},
+                {},
+                [
+                    {"c": [{"name": "color", "value": "blue"}]},
+                    {"c": {"name": "color", "value": "green"}},
+                ],
+                ValueError,
+                r"Field \(.*?\) value changed the type from \"array\" to <class 'dict'>.*",
+            ],
         ],
     )
     def test_exceptions(
         self,
         field_options: Dict[str, FieldOption],
         array_limits: Dict[str, int],
-        items,
-        exception_type,
-        exception_pattern,
+        items: List[Dict],
+        exception_type: ValueError,
+        exception_pattern: str,
     ):
-        with pytest.raises(exception_type, match=exception_pattern) as _:
+        with pytest.raises(exception_type, match=exception_pattern) as _:  # NOQA
             csv_stats_col = CSVStatsCollector(named_columns_limit=50)
             csv_stats_col.process_items(items)
