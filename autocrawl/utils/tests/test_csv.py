@@ -425,7 +425,7 @@ class TestCSV:
             ],
         ],
     )
-    def test_exceptions(
+    def test_stat_exceptions(
         self,
         field_options: Dict[str, FieldOption],
         array_limits: Dict[str, int],
@@ -436,3 +436,72 @@ class TestCSV:
         with pytest.raises(exception_type, match=exception_pattern) as _:  # NOQA
             csv_stats_col = CSVStatsCollector(named_columns_limit=50)
             csv_stats_col.process_items(items)
+
+    @pytest.mark.parametrize(
+        "field_options, array_limits, items, exception_type, exception_pattern, named_columns_limit",
+        [
+            # Arrays of simple elements can't be named
+            [
+                {"c": FieldOption(named=True, name="name", grouped=False)},
+                {},
+                [
+                    {"c": [1, 2, 3]},
+                ],
+                ValueError,
+                r"Field \".*?\" doesn't have any properties \(.*?\), so \"named\" option can't be applied\.",
+                50,
+            ],
+            # No `name` field to use
+            [
+                {"c": FieldOption(named=True, name="name", grouped=False)},
+                {},
+                [
+                    {"c": {"name1": "color", "value": "blue"}},
+                ],
+                ValueError,
+                r"Field \".*?\" doesn't have name property \".*?\", so \"named\" option can't be applied.",
+                50,
+            ],
+            [
+                {"c": FieldOption(named=True, name="name", grouped=False)},
+                {},
+                [
+                    {"c": [{"name1": "color", "value": "blue"}]},
+                ],
+                ValueError,
+                r"Field \".*?\" doesn't have name property \".*?\", so \"named\" option can't be applied.",
+                50,
+            ],
+            # No names and values to used because of the limits
+            [
+                {"c": FieldOption(named=True, name="value", grouped=False)},
+                {},
+                [
+                    {"c": [{"name": "color", "value": "blue"}]},
+                    {"c": [{"name": "color", "value": "green"}]},
+                    {"c": [{"name": "color", "value": "red"}]},
+                ],
+                ValueError,
+                r"Field \".*?\" values for name property \".*?\" were limited by \"named_columns_limit\" when "
+                r"collecting stats, so \"named\" option can't be applied.",
+                2,
+            ],
+        ],
+    )
+    def test_export_exceptions(
+        self,
+        field_options: Dict[str, FieldOption],
+        array_limits: Dict[str, int],
+        items: List[Dict],
+        exception_type: ValueError,
+        exception_pattern: str,
+        named_columns_limit: int,
+    ):
+        csv_stats_col = CSVStatsCollector(named_columns_limit=named_columns_limit)
+        csv_stats_col.process_items(items)
+        with pytest.raises(exception_type, match=exception_pattern) as _:  # NOQA
+            CSVExporter(
+                default_stats=csv_stats_col.stats,
+                field_options=field_options,
+                array_limits=array_limits,
+            )
