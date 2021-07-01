@@ -370,6 +370,16 @@ class TestCSV:
                 ValueError,
                 r"Field \(.*\) was processed as hashable but later got non-hashable value: \(.*\)",
             ],
+            [
+                {},
+                {},
+                [
+                    {"c": "some"},
+                    {"c": {"name": "color", "value": [1, 2]}},
+                ],
+                ValueError,
+                r"Field \(.*\) was processed as hashable but later got non-hashable value: \(.*\)",
+            ],
             # Value changed type from non-hashable to hashable
             [
                 {},
@@ -377,6 +387,16 @@ class TestCSV:
                 [
                     {"c": {"name": "color", "value": [1, 2]}},
                     {"c": {"name": "color", "value": "green"}},
+                ],
+                ValueError,
+                r"Field \(.*\) was processed as non-hashable but later got hashable value: \(.*\)",
+            ],
+            [
+                {},
+                {},
+                [
+                    {"c": {"name": "color", "value": [1, 2]}},
+                    {"c": "some"},
                 ],
                 ValueError,
                 r"Field \(.*\) was processed as non-hashable but later got hashable value: \(.*\)",
