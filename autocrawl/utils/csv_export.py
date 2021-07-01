@@ -1,4 +1,5 @@
 import csv
+import json
 import logging
 import re
 from os import PathLike
@@ -7,6 +8,7 @@ from typing import Dict, List, TextIO, Tuple, TypedDict, Union
 import attr  # NOQA
 
 # Using scalpl (instead of jmespath/etc.) as an existing fast backend dependency
+from pkg_resources import resource_string
 from scalpl import Cut  # NOQA
 
 logger = logging.getLogger(__name__)
@@ -147,7 +149,8 @@ class CSVStatsCollector:
                     for value, _ in values.get("values", {}).items():
                         self._process_base_object({name: value}, prefix)
             # Mark that prefix has non-hashable values, so no need to collect properties/values/names
-            self._stats[prefix] = {"count": 0}
+            if prefix:
+                self._stats[prefix] = {"count": 0}
             self._process_base_object(object_value, prefix, values_hashable)
 
     def _process_base_object(
@@ -236,6 +239,27 @@ class CSVExporter:
                     raise ValueError(
                         f"Only {allowed_separators} could be used"
                         f" as custom grouped separators ({key}:{value})."
+                    )
+            property_stats = self.default_stats.get(property_name)
+            if not property_stats:
+                continue
+            if property_value.get("named"):
+                name = property_value["name"]
+                if not property_stats.get("properties"):
+                    raise ValueError(
+                        f'Field "{property_name}" doesn\'t have any properties '
+                        f'(as an array of hashable elements), so "named" option can\'t be applied.'
+                    )
+                if not property_stats["properties"].get(name):
+                    raise ValueError(
+                        f'Field "{property_name}" doesn\'t have name property '
+                        f"\"{property_value['name']}\", so \"named\" option can't be applied."
+                    )
+                if property_stats["properties"][name].get("limited"):
+                    raise ValueError(
+                        f"Field \"{property_name}\" values for name property \"{property_value['name']}\" "
+                        f'were limited by "named_columns_limit" when collecting stats, '
+                        f'so "named" option can\'t be applied.'
                     )
 
     @staticmethod
@@ -505,13 +529,13 @@ class CSVExporter:
 if __name__ == "__main__":
     # CUSTOM OPTIONS
     test_field_options: Dict[str, FieldOption] = {
-        # "gtin": FieldOption(named=True, grouped=False, name="type"),
-        # "additionalProperty": FieldOption(
-        #     named=True,
-        #     grouped=False,
-        #     name="name",
-        #     grouped_separators={"additionalProperty": "\n"},
-        # ),
+        "gtin": FieldOption(named=True, grouped=False, name="type"),
+        "additionalProperty": FieldOption(
+            named=True,
+            grouped=False,
+            name="name",
+            grouped_separators={"additionalProperty": "\n"},
+        ),
         # "aggregateRating": FieldOption(
         #     named=False,
         #     grouped=False,
@@ -539,7 +563,7 @@ if __name__ == "__main__":
         # "named_array_field": FieldOption(named=True, name="name", grouped=True),
         # "c": FieldOption(named=False, name="name", grouped=True),
         # "c[0]->list": FieldOption(named=False, name="name", grouped=True),
-        # "b": FieldOption(named=False, name="name", grouped=True)
+        # "b": FieldOption(named=True, name="name", grouped=False)
         # TODO What should happend if hashable dict if both grouped and named?
         # I assume, that should be impossible?
     }
@@ -554,23 +578,24 @@ if __name__ == "__main__":
     test_array_limits = {"offers": 1}
 
     # DATA TO PROCESS
-    # file_name = "items_simple_test.json"
-    # item_list = json.loads(
-    #     resource_string(__name__, f"tests/assets/{file_name}").decode("utf-8")
-    # )
-    file_name = "custom.json"
-    item_list: List[Dict] = [
-        # {"c": {"name": "color", "value": "green", "other": "some"}},
-        # {"c": {"name": "color", "value": "green"}, "b": [1, 2]}
-        # {"c": "somevalue"}
-        {"c": {"name": "color", "value": [1, 2]}},
-        # {"c": {"name": "color", "value": "green"}},
-        # {"c": {"name": "color", "value": None}},
-        # {"c": {"name": "color", "value": "blue", "list": [1, 2]}},
-        # {"c": {"name": "color", "value": "cyan", "meta": {"some": "data"}}},
-        # {"c": {"name": "color", "value": "blue", "meta_list": [1, 2, 3]}},
-        # {'c': [{'name': 'color', 'value': 'green', 'list': ['el1', 'el2']}]}
-    ]
+    file_name = "products_xod_100_test.json"
+    item_list = json.loads(
+        resource_string(__name__, f"tests/assets/{file_name}").decode("utf-8")
+    )
+    # file_name = "custom.json"
+    # item_list: List[Dict] = [
+    # {"c": {"name": "color", "value": "green", "other": "some"}},
+    # {"c": {"name": "color", "value": "green"}, "b": [1, 2]}
+    # {"b": [1, 2]},
+    # {"c": "somevalue"}
+    # {"c": {"name": "color", "value": [1, 2]}},
+    # {"c": {"name": "color", "value": "green"}},
+    # {"c": {"name": "color", "value": None}},
+    # {"c": {"name": "color", "value": "blue", "list": [1, 2]}},
+    # {"c": {"name": "color", "value": "cyan", "meta": {"some": "data"}}},
+    # {"c": {"name": "color", "value": "blue", "meta_list": [1, 2, 3]}},
+    # {'c': [{'name': 'color', 'value': 'green', 'list': ['el1', 'el2']}]}
+    # ]
 
     # AUTOCRAWL PART
     autocrawl_csv_sc = CSVStatsCollector()
