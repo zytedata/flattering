@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class Property(TypedDict):
-    values: Dict[str, None]
+    values: Dict[Union[str, int, float, bool, None], None]
     limited: bool
 
 
@@ -94,27 +94,7 @@ class CSVStatsCollector:
             for property_name, property_value in element.items():
                 property_path = f"{prefix}[{i}]{self.cut_separator}{property_name}"
                 if not isinstance(property_value, (dict, list)):
-                    if property_name not in self._stats[prefix]["properties"]:
-                        # Using dictionaries instead of sets to keep order
-                        self._stats[prefix]["properties"][property_name] = {
-                            "values": {},
-                            "limited": False,
-                        }
-                    property_data = self._stats[prefix]["properties"][property_name]
-                    # If number of different values for property hits the limit of the allowed named columns
-                    # No values would be collected for such property
-                    if property_data.get("limited"):
-                        continue
-                    self._stats[prefix]["properties"][property_name]["values"][
-                        property_value
-                    ] = None
-                    if len(property_data.get("values", {})) > self.named_columns_limit:
-                        # Clear previously collected values if the limit was hit to avoid partly processed columns
-                        self._stats[prefix]["properties"][property_name]["values"] = {}
-                        self._stats[prefix]["properties"][property_name][
-                            "limited"
-                        ] = True
-                        continue
+                    self._process_hashable_value(property_name, property_value, prefix)
                 elif isinstance(property_value, list):
                     self.process_array(property_value, property_path)
                 else:
@@ -202,15 +182,33 @@ class CSVStatsCollector:
         if not self._stats.get(prefix):
             self._stats[prefix] = {"properties": {}, "type": "object"}
         for property_name, property_value in object_value.items():
-            if not self._stats[prefix]["properties"].get(property_name):
-                self._stats[prefix]["properties"][property_name] = {
-                    "values": {property_value: None},
-                    "limited": False,
-                }
-            else:
-                self._stats[prefix]["properties"][property_name]["values"][
-                    property_value
-                ] = None
+            self._process_hashable_value(property_name, property_value, prefix)
+
+    def _process_hashable_value(
+        self,
+        property_name: str,
+        property_value: Union[str, int, float, bool, None],
+        prefix: str,
+    ):
+        if property_name not in self._stats[prefix]["properties"]:
+            # Using dictionaries instead of sets to keep order
+            self._stats[prefix]["properties"][property_name] = {
+                "values": {},
+                "limited": False,
+            }
+        property_data = self._stats[prefix]["properties"][property_name]
+        # If number of different values for property hits the limit of the allowed named columns
+        # No values would be collected for such property
+        if property_data.get("limited"):
+            return
+        self._stats[prefix]["properties"][property_name]["values"][
+            property_value
+        ] = None
+        if len(property_data.get("values", {})) > self.named_columns_limit:
+            # Clear previously collected values if the limit was hit to avoid partly processed columns
+            self._stats[prefix]["properties"][property_name]["values"] = {}
+            self._stats[prefix]["properties"][property_name]["limited"] = True
+            return
 
     @staticmethod
     def _map_types(property_name: str, type_name: str):
@@ -579,9 +577,7 @@ if __name__ == "__main__":
         #     grouped_separators={"ratingHistogram": "\n"},
         # ),
         # "named_array_field": FieldOption(named=True, name="name", grouped=True),
-        # "c": FieldOption(named=False, name="name", grouped=True),
-        # "c[0]->list": FieldOption(named=False, name="name", grouped=True),
-        # "b": FieldOption(named=True, name="name", grouped=False)
+        "c": FieldOption(named=True, name="value", grouped=False),
         # TODO What should happend if hashable dict if both grouped and named?
         # I assume, that should be impossible?
     }
@@ -602,24 +598,24 @@ if __name__ == "__main__":
     # )
     file_name = "custom.json"
     item_list: List[Dict] = [
-        {"c": {"name": "color", "value": "green", "other": "some"}},
-        {"c": {"name": "color", "value": "green"}, "b": [1, 2]},
-        {"b": [1, 2]},
-        {"c": "somevalue"},
-        {"c": {"name": "color", "value": [1, 2]}},
-        {"c": {"name": "color", "value": "green"}},
-        {"c": {"name": "color", "value": None}},
-        {"c": {"name": "color", "value": "blue", "list": [1, 2]}},
-        {"c": {"name": "color", "value": "cyan", "meta": {"some": "data"}}},
-        {"c": {"name": "color", "value": "blue", "meta_list": [1, 2, 3]}},
-        {"c": [{"name": "color", "value": "green", "list": ["el1", "el2"]}]},
-        {"c": [1, 2, 3]},
-        {"c": [{"name": "color", "value": "blue"}]},
+        # {"c": {"name": "color", "value": "green", "other": "some"}},
+        # {"c": {"name": "color", "value": "green"}, "b": [1, 2]},
+        # {"b": [1, 2]},
+        # {"c": "somevalue"},
+        # {"c": {"name": "color", "value": [1, 2]}},
+        # {"c": {"name": "color", "value": "green"}},
+        # {"c": {"name": "color", "value": None}},
+        # {"c": {"name": "color", "value": "blue", "list": [1, 2]}},
+        # {"c": {"name": "color", "value": "cyan", "meta": {"some": "data"}}},
+        # {"c": {"name": "color", "value": "blue", "meta_list": [1, 2, 3]}},
+        # {"c": [{"name": "color", "value": "green", "list": ["el1", "el2"]}]},
         {"c": {"name": "color", "value": "blue"}},
+        {"c": {"name": "color", "value": "green"}},
+        {"c": {"name": "color", "value": "red"}},
     ]
 
     # AUTOCRAWL PART
-    autocrawl_csv_sc = CSVStatsCollector()
+    autocrawl_csv_sc = CSVStatsCollector(named_columns_limit=1)
     # Items could be processed in batch or one-by-one through `process_object`
     autocrawl_csv_sc.process_items(item_list)
     autocrawl_stats = autocrawl_csv_sc.stats
