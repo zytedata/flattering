@@ -486,6 +486,19 @@ class TestCSV:
                 r"collecting stats, so \"named\" option can't be applied.",
                 2,
             ],
+            [
+                {"c": FieldOption(named=True, name="value", grouped=False)},
+                {},
+                [
+                    {"c": {"name": "color", "value": "blue"}},
+                    {"c": {"name": "color", "value": "green"}},
+                    {"c": {"name": "color", "value": "red"}},
+                ],
+                ValueError,
+                r"Field \".*?\" values for name property \".*?\" were limited by \"named_columns_limit\" when "
+                r"collecting stats, so \"named\" option can't be applied.",
+                2,
+            ],
         ],
     )
     def test_export_exceptions(
