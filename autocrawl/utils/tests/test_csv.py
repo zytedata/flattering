@@ -472,6 +472,17 @@ class TestCSV:
                 r"Field \".*?\" doesn't have name property \".*?\", so \"named\" option can't be applied.",
                 50,
             ],
+            # Non-hashable dict can't be named (no names/values collected)
+            [
+                {"c": FieldOption(named=True, name="name", grouped=False)},
+                {},
+                [
+                    {"c": {"name": "color", "value": "blue", "list": [1, 2, 3]}},
+                ],
+                ValueError,
+                r"Field \".*?\" doesn't have any properties \(.*?\), so \"named\" option can't be applied\.",
+                50,
+            ],
             # No names and values to used because of the limits
             [
                 {"c": FieldOption(named=True, name="value", grouped=False)},
