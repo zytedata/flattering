@@ -129,7 +129,6 @@ class CSVStatsCollector:
 
     def process_object(self, object_value: Dict, prefix: str = ""):
         values_hashable = {k: self._is_hashable(v) for k, v in object_value.items()}
-
         # `count: 0` for objects means that some items for this prefix
         # had non-hashable values, so all next values should be processed as non-hashable ones
         if self._stats.get(prefix, {}).get("count") == 0:
@@ -150,7 +149,7 @@ class CSVStatsCollector:
                         self._process_base_object({name: value}, prefix)
             # Mark that prefix has non-hashable values, so no need to collect properties/values/names
             if prefix:
-                self._stats[prefix] = {"count": 0}
+                self._stats[prefix] = {"count": 0, "type": "object"}
             self._process_base_object(object_value, prefix, values_hashable)
 
     def _process_base_object(
@@ -165,8 +164,8 @@ class CSVStatsCollector:
                 if prefix
                 else property_name
             )
+            property_stats = self._stats.get(property_path)
             if values_hashable:
-                property_stats = self._stats.get(property_path)
                 # If hashable, but have existing non-empty properties
                 if (
                     values_hashable[property_name]
@@ -183,6 +182,14 @@ class CSVStatsCollector:
                         f"Field ({property_name}) was processed as hashable "
                         f"but later got non-hashable value: ({property_value})"
                     )
+            property_type = property_stats.get("type") if property_stats else None
+            if property_type and not isinstance(
+                property_value, self._map_types(property_name, property_type)
+            ):
+                raise ValueError(
+                    f'Field ({property_name}) value changed the type from "{property_type}" '
+                    f"to {type(property_value)}: ({property_value})"
+                )
             if not isinstance(property_value, (dict, list)):
                 if self._stats.get(property_path) is None:
                     self._stats[property_path] = {}
@@ -204,6 +211,17 @@ class CSVStatsCollector:
                 self._stats[prefix]["properties"][property_name]["values"][
                     property_value
                 ] = None
+
+    @staticmethod
+    def _map_types(property_name: str, type_name: str):
+        types = {"object": dict, "array": list}
+        mapped_type = types.get(type_name)
+        if type_name:
+            return mapped_type
+        else:
+            raise TypeError(
+                f"Unexpected property type ({type_name}) for property ({property_name})."
+            )
 
 
 @attr.s(auto_attribs=True)
@@ -578,24 +596,27 @@ if __name__ == "__main__":
     test_array_limits = {"offers": 1}
 
     # DATA TO PROCESS
-    file_name = "products_xod_100_test.json"
-    item_list = json.loads(
-        resource_string(__name__, f"tests/assets/{file_name}").decode("utf-8")
-    )
-    # file_name = "custom.json"
-    # item_list: List[Dict] = [
-    # {"c": {"name": "color", "value": "green", "other": "some"}},
-    # {"c": {"name": "color", "value": "green"}, "b": [1, 2]}
-    # {"b": [1, 2]},
-    # {"c": "somevalue"}
-    # {"c": {"name": "color", "value": [1, 2]}},
-    # {"c": {"name": "color", "value": "green"}},
-    # {"c": {"name": "color", "value": None}},
-    # {"c": {"name": "color", "value": "blue", "list": [1, 2]}},
-    # {"c": {"name": "color", "value": "cyan", "meta": {"some": "data"}}},
-    # {"c": {"name": "color", "value": "blue", "meta_list": [1, 2, 3]}},
-    # {'c': [{'name': 'color', 'value': 'green', 'list': ['el1', 'el2']}]}
-    # ]
+    # file_name = "products_xod_100_test.json"
+    # item_list = json.loads(
+    #     resource_string(__name__, f"tests/assets/{file_name}").decode("utf-8")
+    # )
+    file_name = "custom.json"
+    item_list: List[Dict] = [
+        {"c": {"name": "color", "value": "green", "other": "some"}},
+        {"c": {"name": "color", "value": "green"}, "b": [1, 2]},
+        {"b": [1, 2]},
+        {"c": "somevalue"},
+        {"c": {"name": "color", "value": [1, 2]}},
+        {"c": {"name": "color", "value": "green"}},
+        {"c": {"name": "color", "value": None}},
+        {"c": {"name": "color", "value": "blue", "list": [1, 2]}},
+        {"c": {"name": "color", "value": "cyan", "meta": {"some": "data"}}},
+        {"c": {"name": "color", "value": "blue", "meta_list": [1, 2, 3]}},
+        {"c": [{"name": "color", "value": "green", "list": ["el1", "el2"]}]},
+        {"c": [1, 2, 3]},
+        {"c": [{"name": "color", "value": "blue"}]},
+        {"c": {"name": "color", "value": "blue"}},
+    ]
 
     # AUTOCRAWL PART
     autocrawl_csv_sc = CSVStatsCollector()
