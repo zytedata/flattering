@@ -331,6 +331,46 @@ class TestCSV:
                     ["color", "blue", 1, 2],
                 ],
             ],
+            # Don't count None as a type, so don't throw exceptions and process normally
+            [
+                {},
+                {},
+                [
+                    {"c": {"name": "color", "value": [1, 2]}},
+                    {"c": {"name": "color", "value": None}},
+                ],
+                [
+                    ["c->name", "c->value[0]", "c->value[1]"],
+                    ["color", 1, 2],
+                    ["color", "", ""],
+                ],
+            ],
+            [
+                {},
+                {},
+                [
+                    {"c": {"name": "color", "value": {"some1": "one", "some2": "two"}}},
+                    {"c": {"name": "color", "value": None}},
+                ],
+                [
+                    ["c->name", "c->value->some1", "c->value->some2"],
+                    ["color", "one", "two"],
+                    ["color", "", ""],
+                ],
+            ],
+            [
+                {},
+                {},
+                [
+                    {"c": {"name": "color", "value": None}},
+                    {"c": {"name": "color", "value": {"some1": "one", "some2": "two"}}},
+                ],
+                [
+                    ["c->name", "c->value->some1", "c->value->some2"],
+                    ["color", "", ""],
+                    ["color", "one", "two"],
+                ],
+            ],
         ],
     )
     def test_multiple_items(

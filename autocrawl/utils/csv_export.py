@@ -139,6 +139,10 @@ class CSVStatsCollector:
         values_hashable: Dict[str, bool] = None,
     ):
         for property_name, property_value in object_value.items():
+            # Skip None values; if there're items with actual values for
+            # this property - it will be filled as "" automatically
+            if property_value is None:
+                continue
             property_path = (
                 f"{prefix}{self.cut_separator}{property_name}"
                 if prefix
@@ -152,6 +156,7 @@ class CSVStatsCollector:
                     and property_stats != {}
                     and property_stats is not None
                 ):
+                    # TODO Add boolean check if the user want to don't throw an error and just stringify
                     raise ValueError(
                         f"Field ({property_name}) was processed as non-hashable "
                         f"but later got hashable value: ({property_value})"
@@ -182,6 +187,10 @@ class CSVStatsCollector:
         if not self._stats.get(prefix):
             self._stats[prefix] = {"properties": {}, "type": "object"}
         for property_name, property_value in object_value.items():
+            # Skip None values; if there're items with actual values for
+            # this property - it will be filled as "" automatically
+            if property_value is None:
+                continue
             self._process_hashable_value(property_name, property_value, prefix)
 
     def _process_hashable_value(
@@ -460,9 +469,9 @@ class CSVExporter:
                     for property_name, property_value in element.items():
                         if property_name == name:
                             continue
-                        element_values.append(property_value)
+                        element_values.append(f"{property_name}: {property_value}")
                     values.append(
-                        f"{element_name}: {','.join([str(x) for x in element_values])}"
+                        f"- {element_name}{separator}{separator.join([str(x) for x in element_values])}"
                     )
                 return separator.join(
                     [self._escape_grouped_data(x, separator) for x in values]
@@ -510,7 +519,11 @@ class CSVExporter:
             header_path = header.split(separator)
             # TODO Check nested grouping as `c[0]->list | grouped=True`
             if header_path[0] not in self.field_options:
-                row.append(item_data.get(header, ""))
+                try:
+                    row.append(item_data.get(header, ""))
+                except TypeError as er:
+                    # logger.debug(f"{er} Returning empty data.")
+                    row.append("")
             else:
                 row.append(
                     self._export_field_with_options(header, header_path, item_data)
@@ -577,9 +590,12 @@ if __name__ == "__main__":
         #     grouped_separators={"ratingHistogram": "\n"},
         # ),
         # "named_array_field": FieldOption(named=True, name="name", grouped=True),
-        "c": FieldOption(named=True, name="value", grouped=False),
         # TODO What should happend if hashable dict if both grouped and named?
         # I assume, that should be impossible?
+        # TODO Test nested cases like `c->list`
+        # TODO Check this test case
+        # "c": FieldOption(named=True, name="name", grouped=True),
+        # AttributeError: 'str' object has no attribute 'get'
     }
     test_headers_renaming = [
         (r"offers\[0\]->", ""),
@@ -609,13 +625,34 @@ if __name__ == "__main__":
         # {"c": {"name": "color", "value": "cyan", "meta": {"some": "data"}}},
         # {"c": {"name": "color", "value": "blue", "meta_list": [1, 2, 3]}},
         # {"c": [{"name": "color", "value": "green", "list": ["el1", "el2"]}]},
-        {"c": {"name": "color", "value": "blue"}},
-        {"c": {"name": "color", "value": "green"}},
-        {"c": {"name": "color", "value": "red"}},
+        # {"c": {"name": "color", "value": "blue", "some": [1, 2, 3]}},
+        # {"c": {"name": "color", "value": {"some1": "one", "some2": "two"}}},
+        {"c": {"name": "color", "value": None}},
+        {"c": {"name": "color", "value": None}},
+        # {"c": {"name": "color", "value": [1, 2]}},
+        # {"c": {"name": "color", "value": {"some": "value"}}}
+        # {"c": [{"name": "color", "value": "green", "available": "True"}],
+        #        {"name": "size", "value": "XL", "kids": "False"}]},
+        # {"c": [
+        #     {"name": "color", "value": "green"},
+        #     {"name": "size", "value": "XL"},
+        # ]},
+        # {"c": [
+        #     {"name": "color", "value": "green"},
+        #     {"name": "size", "value": "XL"},
+        # ]}
+        # {"c": {"name": "size", "value": "XL", "kids": "False"}},
+        # {
+        #     "c": [
+        #         {"name": "color", "value": "green"},
+        #         {"name": "size"},
+        #         {"name": "material", "value": "cloth"},
+        #     ]
+        # }
     ]
 
     # AUTOCRAWL PART
-    autocrawl_csv_sc = CSVStatsCollector(named_columns_limit=1)
+    autocrawl_csv_sc = CSVStatsCollector(named_columns_limit=50)
     # Items could be processed in batch or one-by-one through `process_object`
     autocrawl_csv_sc.process_items(item_list)
     autocrawl_stats = autocrawl_csv_sc.stats
