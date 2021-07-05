@@ -60,7 +60,7 @@ class CSVStatsCollector:
             for item in items:
                 self.process_object(item)
         elif isinstance(items[0], list):
-            raise TypeError("Arrays of arrays currently are not supported.")
+            raise TypeError("Items must be dicts (not arrays) to be supported.")
         else:
             raise ValueError(f"Unsupported item type ({type(items[0])}).")
 
@@ -538,6 +538,8 @@ class CSVExporter:
         print("*" * 50)
         print(self._headers)
         # TODO Think about implementing custom headers sorting
+        # (sort headers that exists, then add other headers in the default order)
+        # TODO Think about implementing custom headers filtering
 
     def export_item_as_row(self, item: Dict) -> List:
         self._prepare_for_export()
@@ -672,8 +674,9 @@ if __name__ == "__main__":
         {
             "c": [
                 {"name": "color", "value": "green"},
-                {"name": "size", "value": "XL"},
-                {"name": "material", "value": "cloth", "availability": True},
+                {"name": "size", "value": "XL", "available": True},
+                # {"name": "size", "value": "XL"},
+                # {"name": "material", "value": "cloth"},
             ]
         }
     ]

@@ -208,6 +208,37 @@ class TestCSV:
                 ],
                 [["c->color->value", "c->size->value"], ["green", "XL"]],
             ],
+            # <=1 values excluding name
+            [
+                {"c": FieldOption(grouped=True, named=True, name="name")},
+                {},
+                [
+                    {
+                        "c": [
+                            {"name": "color", "value": "green"},
+                            {"name": "size", "value": "XL"},
+                        ]
+                    }
+                ],
+                [["c"], ["color: green\nsize: XL"]],
+            ],
+            # >1 values excluding name
+            [
+                {"c": FieldOption(grouped=True, named=True, name="name")},
+                {},
+                [
+                    {
+                        "c": [
+                            {"name": "color", "value": "green"},
+                            {"name": "size", "value": "XL", "available": True},
+                        ]
+                    }
+                ],
+                [
+                    ["c"],
+                    ["- color\\nvalue: green\n- size\\nvalue: XL\\navailable: True"],
+                ],
+            ],
             [
                 {"c": FieldOption(grouped=True, named=False)},
                 {},
