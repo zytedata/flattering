@@ -32,6 +32,18 @@ class FieldOption(TypedDict, total=False):
     grouped_separators: Dict[str, str]
 
 
+def is_hashable(value):
+    # Tuples could be used as dict keys (hashable), but for our case
+    # we should avoid using them to not to hurt readability
+    return False if is_list(value) or isinstance(value, dict) else True
+
+
+def is_list(value):
+    # Sets are ignored because they're not indexed,
+    # so stats can't be extracted in a required way
+    return True if isinstance(value, (list, tuple)) else False
+
+
 @attr.s(auto_attribs=True)
 class CSVStatsCollector:
     """"""
@@ -79,7 +91,7 @@ class CSVStatsCollector:
                 )
         if self._stats.get(prefix) is None:
             self._stats[prefix] = {"count": 0, "properties": {}, "type": "array"}
-        if self._is_hashable(array_value[0]):
+        if is_hashable(array_value[0]):
             self._stats[prefix]["count"] = max(
                 self._stats[prefix]["count"], len(array_value)
             )
@@ -97,22 +109,20 @@ class CSVStatsCollector:
         for i, element in enumerate(array_value):
             for property_name, property_value in element.items():
                 property_path = f"{prefix}[{i}]{self.cut_separator}{property_name}"
-                if self._is_hashable(property_value):
+                if is_hashable(property_value):
                     self._process_hashable_value(property_name, property_value, prefix)
                 elif isinstance(property_value, list):
                     self._process_array(property_value, property_path)
-                else:
+                elif isinstance(property_value, dict):
                     self.process_object(property_value, property_path)
-
-    @staticmethod
-    def _is_hashable(value):
-        if isinstance(value, (dict, list)):
-            return False
-        else:
-            return True
+                else:
+                    raise ValueError(
+                        f'Unsupported value type "{type(property_value)}" ({property_value}) '
+                        f'for property "{property_name}" ({prefix}).'
+                    )
 
     def process_object(self, object_value: Dict, prefix: str = ""):
-        values_hashable = {k: self._is_hashable(v) for k, v in object_value.items()}
+        values_hashable = {k: is_hashable(v) for k, v in object_value.items()}
         # `count: 0` for objects means that some items for this prefix
         # had non-hashable values, so all next values should be processed as non-hashable ones
         if self._stats.get(prefix, {}).get("count") == 0:
@@ -179,13 +189,18 @@ class CSVStatsCollector:
                     f'Field ({property_name}) value changed the type from "{property_type}" '
                     f"to {type(property_value)}: ({property_value})"
                 )
-            if self._is_hashable(property_value):
+            if is_hashable(property_value):
                 if self._stats.get(property_path) is None:
                     self._stats[property_path] = {}
             elif isinstance(property_value, list):
                 self._process_array(object_value[property_name], property_path)
-            else:
+            elif isinstance(property_value, dict):
                 self.process_object(object_value[property_name], property_path)
+            else:
+                raise ValueError(
+                    f'Unsupported value type "{type(property_value)}" ({property_value}) '
+                    f'for property "{property_name}" ({prefix}).'
+                )
 
     def _process_hashable_object(self, object_value: Dict, prefix: str = ""):
         if not self._stats.get(prefix):
@@ -453,7 +468,7 @@ class CSVExporter:
             value = item_data.get(header_path[0])
             if value is None:
                 return ""
-            elif not isinstance(value, (list, dict)):
+            elif is_hashable(value):
                 return value
             elif isinstance(value, list):
                 return separator.join(
