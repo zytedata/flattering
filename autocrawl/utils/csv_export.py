@@ -45,6 +45,10 @@ class CSVStatsCollector:
         return self._stats
 
     def process_items(self, items: List[Dict]):
+        """
+        Validating and collecting stats for provided items.
+        Errors raised by the method should stay in CSVStatsCollector to avoid invalid/broken inputs.
+        """
         if not isinstance(items, list):
             raise ValueError(f"Initial items data must be array, not {type(items)}.")
         if len(items) == 0:
