@@ -124,10 +124,18 @@ class TestCSV:
     @pytest.mark.parametrize(
         "field_options, array_limits, items, expected",
         [
+            # Base list
             [
                 {},
                 {},
                 [{"c": {"name": "color", "value": "green"}}],
+                [["c->name", "c->value"], ["color", "green"]],
+            ],
+            # Tuple instead of the list
+            [
+                {},
+                {},
+                ({"c": {"name": "color", "value": "green"}},),
                 [["c->name", "c->value"], ["color", "green"]],
             ],
             [
@@ -151,6 +159,7 @@ class TestCSV:
                     ["green", "el1", "el2"],
                 ],
             ],
+            # Property as a list
             [
                 {},
                 {},
@@ -160,13 +169,16 @@ class TestCSV:
                     ["color", "green", "el1", "el2"],
                 ],
             ],
-            # Failing
-            # [
-            #     {"c": FieldOption(named=True, name="name", grouped=True)}, {},
-            #     [{'c': [{'name': 'color', 'value': 'green', 'list': ['el1', 'el2']}]}],
-            #     [['c'],
-            #      ['color: green']]
-            # ],
+            # Property as a tuple
+            [
+                {},
+                {},
+                [{"c": ({"name": "color", "value": "green", "list": ["el1", "el2"]},)}],
+                [
+                    ["c[0]->name", "c[0]->value", "c[0]->list[0]", "c[0]->list[1]"],
+                    ["color", "green", "el1", "el2"],
+                ],
+            ],
             [
                 {"c": FieldOption(grouped=True, named=False)},
                 {},
@@ -271,10 +283,18 @@ class TestCSV:
                 [{"c": "somevalue"}],
                 [["c"], ["somevalue"]],
             ],
+            # Subproperty as a list
             [
                 {"c": FieldOption(grouped=False, named=True, name="name")},
                 {},
                 [{"c": {"name": "color", "value": "green"}, "b": [1, 2]}],
+                [["c->color->value", "b[0]", "b[1]"], ["green", 1, 2]],
+            ],
+            # Subproperty as a tuple
+            [
+                {"c": FieldOption(grouped=False, named=True, name="name")},
+                {},
+                [{"c": {"name": "color", "value": "green"}, "b": (1, 2)}],
                 [["c->color->value", "b[0]", "b[1]"], ["green", 1, 2]],
             ],
             [

@@ -61,7 +61,7 @@ class CSVStatsCollector:
         Validating and collecting stats for provided items.
         Errors raised by the method should stay in CSVStatsCollector to avoid invalid/broken inputs.
         """
-        if not isinstance(items, list):
+        if not is_list(items):
             raise ValueError(f"Initial items data must be array, not {type(items)}.")
         if len(items) == 0:
             logger.warning("No items provided.")
@@ -75,7 +75,7 @@ class CSVStatsCollector:
         if isinstance(items[0], dict):
             for item in items:
                 self.process_object(item)
-        elif isinstance(items[0], list):
+        elif is_list(items[0]):
             raise TypeError("Items must be dicts (not arrays) to be supported.")
         else:
             raise ValueError(f"Unsupported item type ({type(items[0])}).")
@@ -95,7 +95,7 @@ class CSVStatsCollector:
             self._stats[prefix]["count"] = max(
                 self._stats[prefix]["count"], len(array_value)
             )
-        elif isinstance(array_value[0], list):
+        elif is_list(array_value[0]):
             for i, element in enumerate(array_value):
                 property_path = f"{prefix}[{i}]"
                 self._process_array(element, property_path)
@@ -111,7 +111,7 @@ class CSVStatsCollector:
                 property_path = f"{prefix}[{i}]{self.cut_separator}{property_name}"
                 if is_hashable(property_value):
                     self._process_hashable_value(property_name, property_value, prefix)
-                elif isinstance(property_value, list):
+                elif is_list(property_value):
                     self._process_array(property_value, property_path)
                 elif isinstance(property_value, dict):
                     self.process_object(property_value, property_path)
@@ -192,7 +192,7 @@ class CSVStatsCollector:
             if is_hashable(property_value):
                 if self._stats.get(property_path) is None:
                     self._stats[property_path] = {}
-            elif isinstance(property_value, list):
+            elif is_list(property_value):
                 self._process_array(object_value[property_name], property_path)
             elif isinstance(property_value, dict):
                 self.process_object(object_value[property_name], property_path)
@@ -240,7 +240,7 @@ class CSVStatsCollector:
 
     @staticmethod
     def _map_types(property_name: str, type_name: str):
-        types = {"object": dict, "array": list}
+        types = {"object": dict, "array": (list, tuple)}
         mapped_type = types.get(type_name)
         if type_name:
             return mapped_type
@@ -324,11 +324,13 @@ class CSVExporter:
 
     @headers_renaming.validator
     def check_headers_renaming(self, _, value: List[Tuple[str, str]]):
-        if not isinstance(value, list):
-            raise ValueError("Headers renamings must be provided as a list of tuples.")
+        if not is_list(value):
+            raise ValueError(
+                "Headers renamings must be provided as a list/tuple of tuples."
+            )
         for rmp in value:
-            if not isinstance(rmp, (list, tuple)):
-                raise ValueError(f"Headers renamings ({rmp}) must be tuples.")
+            if not is_list(rmp):
+                raise ValueError(f"Headers renamings ({rmp}) must be lists/tuples.")
             if len(rmp) != 2:
                 raise ValueError(
                     f"Headers renamings ({rmp}) must include two elements: pattern and replacement."
@@ -470,7 +472,7 @@ class CSVExporter:
                 return ""
             elif is_hashable(value):
                 return value
-            elif isinstance(value, list):
+            elif is_list(value):
                 return separator.join(
                     [self._escape_grouped_data(x, separator) for x in value]
                 )
@@ -531,7 +533,7 @@ class CSVExporter:
     def _export_named_field(self, item_data: Cut, header_path: List[str]) -> str:
         name = self.field_options[header_path[0]]["name"]
         elements = item_data.get(header_path[0], [])
-        if isinstance(elements, list):
+        if is_list(elements):
             for element in elements:
                 if element.get(name) == header_path[1]:
                     return element.get(header_path[2], "")
