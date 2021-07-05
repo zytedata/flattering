@@ -432,70 +432,99 @@ class CSVExporter:
             )
             # Grouped
             if not self.field_options[header_path[0]]["named"]:
-                if len(header_path) == 1:
-                    value = item_data.get(header_path[0])
-                    if value is None:
-                        return ""
-                    elif not isinstance(value, (list, dict)):
-                        return value
-                    elif isinstance(value, list):
-                        return separator.join(
-                            [self._escape_grouped_data(x, separator) for x in value]
-                        )
-                    else:
-                        return separator.join(
-                            [
-                                f"{self._escape_grouped_data(pn, separator)}"
-                                f": {self._escape_grouped_data(pv, separator)}"
-                                for pn, pv in value.items()
-                            ]
-                        )
-                # TODO What if more than 2 levels?
-                else:
-                    value = []
-                    for element in item_data.get(header_path[0], []):
-                        if element.get(header_path[1]) is not None:
-                            value.append(element[header_path[1]])
-                    return separator.join(
-                        [self._escape_grouped_data(x, separator) for x in value]
-                    )
+                return self._export_grouped_field(item_data, header_path, separator)
             # Grouped AND Named
             else:
-                name = self.field_options[header_path[0]]["name"]
-                values = []
-                for element in item_data.get(header_path[0], []):
-                    element_name = element.get(name, "")
-                    element_values = []
-                    for property_name, property_value in element.items():
-                        if property_name == name:
-                            continue
-                        element_values.append(f"{property_name}: {property_value}")
-                    values.append(
-                        f"- {element_name}{separator}{separator.join([str(x) for x in element_values])}"
-                    )
-                return separator.join(
-                    [self._escape_grouped_data(x, separator) for x in values]
+                return self._export_grouped_and_named_field(
+                    item_data, header_path, separator
                 )
         # Named; if not grouped and not named - adjusted property was filtered
         else:
-            name = self.field_options[header_path[0]]["name"]
-            elements = item_data.get(header_path[0], [])
-            if isinstance(elements, list):
-                for element in elements:
-                    if element.get(name) == header_path[1]:
-                        return element.get(header_path[2], "")
-                else:
-                    return ""
-            elif isinstance(elements, dict):
-                for element_key, element_value in elements.items():
-                    if element_key == header_path[2]:
-                        return element_value
-                else:
-                    return ""
-            else:
-                raise ValueError(
-                    f"Unexpected value type ({type(elements)}) for field ({header_path}): {elements}"
+            return self._export_named_field(item_data, header_path)
+
+    def _export_grouped_field(
+        self, item_data: Cut, header_path: List[str], separator: str
+    ) -> str:
+        if len(header_path) == 1:
+            value = item_data.get(header_path[0])
+            if value is None:
+                return ""
+            elif not isinstance(value, (list, dict)):
+                return value
+            elif isinstance(value, list):
+                return separator.join(
+                    [self._escape_grouped_data(x, separator) for x in value]
                 )
+            else:
+                return separator.join(
+                    [
+                        f"{self._escape_grouped_data(pn, separator)}"
+                        f": {self._escape_grouped_data(pv, separator)}"
+                        for pn, pv in value.items()
+                    ]
+                )
+        else:
+            value = []
+            for element in item_data.get(header_path[0], []):
+                if element.get(header_path[1]) is not None:
+                    value.append(element[header_path[1]])
+            return separator.join(
+                [self._escape_grouped_data(x, separator) for x in value]
+            )
+
+    def _export_grouped_and_named_field(
+        self, item_data: Cut, header_path: List[str], separator: str
+    ) -> str:
+        name = self.field_options[header_path[0]]["name"]
+        values = []
+        for element in item_data.get(header_path[0], []):
+            element_name = element.get(name, "")
+            element_values = []
+            for property_name, property_value in element.items():
+                if property_name == name:
+                    continue
+                element_values.append((property_name, property_value))
+            # Check how many properties, except name, the field has
+            properties_stats = [
+                x
+                for x in self.default_stats.get(header_path[0], {})
+                .get("properties", {})
+                .keys()
+                if x != name
+            ]
+            # If there're more then one - use name as a header and other properties as separate rows
+            if len(properties_stats) > 1:
+                element_str = separator.join(
+                    [f"{pn}: {pv}" for pn, pv in element_values]
+                )
+                values.append(f"- {element_name}{separator}{element_str}")
+            # If only one (like in {"name": "color", "value": "green"}) - use name instead of property
+            else:
+                values.append(
+                    f"{element_name}: {','.join([pv for pn, pv in element_values])}"
+                )
+
+        return separator.join([self._escape_grouped_data(x, separator) for x in values])
+
+    def _export_named_field(self, item_data: Cut, header_path: List[str]) -> str:
+        name = self.field_options[header_path[0]]["name"]
+        elements = item_data.get(header_path[0], [])
+        if isinstance(elements, list):
+            for element in elements:
+                if element.get(name) == header_path[1]:
+                    return element.get(header_path[2], "")
+            else:
+                return ""
+        elif isinstance(elements, dict):
+            for element_key, element_value in elements.items():
+                if element_key == header_path[2]:
+                    return element_value
+            else:
+                return ""
+        else:
+            raise ValueError(
+                f"Unexpected value type ({type(elements)}) for field ({header_path}): {elements}"
+            )
 
     def _prepare_for_export(self):
         # If headers are set - they've been processed already and ready for export
@@ -594,9 +623,7 @@ if __name__ == "__main__":
         # TODO What should happend if hashable dict if both grouped and named?
         # I assume, that should be impossible?
         # TODO Test nested cases like `c->list`
-        # TODO Check this test case
-        # "c": FieldOption(named=True, name="name", grouped=True),
-        # AttributeError: 'str' object has no attribute 'get'
+        "c": FieldOption(named=True, name="name", grouped=True),
     }
     test_headers_renaming = [
         (r"offers\[0\]->", ""),
@@ -620,16 +647,15 @@ if __name__ == "__main__":
         # {"b": [1, 2]},
         # {"c": "somevalue"},
         # {"c": {"name": "color", "value": [1, 2]}},
+        # TODO Test hashable dicts with "c": FieldOption(named=True, name="name", grouped=True)
         # {"c": {"name": "color", "value": "green"}},
-        # {"c": {"name": "color", "value": None}},
+        # {"c": {"name": "color", "value": "blue"}},
         # {"c": {"name": "color", "value": "blue", "list": [1, 2]}},
         # {"c": {"name": "color", "value": "cyan", "meta": {"some": "data"}}},
         # {"c": {"name": "color", "value": "blue", "meta_list": [1, 2, 3]}},
         # {"c": [{"name": "color", "value": "green", "list": ["el1", "el2"]}]},
         # {"c": {"name": "color", "value": "blue", "some": [1, 2, 3]}},
         # {"c": {"name": "color", "value": {"some1": "one", "some2": "two"}}},
-        {"c": {"name": "color", "value": None}},
-        {"c": {"name": "color", "value": None}},
         # {"c": {"name": "color", "value": [1, 2]}},
         # {"c": {"name": "color", "value": {"some": "value"}}}
         # {"c": [{"name": "color", "value": "green", "available": "True"}],
@@ -643,13 +669,13 @@ if __name__ == "__main__":
         #     {"name": "size", "value": "XL"},
         # ]}
         # {"c": {"name": "size", "value": "XL", "kids": "False"}},
-        # {
-        #     "c": [
-        #         {"name": "color", "value": "green"},
-        #         {"name": "size"},
-        #         {"name": "material", "value": "cloth"},
-        #     ]
-        # }
+        {
+            "c": [
+                {"name": "color", "value": "green"},
+                {"name": "size", "value": "XL"},
+                {"name": "material", "value": "cloth", "availability": True},
+            ]
+        }
     ]
 
     # AUTOCRAWL PART
