@@ -310,9 +310,23 @@ class TestCSV:
                 [{"c": {"name": "color", "value": "green"}, "b": [1, 2]}],
                 [["c", "b"], ["name: color\nvalue: green", "1\n2"]],
             ],
+            [
+                {"c": FieldOption(grouped=True, named=False)},
+                {},
+                [
+                    {
+                        "c": [
+                            {"name": "color", "value": "green"},
+                            {"name": "size"},
+                            {"name": "material", "value": "cloth"},
+                        ]
+                    }
+                ],
+                [["c->name", "c->value"], ["color\nsize\nmaterial", "green\n\ncloth"]],
+            ],
         ],
     )
-    def test_single_items(
+    def test_single_item(
         self,
         field_options: Dict[str, FieldOption],
         array_limits: Dict[str, int],

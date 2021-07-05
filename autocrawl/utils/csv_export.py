@@ -468,6 +468,9 @@ class CSVExporter:
             for element in item_data.get(header_path[0], []):
                 if element.get(header_path[1]) is not None:
                     value.append(element[header_path[1]])
+                else:
+                    # Add empty values to make all grouped columns the same height for better readability
+                    value.append("")
             return separator.join(
                 [self._escape_grouped_data(x, separator) for x in value]
             )
@@ -622,10 +625,10 @@ if __name__ == "__main__":
         #     grouped_separators={"ratingHistogram": "\n"},
         # ),
         # "named_array_field": FieldOption(named=True, name="name", grouped=True),
-        # TODO What should happend if hashable dict if both grouped and named?
-        # I assume, that should be impossible?
+        # TODO What should happend if hashable dict if both grouped and named? I assume, that should be impossible?
         # TODO Test nested cases like `c->list`
-        "c": FieldOption(named=True, name="name", grouped=True),
+        # TODO Check arrays of arrays processing, but not on item level, but on nested level
+        "c": FieldOption(named=False, name="name", grouped=True),
     }
     test_headers_renaming = [
         (r"offers\[0\]->", ""),
@@ -674,9 +677,8 @@ if __name__ == "__main__":
         {
             "c": [
                 {"name": "color", "value": "green"},
-                {"name": "size", "value": "XL", "available": True},
-                # {"name": "size", "value": "XL"},
-                # {"name": "material", "value": "cloth"},
+                {"name": "size"},
+                {"name": "material", "value": "cloth"},
             ]
         }
     ]
