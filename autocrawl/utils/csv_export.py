@@ -1,5 +1,5 @@
 import csv
-import json
+import json  # NOQA
 import logging
 import re
 from os import PathLike
@@ -8,7 +8,7 @@ from typing import Dict, List, TextIO, Tuple, TypedDict, Union
 import attr  # NOQA
 
 # Using scalpl (instead of jmespath/etc.) as an existing fast backend dependency
-from pkg_resources import resource_string
+from pkg_resources import resource_string  # NOQA
 from scalpl import Cut  # NOQA
 
 logger = logging.getLogger(__name__)
@@ -75,7 +75,7 @@ class CSVStatsCollector:
                 )
         if self._stats.get(prefix) is None:
             self._stats[prefix] = {"count": 0, "properties": {}, "type": "array"}
-        if not isinstance(array_value[0], (dict, list)):
+        if self._is_hashable(array_value[0]):
             self._stats[prefix]["count"] = max(
                 self._stats[prefix]["count"], len(array_value)
             )
@@ -93,7 +93,7 @@ class CSVStatsCollector:
         for i, element in enumerate(array_value):
             for property_name, property_value in element.items():
                 property_path = f"{prefix}[{i}]{self.cut_separator}{property_name}"
-                if not isinstance(property_value, (dict, list)):
+                if self._is_hashable(property_value):
                     self._process_hashable_value(property_name, property_value, prefix)
                 elif isinstance(property_value, list):
                     self.process_array(property_value, property_path)
@@ -175,7 +175,7 @@ class CSVStatsCollector:
                     f'Field ({property_name}) value changed the type from "{property_type}" '
                     f"to {type(property_value)}: ({property_value})"
                 )
-            if not isinstance(property_value, (dict, list)):
+            if self._is_hashable(property_value):
                 if self._stats.get(property_path) is None:
                     self._stats[property_path] = {}
             elif isinstance(property_value, list):
@@ -521,7 +521,8 @@ class CSVExporter:
             if header_path[0] not in self.field_options:
                 try:
                     row.append(item_data.get(header, ""))
-                except TypeError as er:
+                except TypeError:
+                    # Could be an often case, so commenting to avoid overflowing logs
                     # logger.debug(f"{er} Returning empty data.")
                     row.append("")
             else:
