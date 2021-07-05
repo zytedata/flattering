@@ -64,7 +64,7 @@ class CSVStatsCollector:
         else:
             raise ValueError(f"Unsupported item type ({type(items[0])}).")
 
-    def process_array(self, array_value: List, prefix: str = ""):
+    def _process_array(self, array_value: List, prefix: str = ""):
         if len(array_value) == 0:
             return
         array_types = set([type(x) for x in array_value])
@@ -82,7 +82,7 @@ class CSVStatsCollector:
         elif isinstance(array_value[0], list):
             for i, element in enumerate(array_value):
                 property_path = f"{prefix}[{i}]"
-                self.process_array(element, property_path)
+                self._process_array(element, property_path)
         else:
             self._process_base_array(array_value, prefix)
 
@@ -96,7 +96,7 @@ class CSVStatsCollector:
                 if self._is_hashable(property_value):
                     self._process_hashable_value(property_name, property_value, prefix)
                 elif isinstance(property_value, list):
-                    self.process_array(property_value, property_path)
+                    self._process_array(property_value, property_path)
                 else:
                     self.process_object(property_value, property_path)
 
@@ -179,7 +179,7 @@ class CSVStatsCollector:
                 if self._stats.get(property_path) is None:
                     self._stats[property_path] = {}
             elif isinstance(property_value, list):
-                self.process_array(object_value[property_name], property_path)
+                self._process_array(object_value[property_name], property_path)
             else:
                 self.process_object(object_value[property_name], property_path)
 
