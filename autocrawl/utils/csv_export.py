@@ -1,4 +1,5 @@
 import csv
+import io
 import json  # NOQA
 import logging
 import re
@@ -620,29 +621,25 @@ class CSVExporter:
         return row
 
     @prepare_io
-    def export_csv_headers(self, export_path: Union[str, bytes, PathLike, TextIO]):
+    def export_csv_headers(self, export_path):
         csv_writer = csv.writer(
-            export_path, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL  # type: ignore
+            export_path, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL
         )
         csv_writer.writerow(
             self._export_headers_as_row(self._headers, self.headers_renaming)
         )
 
     @prepare_io
-    def export_csv_row(
-        self, item: Dict, export_path: Union[str, bytes, PathLike, TextIO]
-    ):
+    def export_csv_row(self, item: Dict, export_path):
         csv_writer = csv.writer(
-            export_path, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL  # type: ignore
+            export_path, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL
         )
         csv_writer.writerow(self.export_item_as_row(item))
 
     @prepare_io
-    def export_csv_full(
-        self, items: List[Dict], export_path: Union[str, bytes, PathLike, TextIO]
-    ):
+    def export_csv_full(self, items: List[Dict], export_path):
         csv_writer = csv.writer(
-            export_path, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL  # type: ignore
+            export_path, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL
         )
         csv_writer.writerow(
             self._export_headers_as_row(self._headers, self.headers_renaming)
@@ -689,7 +686,7 @@ if __name__ == "__main__":
         # TODO What should happend if hashable dict if both grouped and named? I assume, that should be impossible?
         # TODO Test nested cases like `c->list`
         # TODO Check arrays of arrays processing, but not on item level, but on nested level
-        "c": FieldOption(named=False, name="name", grouped=True),
+        # "c": FieldOption(named=False, name="name", grouped=True),
     }
     test_headers_renaming = [
         (r"offers\[0\]->", ""),
@@ -714,8 +711,8 @@ if __name__ == "__main__":
         # {"c": "somevalue"},
         # {"c": {"name": "color", "value": [1, 2]}},
         # TODO Test hashable dicts with "c": FieldOption(named=True, name="name", grouped=True)
-        # {"c": {"name": "color", "value": "green"}},
-        # {"c": {"name": "color", "value": "blue"}},
+        {"c": {"name": "color", "value": "green"}},
+        {"c": {"name": "color", "value": "blue"}}
         # {"c": {"name": "color", "value": "blue", "list": [1, 2]}},
         # {"c": {"name": "color", "value": "cyan", "meta": {"some": "data"}}},
         # {"c": {"name": "color", "value": "blue", "meta_list": [1, 2, 3]}},
@@ -735,13 +732,13 @@ if __name__ == "__main__":
         #     {"name": "size", "value": "XL"},
         # ]}
         # {"c": {"name": "size", "value": "XL", "kids": "False"}},
-        {
-            "c": [
-                {"name": "color", "value": "green"},
-                {"name": "size"},
-                {"name": "material", "value": "cloth"},
-            ]
-        }
+        # {
+        #     "c": [
+        #         {"name": "color", "value": "greenish"},
+        #         {"name": "size"},
+        #         {"name": "material", "value": "cloth"},
+        #     ]
+        # }
     ]
 
     # AUTOCRAWL PART
@@ -756,12 +753,20 @@ if __name__ == "__main__":
     # BACKEND PART (assuming we send stats to backend)
     csv_exporter = CSVExporter(
         default_stats=autocrawl_stats,
-        field_options=test_field_options,
-        array_limits=test_array_limits,
-        headers_renaming=test_headers_renaming,
+        # field_options=test_field_options,
+        # array_limits=test_array_limits,
+        # headers_renaming=test_headers_renaming,
     )
     # Items could be exported in batch or one-by-one through `export_item_as_row`
 
-    csv_exporter.export_csv_full(
-        item_list, f"autocrawl/utils/csv_assets/{file_name.replace('.json', '.csv')}"
-    )
+    # csv_exporter.export_csv_full(
+    #     item_list, f"autocrawl/utils/csv_assets/{file_name.replace('.json', '.csv')}"
+    # )
+
+    buffer = io.StringIO()
+    csv_exporter.export_csv_full(item_list, buffer)
+    print(buffer)
+    print(buffer.getvalue())
+
+    # with open(f"autocrawl/utils/csv_assets/{file_name.replace('.json', '.csv')}", "w") as f:
+    #     csv_exporter.export_csv_full(item_list, f)
