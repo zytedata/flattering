@@ -264,6 +264,7 @@ class CSVExporter:
 
     def __attrs_post_init__(self):
         self.field_options = self._prepare_field_options(self.field_options)
+        self._prepare_for_export()
 
     @field_options.validator
     def check_field_options(self, _, value: Dict):
@@ -391,23 +392,6 @@ class CSVExporter:
             for f in expand(field, meta, field_options.get(field, {}))
         ]
 
-    @staticmethod
-    def _export_headers_as_row(
-        headers: List[str],
-        headers_renaming: List[Tuple[str, str]],
-        capitalize: bool = True,
-    ) -> List[str]:
-        if not headers_renaming:
-            return headers
-        renamed_headers = []
-        for header in headers:
-            for old, new in headers_renaming:
-                header = re.sub(old, new, header)
-            if capitalize and header:
-                header = header[:1].capitalize() + header[1:]
-            renamed_headers.append(header)
-        return renamed_headers
-
     def _limit_field_elements(self):
         """
         Limit number of elements exported based on pre-defined limits
@@ -434,12 +418,44 @@ class CSVExporter:
                 limited_default_stats[field] = stats
         self.default_stats = limited_default_stats
 
+    def _prepare_for_export(self):
+        # If headers are set - they've been processed already and ready for export
+        if self._headers:
+            return
+        self._limit_field_elements()
+        separator = self.cut_separator
+        self._headers = self._convert_stats_to_headers(
+            self.default_stats, separator, self.field_options
+        )
+        print("*" * 50)
+        print(self._headers)
+        # TODO Think about implementing custom headers sorting
+        # (sort headers that exists, then add other headers in the default order)
+        # TODO Think about implementing custom headers filtering
+
     @staticmethod
     def _escape_grouped_data(value, separator):
         if not value:
             return value
         escaped_separator = f"\\{separator}" if separator != "\n" else "\\n"
         return str(value).replace(separator, escaped_separator)
+
+    @staticmethod
+    def _export_headers_as_row(
+        headers: List[str],
+        headers_renaming: List[Tuple[str, str]],
+        capitalize: bool = True,
+    ) -> List[str]:
+        if not headers_renaming:
+            return headers
+        renamed_headers = []
+        for header in headers:
+            for old, new in headers_renaming:
+                header = re.sub(old, new, header)
+            if capitalize and header:
+                header = header[:1].capitalize() + header[1:]
+            renamed_headers.append(header)
+        return renamed_headers
 
     def _export_field_with_options(
         self, header: str, header_path: List[str], item_data: Cut
@@ -550,23 +566,7 @@ class CSVExporter:
                 f"Unexpected value type ({type(elements)}) for field ({header_path}): {elements}"
             )
 
-    def _prepare_for_export(self):
-        # If headers are set - they've been processed already and ready for export
-        if self._headers:
-            return
-        self._limit_field_elements()
-        separator = self.cut_separator
-        self._headers = self._convert_stats_to_headers(
-            self.default_stats, separator, self.field_options
-        )
-        print("*" * 50)
-        print(self._headers)
-        # TODO Think about implementing custom headers sorting
-        # (sort headers that exists, then add other headers in the default order)
-        # TODO Think about implementing custom headers filtering
-
     def export_item_as_row(self, item: Dict) -> List:
-        self._prepare_for_export()
         row = []
         separator = self.cut_separator
         item_data = Cut(item, sep=separator)
@@ -590,7 +590,6 @@ class CSVExporter:
     def export_csv(
         self, items: List[Dict], export_path: Union[str, bytes, PathLike, TextIO]
     ):
-        self._prepare_for_export()
         file_not_closed = False
         if isinstance(export_path, (str, bytes, PathLike)):
             export_file = open(export_path, mode="w", newline="")
