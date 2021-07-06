@@ -2,6 +2,7 @@ import csv
 import json  # NOQA
 import logging
 import re
+from functools import wraps
 from os import PathLike
 from typing import Dict, List, TextIO, Tuple, TypedDict, Union
 
@@ -42,6 +43,23 @@ def is_list(value):
     # Sets are ignored because they're not indexed,
     # so stats can't be extracted in a required way
     return True if isinstance(value, (list, tuple)) else False
+
+
+def prepare_io(func):
+    @wraps(func)
+    def prepare_io_wrapper(self, *args, **kwargs):
+        if "export_path" in kwargs:
+            csv_io, need_to_close = self._prepare_io(kwargs["export_path"])
+            kwargs["export_path"]: str = csv_io
+        else:
+            csv_io, need_to_close = self._prepare_io(args[-1])
+            args = list(args)
+            args[-1]: str = csv_io
+        func(self, *args, **kwargs)
+        if need_to_close:
+            csv_io.close()
+
+    return prepare_io_wrapper
 
 
 @attr.s(auto_attribs=True)
@@ -306,6 +324,20 @@ class CSVExporter:
                         f'were limited by "named_columns_limit" when collecting stats, '
                         f'so "named" option can\'t be applied.'
                     )
+
+    @staticmethod
+    def _prepare_io(
+        export_path: Union[str, bytes, PathLike, TextIO]
+    ) -> Tuple[TextIO, bool]:
+        need_to_close = False
+        if isinstance(export_path, (str, bytes, PathLike)):
+            export_file = open(export_path, mode="w", newline="")
+            need_to_close = True
+        elif hasattr(export_path, "write"):
+            export_file = export_path
+        else:
+            raise TypeError(f"Unexpeted export_path type ({type(export_path)}).")
+        return export_file, need_to_close
 
     @staticmethod
     def _prepare_field_options(
@@ -587,27 +619,36 @@ class CSVExporter:
         print(row)
         return row
 
-    def export_csv(
+    @prepare_io
+    def export_csv_headers(self, export_path: Union[str, bytes, PathLike, TextIO]):
+        csv_writer = csv.writer(
+            export_path, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL  # type: ignore
+        )
+        csv_writer.writerow(
+            self._export_headers_as_row(self._headers, self.headers_renaming)
+        )
+
+    @prepare_io
+    def export_csv_row(
+        self, item: Dict, export_path: Union[str, bytes, PathLike, TextIO]
+    ):
+        csv_writer = csv.writer(
+            export_path, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL  # type: ignore
+        )
+        csv_writer.writerow(self.export_item_as_row(item))
+
+    @prepare_io
+    def export_csv_full(
         self, items: List[Dict], export_path: Union[str, bytes, PathLike, TextIO]
     ):
-        file_not_closed = False
-        if isinstance(export_path, (str, bytes, PathLike)):
-            export_file = open(export_path, mode="w", newline="")
-            file_not_closed = True
-        elif hasattr(export_path, "write"):
-            export_file = export_path
-        else:
-            raise TypeError(f"Unexpeted export_path type ({type(export_path)}).")
         csv_writer = csv.writer(
-            export_file, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL
+            export_path, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL  # type: ignore
         )
         csv_writer.writerow(
             self._export_headers_as_row(self._headers, self.headers_renaming)
         )
         for p in items:
             csv_writer.writerow(self.export_item_as_row(p))
-        if file_not_closed:
-            export_file.close()
 
 
 if __name__ == "__main__":
@@ -721,6 +762,6 @@ if __name__ == "__main__":
     )
     # Items could be exported in batch or one-by-one through `export_item_as_row`
 
-    csv_exporter.export_csv(
+    csv_exporter.export_csv_full(
         item_list, f"autocrawl/utils/csv_assets/{file_name.replace('.json', '.csv')}"
     )

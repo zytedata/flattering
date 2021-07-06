@@ -102,7 +102,6 @@ class TestCSV:
             field_options=field_options,
             array_limits=array_limits,
         )
-        csv_exporter._prepare_for_export()
         # Compare with pre-processed data
         csv_data = list(
             csv.reader(
@@ -361,8 +360,6 @@ class TestCSV:
             field_options=field_options,
             array_limits=array_limits,
         )
-
-        csv_exporter._prepare_for_export()
         headers = csv_exporter._export_headers_as_row(
             csv_exporter._headers, csv_exporter.headers_renaming
         )
@@ -453,8 +450,6 @@ class TestCSV:
             field_options=field_options,
             array_limits=array_limits,
         )
-
-        csv_exporter._prepare_for_export()
         headers = csv_exporter._export_headers_as_row(
             csv_exporter._headers, csv_exporter.headers_renaming
         )
