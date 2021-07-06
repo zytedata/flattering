@@ -1,5 +1,6 @@
 import codecs
 import csv
+import io
 import json
 from typing import Dict, List
 
@@ -629,3 +630,47 @@ class TestCSV:
                 field_options=field_options,
                 array_limits=array_limits,
             )
+
+    def test_buffer_io(self):
+        item_list = [
+            {"c": {"name": "color", "value": "green"}},
+            {"c": {"name": "color", "value": "blue"}},
+        ]
+        autocrawl_csv_sc = CSVStatsCollector()
+        autocrawl_csv_sc.process_items(item_list)
+        csv_exporter = CSVExporter(default_stats=autocrawl_csv_sc.stats)
+        buffer = io.StringIO()
+        csv_exporter.export_csv_full(item_list, buffer)
+        assert buffer.getvalue() == "c->name,c->value\r\ncolor,green\r\ncolor,blue\r\n"
+
+    def test_file_io(self, tmpdir):
+        item_list = [
+            {"c": {"name": "color", "value": "green"}},
+            {"c": {"name": "color", "value": "blue"}},
+        ]
+        autocrawl_csv_sc = CSVStatsCollector()
+        autocrawl_csv_sc.process_items(item_list)
+        csv_exporter = CSVExporter(default_stats=autocrawl_csv_sc.stats)
+        filename = tmpdir.join("custom.csv")
+        with open(filename, "w") as f:
+            csv_exporter.export_csv_full(item_list, f)
+        with open(filename, "r") as f:
+            assert f.read() == "c->name,c->value\ncolor,green\ncolor,blue\n"
+
+    def test_path_io(self, tmpdir):
+        item_list = [
+            {"c": {"name": "color", "value": "green"}},
+            {"c": {"name": "color", "value": "blue"}},
+        ]
+        autocrawl_csv_sc = CSVStatsCollector()
+        autocrawl_csv_sc.process_items(item_list)
+        csv_exporter = CSVExporter(default_stats=autocrawl_csv_sc.stats)
+        filename = tmpdir.join("custom.csv")
+        # Test path-like objects
+        csv_exporter.export_csv_full(item_list, filename)
+        with open(filename, "r") as f:
+            assert f.read() == "c->name,c->value\ncolor,green\ncolor,blue\n"
+        # Stringify path to make sure exporter works with regular string paths also
+        csv_exporter.export_csv_full(item_list, str(filename))
+        with open(str(filename), "r") as f:
+            assert f.read() == "c->name,c->value\ncolor,green\ncolor,blue\n"
