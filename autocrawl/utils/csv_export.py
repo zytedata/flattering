@@ -28,6 +28,16 @@ class Header(TypedDict, total=False):
 
 
 class FieldOption(TypedDict, total=False):
+    """
+    Optional field options to format data.
+    - Options could be named (named=True, name="property_name"), so the exporter will try
+      to create columns based on the values of the property provided in the "name" attribute.
+    - Options could be grouped (grouped=True), so the exporter will try to fit
+      all the data for this field into a single cell.
+    - Options could be both named and grouped, so the exporter will try to get data collected
+      for each named property and fit all this data in a single field.
+    """
+
     name: str
     named: bool
     grouped: bool
@@ -65,10 +75,21 @@ def prepare_io(func):
 
 @attr.s(auto_attribs=True)
 class CSVStatsCollector:
-    """"""
+    """
+    Collect stats from processed items to get the max required number of columns
+    for each field, collect values for later grouping/naming using FieldOption's.
+    """
 
+    # How many named columns could be created for a single field. For example, you
+    # have a set of additional properties like {"name": "color", "value": "blue"}.
+    # If you decide to create a separate column for each one of them ("color", "size", etc.),
+    # the limit defines how much data would be collected to make it work.
+    # If the limit is hit (too many columns) - no named columns would be created in export.
     named_columns_limit: int = attr.ib(default=20)
+    # Separator to place values from items to required columns. Used instead of default `.`.
+    # If your properties names include the separator - replace it with a custom one.
     cut_separator: str = attr.ib(default="->")
+    # Stats for each field, collected by processing items
     _stats: Dict[str, Header] = attr.ib(init=False, default=attr.Factory(dict))
 
     @property
@@ -271,14 +292,26 @@ class CSVStatsCollector:
 
 @attr.s(auto_attribs=True)
 class CSVExporter:
-    """"""
+    """
+    Export items as CSV based on the previously collected stats.
+    Detailed documentation with examples: <place_for_a_link>
+    """
 
+    # Items stats (CSVStatsCollector)
     default_stats: Dict[str, Header] = attr.ib()
+    # Optional field options to format data (FieldOption class).
     field_options: Dict[str, FieldOption] = attr.ib(default=attr.Factory(dict))
+    # Limit for the arrays to export only first N elements ({"offers": 1})
     array_limits: Dict[str, int] = attr.ib(default=attr.Factory(dict))
+    # Set of regexp rules to rename existing item colulmns (r"offers\[0\]->", "")
+    # The first value is the pattern to replace, while the second one is the replacement
     headers_renaming: List[Tuple[str, str]] = attr.ib(default=attr.Factory(list))
+    # Separator to divide values when grouping data in a single cell (grouped=True)
     grouped_separator: str = attr.ib(default="\n")
+    # Separator to place values from items to required columns. Used instead of default `.`.
+    # If your properties names include the separator - replace it with a custom one.
     cut_separator: str = attr.ib(default="->")
+    # CSV headers generated from item stats
     _headers: List[str] = attr.ib(init=False, default=attr.Factory(list))
 
     def __attrs_post_init__(self):
