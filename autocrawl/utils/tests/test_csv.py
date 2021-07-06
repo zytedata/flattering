@@ -361,11 +361,8 @@ class TestCSV:
             field_options=field_options,
             array_limits=array_limits,
         )
-        headers = csv_exporter._export_headers_as_row(
-            csv_exporter._headers, csv_exporter.headers_renaming
-        )
         exp_items = [csv_exporter.export_item_as_row(item) for item in items]
-        assert [headers] + exp_items == expected
+        assert [csv_exporter._get_renamed_headers()] + exp_items == expected
 
     @pytest.mark.parametrize(
         "field_options, array_limits, items, expected",
@@ -451,11 +448,8 @@ class TestCSV:
             field_options=field_options,
             array_limits=array_limits,
         )
-        headers = csv_exporter._export_headers_as_row(
-            csv_exporter._headers, csv_exporter.headers_renaming
-        )
         exp_items = [csv_exporter.export_item_as_row(item) for item in items]
-        assert [headers] + exp_items == expected
+        assert [csv_exporter._get_renamed_headers()] + exp_items == expected
 
     @pytest.mark.parametrize(
         "field_options, array_limits, items, exception_type, exception_pattern",

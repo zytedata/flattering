@@ -1,5 +1,4 @@
 import csv
-import io
 import json  # NOQA
 import logging
 import re
@@ -306,6 +305,11 @@ class CSVExporter:
     # Set of regexp rules to rename existing item colulmns (r"offers\[0\]->", "")
     # The first value is the pattern to replace, while the second one is the replacement
     headers_renaming: List[Tuple[str, str]] = attr.ib(default=attr.Factory(list))
+    # List to sort CSV headers. All headers that are present both it this list and actual
+    # file - would be sorted. All other headers would be appended in a natural order.
+    # Headers should be provided in the form before renaming ("offers[0]->price", not "Price").
+    # TODO: Add validator
+    headers_order: List[str] = attr.ib(default=attr.Factory(list))
     # Separator to divide values when grouping data in a single cell (grouped=True)
     grouped_separator: str = attr.ib(default="\n")
     # Separator to place values from items to required columns. Used instead of default `.`.
@@ -484,6 +488,15 @@ class CSVExporter:
                 limited_default_stats[field] = stats
         self.default_stats = limited_default_stats
 
+    def _sort_headers(self):
+        if not self.headers_order:
+            return
+        ordered_headers = []
+        for head in self.headers_order:
+            if head in self._headers:
+                ordered_headers.append(self._headers.pop(self._headers.index(head)))
+        self._headers = ordered_headers + self._headers
+
     def _prepare_for_export(self):
         # If headers are set - they've been processed already and ready for export
         if self._headers:
@@ -493,10 +506,7 @@ class CSVExporter:
         self._headers = self._convert_stats_to_headers(
             self.default_stats, separator, self.field_options
         )
-        print("*" * 50)
-        print(self._headers)
-        # TODO Think about implementing custom headers sorting
-        # (sort headers that exists, then add other headers in the default order)
+        self._sort_headers()
         # TODO Think about implementing custom headers filtering
 
     @staticmethod
@@ -505,23 +515,6 @@ class CSVExporter:
             return value
         escaped_separator = f"\\{separator}" if separator != "\n" else "\\n"
         return str(value).replace(separator, escaped_separator)
-
-    @staticmethod
-    def _export_headers_as_row(
-        headers: List[str],
-        headers_renaming: List[Tuple[str, str]],
-        capitalize: bool = True,
-    ) -> List[str]:
-        if not headers_renaming:
-            return headers
-        renamed_headers = []
-        for header in headers:
-            for old, new in headers_renaming:
-                header = re.sub(old, new, header)
-            if capitalize and header:
-                header = header[:1].capitalize() + header[1:]
-            renamed_headers.append(header)
-        return renamed_headers
 
     def _export_field_with_options(
         self, header: str, header_path: List[str], item_data: Cut
@@ -650,17 +643,26 @@ class CSVExporter:
                 row.append(
                     self._export_field_with_options(header, header_path, item_data)
                 )
-        print(row)
         return row
+
+    def _get_renamed_headers(self, capitalize: bool = True) -> List[str]:
+        if not self.headers_renaming:
+            return self._headers
+        renamed_headers = []
+        for header in self._headers:
+            for old, new in self.headers_renaming:
+                header = re.sub(old, new, header)
+            if capitalize and header:
+                header = header[:1].capitalize() + header[1:]
+            renamed_headers.append(header)
+        return renamed_headers
 
     @prepare_io
     def export_csv_headers(self, export_path):
         csv_writer = csv.writer(
             export_path, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL
         )
-        csv_writer.writerow(
-            self._export_headers_as_row(self._headers, self.headers_renaming)
-        )
+        csv_writer.writerow(self._get_renamed_headers())
 
     @prepare_io
     def export_csv_row(self, item: Dict, export_path):
@@ -674,9 +676,7 @@ class CSVExporter:
         csv_writer = csv.writer(
             export_path, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL
         )
-        csv_writer.writerow(
-            self._export_headers_as_row(self._headers, self.headers_renaming)
-        )
+        csv_writer.writerow(self._get_renamed_headers())
         for p in items:
             csv_writer.writerow(self.export_item_as_row(p))
 
@@ -728,78 +728,66 @@ if __name__ == "__main__":
         (r"breadcrumbs->name", "breadcrumbs"),
         (r"breadcrumbs->link", "breadcrumbs links"),
     ]
+    test_headers_order = ["name", "sku"]
+
     # Define how many elements of array to process
     test_array_limits = {"offers": 1}
 
     # DATA TO PROCESS
-    # file_name = "products_xod_100_test.json"
-    # item_list = json.loads(
-    #     resource_string(__name__, f"tests/assets/{file_name}").decode("utf-8")
-    # )
-    file_name = "custom.json"
-    item_list: List[Dict] = [
-        # {"c": {"name": "color", "value": "green", "other": "some"}},
-        # {"c": {"name": "color", "value": "green"}, "b": [1, 2]},
-        # {"b": [1, 2]},
-        # {"c": "somevalue"},
-        # {"c": {"name": "color", "value": [1, 2]}},
-        # TODO Test hashable dicts with "c": FieldOption(named=True, name="name", grouped=True)
-        {"c": {"name": "color", "value": "green"}},
-        {"c": {"name": "color", "value": "blue"}}
-        # {"c": {"name": "color", "value": "blue", "list": [1, 2]}},
-        # {"c": {"name": "color", "value": "cyan", "meta": {"some": "data"}}},
-        # {"c": {"name": "color", "value": "blue", "meta_list": [1, 2, 3]}},
-        # {"c": [{"name": "color", "value": "green", "list": ["el1", "el2"]}]},
-        # {"c": {"name": "color", "value": "blue", "some": [1, 2, 3]}},
-        # {"c": {"name": "color", "value": {"some1": "one", "some2": "two"}}},
-        # {"c": {"name": "color", "value": [1, 2]}},
-        # {"c": {"name": "color", "value": {"some": "value"}}}
-        # {"c": [{"name": "color", "value": "green", "available": "True"}],
-        #        {"name": "size", "value": "XL", "kids": "False"}]},
-        # {"c": [
-        #     {"name": "color", "value": "green"},
-        #     {"name": "size", "value": "XL"},
-        # ]},
-        # {"c": [
-        #     {"name": "color", "value": "green"},
-        #     {"name": "size", "value": "XL"},
-        # ]}
-        # {"c": {"name": "size", "value": "XL", "kids": "False"}},
-        # {
-        #     "c": [
-        #         {"name": "color", "value": "greenish"},
-        #         {"name": "size"},
-        #         {"name": "material", "value": "cloth"},
-        #     ]
-        # }
-    ]
+    file_name = "products_xod_100_test.json"
+    item_list = json.loads(
+        resource_string(__name__, f"tests/assets/{file_name}").decode("utf-8")
+    )
+    # file_name = "custom.json"
+    # item_list: List[Dict] = [
+    #     {"c": {"name": "color", "value": "green", "other": "some"}},
+    #     {"c": {"name": "color", "value": "green"}, "b": [1, 2]},
+    #     {"b": [1, 2]},
+    #     {"c": "somevalue"},
+    #     {"c": {"name": "color", "value": [1, 2]}},
+    #     # TODO Test hashable dicts with "c": FieldOption(named=True, name="name", grouped=True)
+    #     {"c": {"name": "color", "value": "green"}},
+    #     {"c": {"name": "color", "value": "blue"}},
+    #     {"c": {"name": "color", "value": "blue", "list": [1, 2]}},
+    #     {"c": {"name": "color", "value": "cyan", "meta": {"some": "data"}}},
+    #     {"c": {"name": "color", "value": "blue", "meta_list": [1, 2, 3]}},
+    #     {"c": [{"name": "color", "value": "green", "list": ["el1", "el2"]}]},
+    #     {"c": {"name": "color", "value": "blue", "some": [1, 2, 3]}},
+    #     {"c": {"name": "color", "value": {"some1": "one", "some2": "two"}}},
+    #     {"c": {"name": "color", "value": [1, 2]}},
+    #     {"c": {"name": "color", "value": {"some": "value"}}},
+    #     {"c": [
+    #         {"name": "color", "value": "green"},
+    #         {"name": "size", "value": "XL"},
+    #     ]},
+    #     {"c": {"name": "size", "value": "XL", "kids": "False"}},
+    #     {
+    #         "c": [
+    #             {"name": "color", "value": "greenish"},
+    #             {"name": "size"},
+    #             {"name": "material", "value": "cloth"},
+    #         ]
+    #     }
+    # ]
 
     # AUTOCRAWL PART
     autocrawl_csv_sc = CSVStatsCollector(named_columns_limit=50)
     # Items could be processed in batch or one-by-one through `process_object`
     autocrawl_csv_sc.process_items(item_list)
     autocrawl_stats = autocrawl_csv_sc.stats
-    from pprint import pprint
-
-    pprint(autocrawl_stats)
 
     # BACKEND PART (assuming we send stats to backend)
     csv_exporter = CSVExporter(
         default_stats=autocrawl_stats,
         # field_options=test_field_options,
         # array_limits=test_array_limits,
-        # headers_renaming=test_headers_renaming,
+        headers_renaming=test_headers_renaming,
+        headers_order=test_headers_order,
     )
     # Items could be exported in batch or one-by-one through `export_item_as_row`
-
-    # csv_exporter.export_csv_full(
-    #     item_list, f"autocrawl/utils/csv_assets/{file_name.replace('.json', '.csv')}"
-    # )
-
-    buffer = io.StringIO()
-    csv_exporter.export_csv_full(item_list, buffer)
-    print(buffer)
-    print(buffer.getvalue())
+    csv_exporter.export_csv_full(
+        item_list, f"autocrawl/utils/csv_assets/{file_name.replace('.json', '.csv')}"
+    )
 
     # with open(f"autocrawl/utils/csv_assets/{file_name.replace('.json', '.csv')}", "w") as f:
     #     csv_exporter.export_csv_full(item_list, f)
