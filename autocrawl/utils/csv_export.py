@@ -310,6 +310,8 @@ class CSVExporter:
     # Headers should be provided in the form before renaming ("offers[0]->price", not "Price").
     # TODO: Add validator
     headers_order: List[str] = attr.ib(default=attr.Factory(list))
+    # TODO Add description and validator
+    headers_filters: List[str] = attr.ib(default=attr.Factory(list))
     # Separator to divide values when grouping data in a single cell (grouped=True)
     grouped_separator: str = attr.ib(default="\n")
     # Separator to place values from items to required columns. Used instead of default `.`.
@@ -488,6 +490,17 @@ class CSVExporter:
                 limited_default_stats[field] = stats
         self.default_stats = limited_default_stats
 
+    def _filter_headers(self):
+        if not self.headers_filters:
+            return
+        filtered_headers = []
+        for header in self._headers:
+            for ft in self.headers_filters:
+                if re.match(ft, header):
+                    filtered_headers.append(header)
+                    break
+        self._headers = [x for x in self._headers if x not in filtered_headers]
+
     def _sort_headers(self):
         if not self.headers_order:
             return
@@ -506,6 +519,7 @@ class CSVExporter:
         self._headers = self._convert_stats_to_headers(
             self.default_stats, separator, self.field_options
         )
+        self._filter_headers()
         self._sort_headers()
         # TODO Think about implementing custom headers filtering
 
@@ -722,13 +736,14 @@ if __name__ == "__main__":
         # "c": FieldOption(named=False, name="name", grouped=True),
     }
     test_headers_renaming = [
-        (r"offers\[0\]->", ""),
-        (r"aggregateRating->", ""),
-        (r"additionalProperty->(.*)->value", r"\1"),
-        (r"breadcrumbs->name", "breadcrumbs"),
-        (r"breadcrumbs->link", "breadcrumbs links"),
+        (r"^offers\[0\]->", ""),
+        (r"^aggregateRating->", ""),
+        (r"^additionalProperty->(.*)->value", r"\1"),
+        (r"^breadcrumbs->name", "breadcrumbs"),
+        (r"^breadcrumbs->link", "breadcrumbs links"),
     ]
     test_headers_order = ["name", "sku"]
+    test_headers_filters = ["_key", r"^breadcrumbs.*", "^images.*"]
 
     # Define how many elements of array to process
     test_array_limits = {"offers": 1}
@@ -783,7 +798,11 @@ if __name__ == "__main__":
         # array_limits=test_array_limits,
         headers_renaming=test_headers_renaming,
         headers_order=test_headers_order,
+        headers_filters=test_headers_filters,
     )
+    from pprint import pprint
+
+    pprint(csv_exporter._headers)
     # Items could be exported in batch or one-by-one through `export_item_as_row`
     csv_exporter.export_csv_full(
         item_list, f"autocrawl/utils/csv_assets/{file_name.replace('.json', '.csv')}"
