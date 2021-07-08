@@ -625,6 +625,37 @@ class TestCSV:
                 array_limits=array_limits,
             )
 
+    @pytest.mark.parametrize(
+        "field_options, array_limits, items, named_columns_limit",
+        [
+            # If both grouped and named - everything is a single cell, so no limits would be applied
+            [
+                {"c": FieldOption(named=True, name="name", grouped=True)},
+                {},
+                [
+                    {"c": [{"name": "color", "value": "blue"}]},
+                    {"c": [{"name": "color", "value": "green"}]},
+                    {"c": [{"name": "color", "value": "red"}]},
+                ],
+                2,
+            ]
+        ],
+    )
+    def test_no_exceptions(
+        self,
+        field_options: Dict[str, FieldOption],
+        array_limits: Dict[str, int],
+        items: List[Dict],
+        named_columns_limit: int,
+    ):
+        csv_stats_col = CSVStatsCollector(named_columns_limit=named_columns_limit)
+        csv_stats_col.process_items(items)
+        CSVExporter(
+            default_stats=csv_stats_col.stats,
+            field_options=field_options,
+            array_limits=array_limits,
+        )
+
     def test_buffer_io(self):
         item_list = [
             {"c": {"name": "color", "value": "green"}},

@@ -358,12 +358,15 @@ class CSVExporter:
                         f'Field "{property_name}" doesn\'t have name property '
                         f"\"{property_value['name']}\", so \"named\" option can't be applied."
                     )
-                if property_stats["properties"][name].get("limited"):
-                    raise ValueError(
-                        f"Field \"{property_name}\" values for name property \"{property_value['name']}\" "
-                        f'were limited by "named_columns_limit" when collecting stats, '
-                        f'so "named" option can\'t be applied.'
-                    )
+                # If property is both grouped and named - we don't care columns limit because
+                # everytihg will be grouped in a single cell
+                if not property_value.get("grouped"):
+                    if property_stats["properties"][name].get("limited"):
+                        raise ValueError(
+                            f"Field \"{property_name}\" values for name property \"{property_value['name']}\" "
+                            f'were limited by "named_columns_limit" when collecting stats, '
+                            f'so "named" option can\'t be applied.'
+                        )
 
     @staticmethod
     def _prepare_io(
@@ -701,7 +704,7 @@ if __name__ == "__main__":
         "gtin": FieldOption(named=True, grouped=False, name="type"),
         "additionalProperty": FieldOption(
             named=True,
-            grouped=False,
+            grouped=True,
             name="name",
             grouped_separators={"additionalProperty": "\n"},
         ),
@@ -749,7 +752,7 @@ if __name__ == "__main__":
     test_array_limits = {"offers": 1}
 
     # DATA TO PROCESS
-    file_name = "products_xod_100_test.json"
+    file_name = "products_simple_xod_test.json"
     item_list = json.loads(
         resource_string(__name__, f"tests/assets/{file_name}").decode("utf-8")
     )
@@ -786,7 +789,7 @@ if __name__ == "__main__":
     # ]
 
     # AUTOCRAWL PART
-    autocrawl_csv_sc = CSVStatsCollector(named_columns_limit=50)
+    autocrawl_csv_sc = CSVStatsCollector(named_columns_limit=3)
     # Items could be processed in batch or one-by-one through `process_object`
     autocrawl_csv_sc.process_items(item_list)
     autocrawl_stats = autocrawl_csv_sc.stats
@@ -794,8 +797,8 @@ if __name__ == "__main__":
     # BACKEND PART (assuming we send stats to backend)
     csv_exporter = CSVExporter(
         default_stats=autocrawl_stats,
-        # field_options=test_field_options,
-        # array_limits=test_array_limits,
+        field_options=test_field_options,
+        array_limits=test_array_limits,
         headers_renaming=test_headers_renaming,
         headers_order=test_headers_order,
         headers_filters=test_headers_filters,
