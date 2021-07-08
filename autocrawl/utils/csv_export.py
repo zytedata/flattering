@@ -44,9 +44,12 @@ class FieldOption(TypedDict, total=False):
 
 
 def is_hashable(value):
-    # Tuples could be used as dict keys (hashable), but for our case
-    # we should avoid using them to not to hurt readability
-    return False if is_list(value) or isinstance(value, dict) else True
+    # The list is not full: tuples, for example, could be used as dict keys (hashable),
+    # but for our case we should avoid using them to not to hurt readability
+    if isinstance(value, (str, int, float, complex, bool)) or value is None:
+        return True
+    else:
+        return False
 
 
 def is_list(value):
