@@ -2,12 +2,16 @@ import codecs
 import csv
 import io
 import json
+import logging
+import re
 from typing import Dict, List
 
 import pytest  # NOQA
 from pkg_resources import resource_stream, resource_string
 
 from ..csv_export import CSVExporter, CSVStatsCollector, FieldOption
+
+LOGGER = logging.getLogger(__name__)
 
 
 class TestCSV:
@@ -93,13 +97,14 @@ class TestCSV:
         )
 
         # AutoCrawl part
-        autocrawl_csv_sc = CSVStatsCollector()
+        csv_stats_col = CSVStatsCollector()
         # Items could be processed in batch or one-by-one through `process_object`
-        autocrawl_csv_sc.process_items(item_list)
+        csv_stats_col.process_items(item_list)
 
         # Backend part
         csv_exporter = CSVExporter(
-            default_stats=autocrawl_csv_sc.stats,
+            stats=csv_stats_col._stats,
+            invalid_properties=csv_stats_col._invalid_properties,
             field_options=field_options,
             array_limits=array_limits,
         )
@@ -357,7 +362,8 @@ class TestCSV:
         csv_stats_col.process_items(items)
 
         csv_exporter = CSVExporter(
-            default_stats=csv_stats_col.stats,
+            stats=csv_stats_col._stats,
+            invalid_properties=csv_stats_col._invalid_properties,
             field_options=field_options,
             array_limits=array_limits,
         )
@@ -444,12 +450,41 @@ class TestCSV:
         csv_stats_col.process_items(items)
 
         csv_exporter = CSVExporter(
-            default_stats=csv_stats_col.stats,
+            stats=csv_stats_col._stats,
+            invalid_properties=csv_stats_col._invalid_properties,
             field_options=field_options,
             array_limits=array_limits,
         )
         exp_items = [csv_exporter.export_item_as_row(item) for item in items]
         assert [csv_exporter._get_renamed_headers()] + exp_items == expected
+
+    # @pytest.mark.parametrize(
+    #     "field_options, array_limits, items, exception_type, exception_pattern",
+    #     [
+    #         # Value changed type from hashable to non-hashable
+    #         [
+    #             {},
+    #             {},
+    #             [
+    #                 {"c": {"name": "color", "value": "green"}},
+    #                 {"c": {"name": "color", "value": [1, 2]}},
+    #             ],
+    #             ValueError,
+    #             r"Field \(.*\) was processed as hashable but later got non-hashable value: \(.*\)",
+    #         ]
+    #     ],
+    # )
+    # def test_stat_exceptions(
+    #     self,
+    #     field_options: Dict[str, FieldOption],
+    #     array_limits: Dict[str, int],
+    #     items: List[Dict],
+    #     exception_type: ValueError,
+    #     exception_pattern: str,
+    # ):
+    #     with pytest.raises(exception_type, match=exception_pattern) as _:  # NOQA
+    #         csv_stats_col = CSVStatsCollector(named_columns_limit=50)
+    #         csv_stats_col.process_items(items)
 
     @pytest.mark.parametrize(
         "field_options, array_limits, items, exception_type, exception_pattern",
@@ -463,7 +498,7 @@ class TestCSV:
                     {"c": {"name": "color", "value": [1, 2]}},
                 ],
                 ValueError,
-                r"Field \(.*\) was processed as hashable but later got non-hashable value: \(.*\)",
+                r".*Field \(.*\) was processed as hashable but later got non-hashable value: \(.*\)",
             ],
             [
                 {},
@@ -473,7 +508,7 @@ class TestCSV:
                     {"c": {"name": "color", "value": [1, 2]}},
                 ],
                 ValueError,
-                r"Field \(.*\) was processed as hashable but later got non-hashable value: \(.*\)",
+                r".*Field \(.*\) was processed as hashable but later got non-hashable value: \(.*\)",
             ],
             # Value changed type from non-hashable to hashable
             [
@@ -484,7 +519,7 @@ class TestCSV:
                     {"c": {"name": "color", "value": "green"}},
                 ],
                 ValueError,
-                r"Field \(.*\) was processed as non-hashable but later got hashable value: \(.*\)",
+                r".*Field \(.*\) was processed as non-hashable but later got hashable value: \(.*\)",
             ],
             [
                 {},
@@ -494,7 +529,7 @@ class TestCSV:
                     {"c": "some"},
                 ],
                 ValueError,
-                r"Field \(.*\) was processed as non-hashable but later got hashable value: \(.*\)",
+                r".*Field \(.*\) was processed as non-hashable but later got hashable value: \(.*\)",
             ],
             # Value changed type from dict to array
             [
@@ -505,7 +540,7 @@ class TestCSV:
                     {"c": [{"name": "color", "value": "green"}]},
                 ],
                 ValueError,
-                r"Field \(.*?\) value changed the type from \"object\" to <class 'list'>.*",
+                r".*Field \(.*?\) value changed the type from \"object\" to <class 'list'>.*",
             ],
             # Value changed from array to dict
             [
@@ -516,21 +551,23 @@ class TestCSV:
                     {"c": {"name": "color", "value": "green"}},
                 ],
                 ValueError,
-                r"Field \(.*?\) value changed the type from \"array\" to <class 'dict'>.*",
+                r".*Field \(.*?\) value changed the type from \"array\" to <class 'dict'>.*",
             ],
         ],
     )
-    def test_stat_exceptions(
+    def test_stat_warnings(
         self,
+        caplog,
         field_options: Dict[str, FieldOption],
         array_limits: Dict[str, int],
         items: List[Dict],
         exception_type: ValueError,
         exception_pattern: str,
     ):
-        with pytest.raises(exception_type, match=exception_pattern) as _:  # NOQA
+        with caplog.at_level(logging.WARNING):
             csv_stats_col = CSVStatsCollector(named_columns_limit=50)
             csv_stats_col.process_items(items)
+        assert re.match(exception_pattern, caplog.text)
 
     @pytest.mark.parametrize(
         "field_options, array_limits, items, exception_type, exception_pattern, named_columns_limit",
@@ -620,7 +657,8 @@ class TestCSV:
         csv_stats_col.process_items(items)
         with pytest.raises(exception_type, match=exception_pattern) as _:  # NOQA
             CSVExporter(
-                default_stats=csv_stats_col.stats,
+                stats=csv_stats_col._stats,
+                invalid_properties=csv_stats_col._invalid_properties,
                 field_options=field_options,
                 array_limits=array_limits,
             )
@@ -651,7 +689,8 @@ class TestCSV:
         csv_stats_col = CSVStatsCollector(named_columns_limit=named_columns_limit)
         csv_stats_col.process_items(items)
         CSVExporter(
-            default_stats=csv_stats_col.stats,
+            stats=csv_stats_col._stats,
+            invalid_properties=csv_stats_col._invalid_properties,
             field_options=field_options,
             array_limits=array_limits,
         )
@@ -661,9 +700,12 @@ class TestCSV:
             {"c": {"name": "color", "value": "green"}},
             {"c": {"name": "color", "value": "blue"}},
         ]
-        autocrawl_csv_sc = CSVStatsCollector()
-        autocrawl_csv_sc.process_items(item_list)
-        csv_exporter = CSVExporter(default_stats=autocrawl_csv_sc.stats)
+        csv_stats_col = CSVStatsCollector()
+        csv_stats_col.process_items(item_list)
+        csv_exporter = CSVExporter(
+            stats=csv_stats_col._stats,
+            invalid_properties=csv_stats_col._invalid_properties,
+        )
         buffer = io.StringIO()
         csv_exporter.export_csv_full(item_list, buffer)
         assert buffer.getvalue() == "c->name,c->value\r\ncolor,green\r\ncolor,blue\r\n"
@@ -673,9 +715,12 @@ class TestCSV:
             {"c": {"name": "color", "value": "green"}},
             {"c": {"name": "color", "value": "blue"}},
         ]
-        autocrawl_csv_sc = CSVStatsCollector()
-        autocrawl_csv_sc.process_items(item_list)
-        csv_exporter = CSVExporter(default_stats=autocrawl_csv_sc.stats)
+        csv_stats_col = CSVStatsCollector()
+        csv_stats_col.process_items(item_list)
+        csv_exporter = CSVExporter(
+            stats=csv_stats_col._stats,
+            invalid_properties=csv_stats_col._invalid_properties,
+        )
         filename = tmpdir.join("custom.csv")
         with open(filename, "w") as f:
             csv_exporter.export_csv_full(item_list, f)
@@ -687,9 +732,12 @@ class TestCSV:
             {"c": {"name": "color", "value": "green"}},
             {"c": {"name": "color", "value": "blue"}},
         ]
-        autocrawl_csv_sc = CSVStatsCollector()
-        autocrawl_csv_sc.process_items(item_list)
-        csv_exporter = CSVExporter(default_stats=autocrawl_csv_sc.stats)
+        csv_stats_col = CSVStatsCollector()
+        csv_stats_col.process_items(item_list)
+        csv_exporter = CSVExporter(
+            stats=csv_stats_col._stats,
+            invalid_properties=csv_stats_col._invalid_properties,
+        )
         filename = tmpdir.join("custom.csv")
         # Test path-like objects
         csv_exporter.export_csv_full(item_list, filename)

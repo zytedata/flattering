@@ -360,7 +360,7 @@ class CSVExporter:
     # Items stats (CSVStatsCollector)
     stats: Dict[str, Header] = attr.ib()
     # List of properties that had invalid data during stats collection
-    invalid_properties: List[str] = attr.ib()
+    invalid_properties: Union[List[str], Set[str]] = attr.ib()
     # If True: all invalid data would be stringified
     # If False: all columns with invalid data would be skipped
     strinfigy_invalid: bool = attr.ib(default=True)
