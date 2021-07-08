@@ -266,6 +266,8 @@ class CSVStatsCollector:
             if property_type and not isinstance(
                 property_value, self._map_types(property_name, property_type)
             ):
+                # Not throwing an error here, but if type was changed from dict to list - the exporter
+                # would throw TypeError because collected dict keys can't be accesed in list
                 logger.warning(
                     f'Field ({property_path}) value changed the type from "{property_type}" '
                     f"to {type(property_value)}: ({property_value})"
@@ -839,45 +841,47 @@ if __name__ == "__main__":
         # {"c": [[1, 2], (3, 4), False]},
         # # TODO: Update _process_base_array - Unsupported value type
         # These ones look file
-        # {
-        #     "b": 123,
-        #     "c": [
-        #         {"name": {1, 2}, "value": "somevalue1"},
-        #         {"name": "somename", "value": "somevalue2"},
-        #     ],
-        # },
-        # {
-        #     "b": 456,
-        #     "c": [
-        #         {"name": "ok", "value": {3, 4}},
-        #         {"name": "ok1", "value": "somevalue4"},
-        #     ],
-        # },
-        # {"b": 123, "c": {"yoko": "yo", "waka": {1, 2}}},
-        # {"b": 123, "c": {"yoko": {43432, 543}, "waka": {1, 2}}}
-        # {"b": 123, "c": {"yoko": {43432, 543}}}
+        # TODO Think what to do if datatype changes - from array to dict, so data would be inaccesible
+        # I assume it's ok :)
+        {"b": 123, "c": {"yoko": "yo", "waka": {1, 2}}},
+        {"b": 123, "c": {"yoko": {43432, 543}, "waka": {1, 2}}},
+        {"b": 123, "c": {"yoko": {43432, 543}}},
+        {
+            "b": 123,
+            "c": [
+                {"name": {1, 2}, "value": "somevalue1"},
+                {"name": "somename", "value": "somevalue2"},
+            ],
+        },
+        {
+            "b": 456,
+            "c": [
+                {"name": "ok", "value": {3, 4}},
+                {"name": "ok1", "value": "somevalue4"},
+            ],
+        },
         # TODO All nest obj must be invalid? Also order shouldn't matter
-        {
-            "c": {
-                "name": "somename1",
-                "value": "somevalue1",
-                "nestobj": {"nname": {1, 2}, "nvalue": "somevalue1"},
-            }
-        },
-        {
-            "c": {
-                "name": "somename1",
-                "value": "somevalue1",
-                "nestobj": {"nname": "somename1", "nvalue": {1, 2}},
-            }
-        },
-        {
-            "c": {
-                "name": "somename1",
-                "value": "somevalue1",
-                "nestobj": {"nname": "somename3", "nvalue": "somevalue3"},
-            }
-        },
+        # {
+        #     "c": {
+        #         "name": "somename1",
+        #         "value": "somevalue1",
+        #         "nestobj": {"nname": "somename1", "nvalue": {1, 2}},
+        #     }
+        # },
+        # {
+        #     "c": {
+        #         "name": "somename1",
+        #         "value": "somevalue1",
+        #         "nestobj": {"nname": {1, 2}, "nvalue": "somevalue1"},
+        #     }
+        # },
+        # {
+        #     "c": {
+        #         "name": "somename1",
+        #         "value": "somevalue1",
+        #         "nestobj": {"nname": "somename3", "nvalue": "somevalue3"},
+        #     }
+        # },
     ]
 
     # AUTOCRAWL PART
