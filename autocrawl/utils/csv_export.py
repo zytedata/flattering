@@ -123,7 +123,7 @@ class CSVStatsCollector:
             raise ValueError(f"Unsupported item type ({type(items[0])}).")
 
     def _process_array(self, array_value: List, prefix: str = ""):
-        if len(array_value) == 0:
+        if len(array_value) == 0 or self._if_prefix_invalid(prefix):
             return
         elements_types = set([type(x) for x in array_value])
         for et in ((dict,), (list, tuple)):
@@ -163,12 +163,20 @@ class CSVStatsCollector:
                 elif isinstance(property_value, dict):
                     self.process_object(property_value, property_path)
                 else:
-                    raise ValueError(
+                    logger.warning(
                         f'Unsupported value type "{type(property_value)}" ({property_value}) '
                         f'for property "{property_name}" ({prefix}).'
                     )
+                    self._stats[prefix] = {"invalid": True}
+                    return
+                    # raise ValueError(
+                    #     f'Unsupported value type "{type(property_value)}" ({property_value}) '
+                    #     f'for property "{property_name}" ({prefix}).'
+                    # )
 
     def process_object(self, object_value: Dict, prefix: str = ""):
+        if self._if_prefix_invalid(prefix):
+            return
         values_hashable = {k: is_hashable(v) for k, v in object_value.items()}
         # `count: 0` for objects means that some items for this prefix
         # had non-hashable values, so all next values should be processed as non-hashable ones
@@ -218,24 +226,42 @@ class CSVStatsCollector:
                     and property_stats is not None
                 ):
                     # TODO Add boolean check if the user want to don't throw an error and just stringify
-                    raise ValueError(
+                    logger.warning(
                         f"Field ({property_name}) was processed as non-hashable "
                         f"but later got hashable value: ({property_value})"
                     )
+                    self._stats[prefix] = {"invalid": True}
+                    return
+                    # raise ValueError(
+                    #     f"Field ({property_name}) was processed as non-hashable "
+                    #     f"but later got hashable value: ({property_value})"
+                    # )
                 # If not hashable, but doesn't have properties
                 if not values_hashable[property_name] and property_stats == {}:
-                    raise ValueError(
+                    logger.warning(
                         f"Field ({property_name}) was processed as hashable "
                         f"but later got non-hashable value: ({property_value})"
                     )
+                    self._stats[prefix] = {"invalid": True}
+                    return
+                    # raise ValueError(
+                    #     f"Field ({property_name}) was processed as hashable "
+                    #     f"but later got non-hashable value: ({property_value})"
+                    # )
             property_type = property_stats.get("type") if property_stats else None
             if property_type and not isinstance(
                 property_value, self._map_types(property_name, property_type)
             ):
-                raise ValueError(
+                logger.warning(
                     f'Field ({property_name}) value changed the type from "{property_type}" '
                     f"to {type(property_value)}: ({property_value})"
                 )
+                self._stats[prefix] = {"invalid": True}
+                return
+                # raise ValueError(
+                #     f'Field ({property_name}) value changed the type from "{property_type}" '
+                #     f"to {type(property_value)}: ({property_value})"
+                # )
             if is_hashable(property_value):
                 if self._stats.get(property_path) is None:
                     self._stats[property_path] = {}
@@ -244,10 +270,16 @@ class CSVStatsCollector:
             elif isinstance(property_value, dict):
                 self.process_object(object_value[property_name], property_path)
             else:
-                raise ValueError(
+                logger.warning(
                     f'Unsupported value type "{type(property_value)}" ({property_value}) '
                     f'for property "{property_name}" ({prefix}).'
                 )
+                self._stats[prefix] = {"invalid": True}
+                return
+                # raise ValueError(
+                #     f'Unsupported value type "{type(property_value)}" ({property_value}) '
+                #     f'for property "{property_name}" ({prefix}).'
+                # )
 
     def _process_hashable_object(self, object_value: Dict, prefix: str = ""):
         if not self._stats.get(prefix):
@@ -295,6 +327,9 @@ class CSVStatsCollector:
             raise TypeError(
                 f"Unexpected property type ({type_name}) for property ({property_name})."
             )
+
+    def _if_prefix_invalid(self, prefix):
+        return bool(self._stats.get(prefix, {}).get("invalid"))
 
 
 @attr.s(auto_attribs=True)
