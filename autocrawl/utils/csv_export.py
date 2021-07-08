@@ -4,7 +4,7 @@ import logging
 import re
 from functools import wraps
 from os import PathLike
-from typing import Dict, List, TextIO, Tuple, TypedDict, Union, Set
+from typing import Dict, List, Set, TextIO, Tuple, TypedDict, Union
 
 import attr  # NOQA
 
@@ -98,7 +98,10 @@ class CSVStatsCollector:
 
     @property
     def stats(self):
-        return self._stats
+        return {
+            "stats": self._stats,
+            "invalid_properties": list(self._invalid_properties),
+        }
 
     def process_items(self, items: List[Dict]):
         """
@@ -288,6 +291,8 @@ class CSVStatsCollector:
                     f'for property "{property_path}" ({prefix}).'
                 )
                 self._invalid_properties.add(property_path)
+                # Adding empty stats so the property could be stringified later
+                self._stats[property_path] = {}
                 # self._stats[prefix] = {"invalid": True}
                 # return
                 # raise ValueError(
@@ -351,7 +356,12 @@ class CSVExporter:
     """
 
     # Items stats (CSVStatsCollector)
-    default_stats: Dict[str, Header] = attr.ib()
+    stats: Dict[str, Header] = attr.ib()
+    # List of properties that had invalid data during stats collection
+    invalid_properties: List[str] = attr.ib()
+    # If True: all invalid data would be stringified
+    # If False: all columns with invalid data would be skipped
+    strinfigy_invalid: bool = attr.ib(default=True)
     # Optional field options to format data (FieldOption class).
     field_options: Dict[str, FieldOption] = attr.ib(default=attr.Factory(dict))
     # Limit for the arrays to export only first N elements ({"offers": 1})
@@ -397,7 +407,7 @@ class CSVExporter:
                         f"Only {allowed_separators} could be used"
                         f" as custom grouped separators ({key}:{value})."
                     )
-            property_stats = self.default_stats.get(property_name)
+            property_stats = self.stats.get(property_name)
             if not property_stats:
                 continue
             if property_value.get("named"):
@@ -468,9 +478,11 @@ class CSVExporter:
             if any([not isinstance(x, str) for x in rmp]):
                 raise ValueError(f"Headers renamings ({rmp}) elements must be strings.")
 
-    @staticmethod
     def _convert_stats_to_headers(
-        stats: Dict[str, Header], separator: str, field_options: Dict[str, FieldOption]
+        self,
+        stats: Dict[str, Header],
+        separator: str,
+        field_options: Dict[str, FieldOption],
     ) -> List[str]:
         def expand(field, meta, field_option: FieldOption):
             field_option = field_option or {}
@@ -515,11 +527,16 @@ class CSVExporter:
                 headers = [f"{f}{separator}{pr}" for f in headers for pr in properties]
             return headers
 
-        return [
+        processed_headers = [
             f
             for field, meta in stats.items()
             for f in expand(field, meta, field_options.get(field, {}))
         ]
+        # Skip columns with invalid data
+        if not self.strinfigy_invalid:
+            return [x for x in processed_headers if x not in self.invalid_properties]
+        else:
+            return processed_headers
 
     def _limit_field_elements(self):
         """
@@ -528,24 +545,24 @@ class CSVExporter:
         filters = set()
         # Find fields that need to be limited
         for key, value in self.array_limits.items():
-            if key not in self.default_stats:
+            if key not in self.stats:
                 continue
-            count = self.default_stats[key].get("count")
+            count = self.stats[key].get("count")
             if not count:
                 continue
             for i in range(value, count):
                 filters.add(f"{key}[{i}]")
             if count > value:
-                self.default_stats[key]["count"] = value
-        limited_default_stats = {}
+                self.stats[key]["count"] = value
+        limited_stats = {}
         # Limit field elements
-        for field, stats in self.default_stats.items():
+        for field, stats in self.stats.items():
             for key in filters:
                 if field.startswith(key):
                     break
             else:
-                limited_default_stats[field] = stats
-        self.default_stats = limited_default_stats
+                limited_stats[field] = stats
+        self.stats = limited_stats
 
     def _filter_headers(self):
         if not self.headers_filters:
@@ -574,7 +591,7 @@ class CSVExporter:
         self._limit_field_elements()
         separator = self.cut_separator
         self._headers = self._convert_stats_to_headers(
-            self.default_stats, separator, self.field_options
+            self.stats, separator, self.field_options
         )
         self._filter_headers()
         self._sort_headers()
@@ -657,9 +674,7 @@ class CSVExporter:
             # Check how many properties, except name, the field has
             properties_stats = [
                 x
-                for x in self.default_stats.get(header_path[0], {})
-                .get("properties", {})
-                .keys()
+                for x in self.stats.get(header_path[0], {}).get("properties", {}).keys()
                 if x != name
             ]
             # If there're more then one - use name as a header and other properties as separate rows
@@ -701,6 +716,10 @@ class CSVExporter:
         separator = self.cut_separator
         item_data = Cut(item, sep=separator)
         for header in self._headers:
+            # Stringify invalid data
+            if self.strinfigy_invalid and header in self.invalid_properties:
+                row.append(str(item_data.get(header, "")))
+                continue
             header_path = header.split(separator)
             # TODO Check nested grouping as `c[0]->list | grouped=True`
             if header_path[0] not in self.field_options:
@@ -820,26 +839,45 @@ if __name__ == "__main__":
         # {"c": [[1, 2], (3, 4), False]},
         # # TODO: Update _process_base_array - Unsupported value type
         # These ones look file
-        {
-            "b": 123,
-            "c": [
-                {"name": {1, 2}, "value": "somevalue1"},
-                {"name": "somename", "value": "somevalue2"},
-            ],
-        },
-        {
-            "b": 456,
-            "c": [
-                {"name": "ok", "value": {3, 4}},
-                {"name": "ok1", "value": "somevalue4"},
-            ],
-        },
+        # {
+        #     "b": 123,
+        #     "c": [
+        #         {"name": {1, 2}, "value": "somevalue1"},
+        #         {"name": "somename", "value": "somevalue2"},
+        #     ],
+        # },
+        # {
+        #     "b": 456,
+        #     "c": [
+        #         {"name": "ok", "value": {3, 4}},
+        #         {"name": "ok1", "value": "somevalue4"},
+        #     ],
+        # },
         # {"b": 123, "c": {"yoko": "yo", "waka": {1, 2}}},
         # {"b": 123, "c": {"yoko": {43432, 543}, "waka": {1, 2}}}
         # {"b": 123, "c": {"yoko": {43432, 543}}}
         # TODO All nest obj must be invalid? Also order shouldn't matter
-        # {"c": {"name": "somename1", "value": "somevalue1", "nestobj": {"nname": {1, 2}, "nvalue": "somevalue1"}}},
-        # {"c": {"name": "somename1", "value": "somevalue1", "nestobj": {"nname": "somename1", "nvalue": {1, 2}}}},
+        {
+            "c": {
+                "name": "somename1",
+                "value": "somevalue1",
+                "nestobj": {"nname": {1, 2}, "nvalue": "somevalue1"},
+            }
+        },
+        {
+            "c": {
+                "name": "somename1",
+                "value": "somevalue1",
+                "nestobj": {"nname": "somename1", "nvalue": {1, 2}},
+            }
+        },
+        {
+            "c": {
+                "name": "somename1",
+                "value": "somevalue1",
+                "nestobj": {"nname": "somename3", "nvalue": "somevalue3"},
+            }
+        },
     ]
 
     # AUTOCRAWL PART
@@ -847,6 +885,7 @@ if __name__ == "__main__":
     # Items could be processed in batch or one-by-one through `process_object`
     autocrawl_csv_sc.process_items(item_list)
     from pprint import pprint
+
     pprint(autocrawl_csv_sc._stats)
     print("*" * 10)
     pprint(autocrawl_csv_sc._invalid_properties)
@@ -854,7 +893,9 @@ if __name__ == "__main__":
 
     # BACKEND PART (assuming we send stats to backend)
     csv_exporter = CSVExporter(
-        default_stats=autocrawl_csv_sc.stats,
+        stats=autocrawl_csv_sc.stats["stats"],
+        invalid_properties=autocrawl_csv_sc.stats["invalid_properties"],
+        # strinfigy_invalid=False,
         field_options=test_field_options,
         array_limits=test_array_limits,
         headers_renaming=test_headers_renaming,
