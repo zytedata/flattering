@@ -4,7 +4,7 @@ import logging
 import re
 from functools import wraps
 from os import PathLike
-from typing import Dict, List, TextIO, Tuple, TypedDict, Union
+from typing import Dict, List, TextIO, Tuple, TypedDict, Union, Set
 
 import attr  # NOQA
 
@@ -93,6 +93,8 @@ class CSVStatsCollector:
     cut_separator: str = attr.ib(default="->")
     # Stats for each field, collected by processing items
     _stats: Dict[str, Header] = attr.ib(init=False, default=attr.Factory(dict))
+    # TODO Add description
+    _invalid_properties: Set[str] = attr.ib(init=False, default=attr.Factory(set))
 
     @property
     def stats(self):
@@ -123,7 +125,7 @@ class CSVStatsCollector:
             raise ValueError(f"Unsupported item type ({type(items[0])}).")
 
     def _process_array(self, array_value: List, prefix: str = ""):
-        if len(array_value) == 0 or self._if_prefix_invalid(prefix):
+        if len(array_value) == 0 or prefix in self._invalid_properties:
             return
         elements_types = set([type(x) for x in array_value])
         for et in ((dict,), (list, tuple)):
@@ -131,7 +133,7 @@ class CSVStatsCollector:
                 logger.warning(
                     f"{str(et)}'s can't be mixed with other types in an array ({prefix})."
                 )
-                self._stats[prefix] = {"invalid": True}
+                self._invalid_properties.add(prefix)
                 return
                 # raise ValueError(
                 #     f"{str(et)}'s can't be mixed with other types in an array ({prefix})."
@@ -156,6 +158,8 @@ class CSVStatsCollector:
         for i, element in enumerate(array_value):
             for property_name, property_value in element.items():
                 property_path = f"{prefix}[{i}]{self.cut_separator}{property_name}"
+                if property_path in self._invalid_properties:
+                    continue
                 if is_hashable(property_value):
                     self._process_hashable_value(property_name, property_value, prefix)
                 elif is_list(property_value):
@@ -165,17 +169,18 @@ class CSVStatsCollector:
                 else:
                     logger.warning(
                         f'Unsupported value type "{type(property_value)}" ({property_value}) '
-                        f'for property "{property_name}" ({prefix}).'
+                        f'for property "{property_path}" ({prefix}).'
                     )
-                    self._stats[prefix] = {"invalid": True}
-                    return
+                    self._invalid_properties.add(property_path)
+                    # self._stats[prefix] = {"invalid": True}
+                    # return
                     # raise ValueError(
-                    #     f'Unsupported value type "{type(property_value)}" ({property_value}) '
+                    #     f'Unsupported value type "{type(property_value)}" ({property_path}) '
                     #     f'for property "{property_name}" ({prefix}).'
                     # )
 
     def process_object(self, object_value: Dict, prefix: str = ""):
-        if self._if_prefix_invalid(prefix):
+        if prefix in self._invalid_properties:
             return
         values_hashable = {k: is_hashable(v) for k, v in object_value.items()}
         # `count: 0` for objects means that some items for this prefix
@@ -217,6 +222,8 @@ class CSVStatsCollector:
                 if prefix
                 else property_name
             )
+            if property_path in self._invalid_properties:
+                continue
             property_stats = self._stats.get(property_path)
             if values_hashable:
                 # If hashable, but have existing non-empty properties
@@ -227,25 +234,29 @@ class CSVStatsCollector:
                 ):
                     # TODO Add boolean check if the user want to don't throw an error and just stringify
                     logger.warning(
-                        f"Field ({property_name}) was processed as non-hashable "
+                        f"Field ({property_path}) was processed as non-hashable "
                         f"but later got hashable value: ({property_value})"
                     )
-                    self._stats[prefix] = {"invalid": True}
-                    return
+                    self._invalid_properties.add(property_path)
+                    continue
+                    # self._stats[prefix] = {"invalid": True}
+                    # return
                     # raise ValueError(
-                    #     f"Field ({property_name}) was processed as non-hashable "
+                    #     f"Field ({property_path}) was processed as non-hashable "
                     #     f"but later got hashable value: ({property_value})"
                     # )
                 # If not hashable, but doesn't have properties
                 if not values_hashable[property_name] and property_stats == {}:
                     logger.warning(
-                        f"Field ({property_name}) was processed as hashable "
+                        f"Field ({property_path}) was processed as hashable "
                         f"but later got non-hashable value: ({property_value})"
                     )
-                    self._stats[prefix] = {"invalid": True}
-                    return
+                    self._invalid_properties.add(property_path)
+                    continue
+                    # self._stats[prefix] = {"invalid": True}
+                    # return
                     # raise ValueError(
-                    #     f"Field ({property_name}) was processed as hashable "
+                    #     f"Field ({property_path}) was processed as hashable "
                     #     f"but later got non-hashable value: ({property_value})"
                     # )
             property_type = property_stats.get("type") if property_stats else None
@@ -253,13 +264,15 @@ class CSVStatsCollector:
                 property_value, self._map_types(property_name, property_type)
             ):
                 logger.warning(
-                    f'Field ({property_name}) value changed the type from "{property_type}" '
+                    f'Field ({property_path}) value changed the type from "{property_type}" '
                     f"to {type(property_value)}: ({property_value})"
                 )
-                self._stats[prefix] = {"invalid": True}
-                return
+                self._invalid_properties.add(property_path)
+                continue
+                # self._stats[prefix] = {"invalid": True}
+                # return
                 # raise ValueError(
-                #     f'Field ({property_name}) value changed the type from "{property_type}" '
+                #     f'Field ({property_path}) value changed the type from "{property_type}" '
                 #     f"to {type(property_value)}: ({property_value})"
                 # )
             if is_hashable(property_value):
@@ -272,13 +285,14 @@ class CSVStatsCollector:
             else:
                 logger.warning(
                     f'Unsupported value type "{type(property_value)}" ({property_value}) '
-                    f'for property "{property_name}" ({prefix}).'
+                    f'for property "{property_path}" ({prefix}).'
                 )
-                self._stats[prefix] = {"invalid": True}
-                return
+                self._invalid_properties.add(property_path)
+                # self._stats[prefix] = {"invalid": True}
+                # return
                 # raise ValueError(
                 #     f'Unsupported value type "{type(property_value)}" ({property_value}) '
-                #     f'for property "{property_name}" ({prefix}).'
+                #     f'for property "{property_path}" ({prefix}).'
                 # )
 
     def _process_hashable_object(self, object_value: Dict, prefix: str = ""):
@@ -327,9 +341,6 @@ class CSVStatsCollector:
             raise TypeError(
                 f"Unexpected property type ({type_name}) for property ({property_name})."
             )
-
-    def _if_prefix_invalid(self, prefix):
-        return bool(self._stats.get(prefix, {}).get("invalid"))
 
 
 @attr.s(auto_attribs=True)
@@ -703,6 +714,7 @@ class CSVExporter:
                 row.append(
                     self._export_field_with_options(header, header_path, item_data)
                 )
+        print(row)
         return row
 
     def _get_renamed_headers(self, capitalize: bool = True) -> List[str]:
@@ -744,13 +756,13 @@ class CSVExporter:
 if __name__ == "__main__":
     # CUSTOM OPTIONS
     test_field_options: Dict[str, FieldOption] = {
-        "gtin": FieldOption(named=True, grouped=False, name="type"),
-        "additionalProperty": FieldOption(
-            named=True,
-            grouped=True,
-            name="name",
-            grouped_separators={"additionalProperty": "\n"},
-        ),
+        # "gtin": FieldOption(named=True, grouped=False, name="type"),
+        # "additionalProperty": FieldOption(
+        #     named=True,
+        #     grouped=True,
+        #     name="name",
+        #     grouped_separators={"additionalProperty": "\n"},
+        # ),
         # "aggregateRating": FieldOption(
         #     named=False,
         #     grouped=False,
@@ -795,60 +807,63 @@ if __name__ == "__main__":
     test_array_limits = {"offers": 1}
 
     # DATA TO PROCESS
-    file_name = "products_simple_xod_test.json"
-    item_list = json.loads(
-        resource_string(__name__, f"tests/assets/{file_name}").decode("utf-8")
-    )
-    # file_name = "custom.json"
-    # item_list: List[Dict] = [
-    #     {"c": {"name": "color", "value": "green", "other": "some"}},
-    #     {"c": {"name": "color", "value": "green"}, "b": [1, 2]},
-    #     {"b": [1, 2]},
-    #     {"c": "somevalue"},
-    #     {"c": {"name": "color", "value": [1, 2]}},
-    #     # TODO Test hashable dicts with "c": FieldOption(named=True, name="name", grouped=True)
-    #     {"c": {"name": "color", "value": "green"}},
-    #     {"c": {"name": "color", "value": "blue"}},
-    #     {"c": {"name": "color", "value": "blue", "list": [1, 2]}},
-    #     {"c": {"name": "color", "value": "cyan", "meta": {"some": "data"}}},
-    #     {"c": {"name": "color", "value": "blue", "meta_list": [1, 2, 3]}},
-    #     {"c": [{"name": "color", "value": "green", "list": ["el1", "el2"]}]},
-    #     {"c": {"name": "color", "value": "blue", "some": [1, 2, 3]}},
-    #     {"c": {"name": "color", "value": {"some1": "one", "some2": "two"}}},
-    #     {"c": {"name": "color", "value": [1, 2]}},
-    #     {"c": {"name": "color", "value": {"some": "value"}}},
-    #     {"c": [
-    #         {"name": "color", "value": "green"},
-    #         {"name": "size", "value": "XL"},
-    #     ]},
-    #     {"c": {"name": "size", "value": "XL", "kids": "False"}},
-    #     {
-    #         "c": [
-    #             {"name": "color", "value": "greenish"},
-    #             {"name": "size"},
-    #             {"name": "material", "value": "cloth"},
-    #         ]
-    #     }
-    # ]
+    # file_name = "products_simple_xod_test.json"
+    # item_list = json.loads(
+    #     resource_string(__name__, f"tests/assets/{file_name}").decode("utf-8")
+    # )
+    file_name = "custom.json"
+    item_list: List[Dict] = [
+        # DONE: Mixed arrays covered
+        # {"c": [[1, 2], (3, 4), 123]},
+        # {"c": [[1, 2], (3, 4), "text"]},
+        # {"c": [[1, 2], (3, 4), {1, 2, 3}]},
+        # {"c": [[1, 2], (3, 4), False]},
+        # # TODO: Update _process_base_array - Unsupported value type
+        # These ones look file
+        {
+            "b": 123,
+            "c": [
+                {"name": {1, 2}, "value": "somevalue1"},
+                {"name": "somename", "value": "somevalue2"},
+            ],
+        },
+        {
+            "b": 456,
+            "c": [
+                {"name": "ok", "value": {3, 4}},
+                {"name": "ok1", "value": "somevalue4"},
+            ],
+        },
+        # {"b": 123, "c": {"yoko": "yo", "waka": {1, 2}}},
+        # {"b": 123, "c": {"yoko": {43432, 543}, "waka": {1, 2}}}
+        # {"b": 123, "c": {"yoko": {43432, 543}}}
+        # TODO All nest obj must be invalid? Also order shouldn't matter
+        # {"c": {"name": "somename1", "value": "somevalue1", "nestobj": {"nname": {1, 2}, "nvalue": "somevalue1"}}},
+        # {"c": {"name": "somename1", "value": "somevalue1", "nestobj": {"nname": "somename1", "nvalue": {1, 2}}}},
+    ]
 
     # AUTOCRAWL PART
-    autocrawl_csv_sc = CSVStatsCollector(named_columns_limit=3)
+    autocrawl_csv_sc = CSVStatsCollector(named_columns_limit=50)
     # Items could be processed in batch or one-by-one through `process_object`
     autocrawl_csv_sc.process_items(item_list)
-    autocrawl_stats = autocrawl_csv_sc.stats
+    from pprint import pprint
+    pprint(autocrawl_csv_sc._stats)
+    print("*" * 10)
+    pprint(autocrawl_csv_sc._invalid_properties)
+    print("*" * 10)
 
     # BACKEND PART (assuming we send stats to backend)
     csv_exporter = CSVExporter(
-        default_stats=autocrawl_stats,
+        default_stats=autocrawl_csv_sc.stats,
         field_options=test_field_options,
         array_limits=test_array_limits,
         headers_renaming=test_headers_renaming,
         headers_order=test_headers_order,
         headers_filters=test_headers_filters,
     )
-    from pprint import pprint
 
     pprint(csv_exporter._headers)
+    print("*" * 10)
     # Items could be exported in batch or one-by-one through `export_item_as_row`
     csv_exporter.export_csv_full(
         item_list, f"autocrawl/utils/csv_assets/{file_name.replace('.json', '.csv')}"
