@@ -109,7 +109,7 @@ class CSVStatsCollector:
         Errors raised by the method should stay in CSVStatsCollector to avoid invalid/broken inputs.
         """
         if not is_list(items):
-            raise ValueError(f"Initial items data must be array, not {type(items)}.")
+            raise TypeError(f"Initial items data must be array, not {type(items)}.")
         if len(items) == 0:
             logger.warning("No items provided.")
             return
@@ -125,7 +125,7 @@ class CSVStatsCollector:
         elif is_list(items[0]):
             raise TypeError("Items must be dicts (not arrays) to be supported.")
         else:
-            raise ValueError(f"Unsupported item type ({type(items[0])}).")
+            raise TypeError(f"Unsupported item type ({type(items[0])}).")
 
     def _process_array(self, array_value: List, prefix: str = ""):
         if len(array_value) == 0 or prefix in self._invalid_properties:
@@ -882,6 +882,7 @@ if __name__ == "__main__":
         #         "nestobj": {"nname": "somename3", "nvalue": "somevalue3"},
         #     }
         # },
+        # TODO Check arrays of arrays (nested)
     ]
 
     # AUTOCRAWL PART

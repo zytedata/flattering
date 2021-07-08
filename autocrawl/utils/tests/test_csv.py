@@ -458,99 +458,97 @@ class TestCSV:
         exp_items = [csv_exporter.export_item_as_row(item) for item in items]
         assert [csv_exporter._get_renamed_headers()] + exp_items == expected
 
-    # @pytest.mark.parametrize(
-    #     "field_options, array_limits, items, exception_type, exception_pattern",
-    #     [
-    #         # Value changed type from hashable to non-hashable
-    #         [
-    #             {},
-    #             {},
-    #             [
-    #                 {"c": {"name": "color", "value": "green"}},
-    #                 {"c": {"name": "color", "value": [1, 2]}},
-    #             ],
-    #             ValueError,
-    #             r"Field \(.*\) was processed as hashable but later got non-hashable value: \(.*\)",
-    #         ]
-    #     ],
-    # )
-    # def test_stat_exceptions(
-    #     self,
-    #     field_options: Dict[str, FieldOption],
-    #     array_limits: Dict[str, int],
-    #     items: List[Dict],
-    #     exception_type: ValueError,
-    #     exception_pattern: str,
-    # ):
-    #     with pytest.raises(exception_type, match=exception_pattern) as _:  # NOQA
-    #         csv_stats_col = CSVStatsCollector(named_columns_limit=50)
-    #         csv_stats_col.process_items(items)
+    @pytest.mark.parametrize(
+        "items, exception_type, exception_pattern",
+        [
+            # Initiasl items are not list
+            [
+                {"some": "data"},
+                TypeError,
+                r"Initial items data must be array, not <class 'dict'>.",
+            ],
+            # Mixed initial items types
+            [
+                [{"some": "data"}, [1, 2, 3]],
+                TypeError,
+                r"All elements of the array must be of the same type instead of \{<class 'dict'>, <class 'list'>\}.",
+            ],
+            # Array of arrays
+            [
+                [[1, 2, 3]],
+                TypeError,
+                r"Items must be dicts \(not arrays\) to be supported.",
+            ],
+            # Unsupported types
+            [
+                [123],
+                TypeError,
+                r"Unsupported item type \(<class 'int'>\).",
+            ],
+        ],
+    )
+    def test_stat_exceptions(
+        self,
+        items: List[Dict],
+        exception_type: TypeError,
+        exception_pattern: str,
+    ):
+        with pytest.raises(exception_type, match=exception_pattern) as _:  # NOQA
+            csv_stats_col = CSVStatsCollector()
+            csv_stats_col.process_items(items)
 
     @pytest.mark.parametrize(
-        "field_options, array_limits, items, exception_type, exception_pattern",
+        "items, warning_pattern",
         [
+            # No items provided
+            [
+                [],
+                r".*No items provided.",
+            ],
             # Value changed type from hashable to non-hashable
             [
-                {},
-                {},
                 [
                     {"c": {"name": "color", "value": "green"}},
                     {"c": {"name": "color", "value": [1, 2]}},
                 ],
-                ValueError,
                 r".*Field \(.*\) was processed as hashable but later got non-hashable value: \(.*\)",
             ],
             [
-                {},
-                {},
                 [
                     {"c": "some"},
                     {"c": {"name": "color", "value": [1, 2]}},
                 ],
-                ValueError,
                 r".*Field \(.*\) was processed as hashable but later got non-hashable value: \(.*\)",
             ],
             # Value changed type from non-hashable to hashable
             [
-                {},
-                {},
                 [
                     {"c": {"name": "color", "value": [1, 2]}},
                     {"c": {"name": "color", "value": "green"}},
                 ],
-                ValueError,
                 r".*Field \(.*\) was processed as non-hashable but later got hashable value: \(.*\)",
             ],
             [
-                {},
-                {},
                 [
                     {"c": {"name": "color", "value": [1, 2]}},
                     {"c": "some"},
                 ],
-                ValueError,
                 r".*Field \(.*\) was processed as non-hashable but later got hashable value: \(.*\)",
             ],
             # Value changed type from dict to array
             [
-                {},
-                {},
                 [
                     {"c": {"name": "color", "value": "blue"}},
                     {"c": [{"name": "color", "value": "green"}]},
                 ],
-                ValueError,
                 r".*Field \(.*?\) value changed the type from \"object\" to <class 'list'>.*",
             ],
             # Value changed from array to dict
             [
-                {},
-                {},
                 [
                     {"c": [{"name": "color", "value": "blue"}]},
                     {"c": {"name": "color", "value": "green"}},
                 ],
-                ValueError,
                 r".*Field \(.*?\) value changed the type from \"array\" to <class 'dict'>.*",
             ],
         ],
@@ -558,16 +556,13 @@ class TestCSV:
     def test_stat_warnings(
         self,
         caplog,
-        field_options: Dict[str, FieldOption],
-        array_limits: Dict[str, int],
         items: List[Dict],
-        exception_type: ValueError,
-        exception_pattern: str,
+        warning_pattern: str,
     ):
         with caplog.at_level(logging.WARNING):
             csv_stats_col = CSVStatsCollector(named_columns_limit=50)
             csv_stats_col.process_items(items)
-        assert re.match(exception_pattern, caplog.text)
+        assert re.match(warning_pattern, caplog.text)
 
     @pytest.mark.parametrize(
         "field_options, array_limits, items, exception_type, exception_pattern, named_columns_limit",
