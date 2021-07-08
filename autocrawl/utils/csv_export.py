@@ -122,12 +122,17 @@ class CSVStatsCollector:
     def _process_array(self, array_value: List, prefix: str = ""):
         if len(array_value) == 0:
             return
-        array_types = set([type(x) for x in array_value])
-        for et in (dict, list, tuple, set):
-            if len(set([x == et for x in array_types])) > 1:
-                raise ValueError(
+        elements_types = set([type(x) for x in array_value])
+        for et in ((dict,), (list, tuple)):
+            if len(set([x in et for x in elements_types])) > 1:
+                logger.warning(
                     f"{str(et)}'s can't be mixed with other types in an array ({prefix})."
                 )
+                self._stats[prefix] = {"invalid": True}
+                return
+                # raise ValueError(
+                #     f"{str(et)}'s can't be mixed with other types in an array ({prefix})."
+                # )
         if self._stats.get(prefix) is None:
             self._stats[prefix] = {"count": 0, "properties": {}, "type": "array"}
         if is_hashable(array_value[0]):
