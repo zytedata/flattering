@@ -363,7 +363,7 @@ class CSVExporter:
     invalid_properties: Union[List[str], Set[str]] = attr.ib()
     # If True: all invalid data would be stringified
     # If False: all columns with invalid data would be skipped
-    strinfigy_invalid: bool = attr.ib(default=True)
+    stringify_invalid: bool = attr.ib(default=True)
     # Optional field options to format data (FieldOption class).
     field_options: Dict[str, FieldOption] = attr.ib(default=attr.Factory(dict))
     # Limit for the arrays to export only first N elements ({"offers": 1})
@@ -535,7 +535,7 @@ class CSVExporter:
             for f in expand(field, meta, field_options.get(field, {}))
         ]
         # Skip columns with invalid data
-        if not self.strinfigy_invalid:
+        if not self.stringify_invalid:
             return [x for x in processed_headers if x not in self.invalid_properties]
         else:
             return processed_headers
@@ -719,7 +719,7 @@ class CSVExporter:
         item_data = Cut(item, sep=separator)
         for header in self._headers:
             # Stringify invalid data
-            if self.strinfigy_invalid and header in self.invalid_properties:
+            if self.stringify_invalid and header in self.invalid_properties:
                 row.append(str(item_data.get(header, "")))
                 continue
             header_path = header.split(separator)
@@ -883,6 +883,7 @@ if __name__ == "__main__":
         #     }
         # },
         # TODO Check arrays of arrays (nested)
+        # TODO Add test cases for invalid data
     ]
 
     # AUTOCRAWL PART
@@ -900,7 +901,7 @@ if __name__ == "__main__":
     csv_exporter = CSVExporter(
         stats=autocrawl_csv_sc.stats["stats"],
         invalid_properties=autocrawl_csv_sc.stats["invalid_properties"],
-        # strinfigy_invalid=False,
+        # stringify_invalid=False,
         field_options=test_field_options,
         array_limits=test_array_limits,
         headers_renaming=test_headers_renaming,
