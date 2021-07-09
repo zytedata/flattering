@@ -94,7 +94,7 @@ class CSVStatsCollector:
     cut_separator: str = attr.ib(default="->")
     # Stats for each field, collected by processing items
     _stats: Dict[str, Header] = attr.ib(init=False, default=attr.Factory(dict))
-    # TODO Add description
+    # Names of properties with invalid data (wrong/mixed types/etc.) + messages what happened
     _invalid_properties: Dict[str, str] = attr.ib(
         init=False, default=attr.Factory(dict)
     )
@@ -365,7 +365,7 @@ class CSVExporter:
 
     # Items stats (CSVStatsCollector)
     stats: Dict[str, Header] = attr.ib()
-    # List of properties that had invalid data during stats collection
+    # Properties that had invalid data during stats collection + messages what happened
     invalid_properties: Dict[str, str] = attr.ib()
     # If True: all invalid data would be stringified
     # If False: all columns with invalid data would be skipped
@@ -616,7 +616,6 @@ class CSVExporter:
         )
         self._filter_headers()
         self._sort_headers()
-        # TODO Think about implementing custom headers filtering
 
     @staticmethod
     def _escape_grouped_data(value, separator):
