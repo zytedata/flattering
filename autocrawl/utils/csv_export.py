@@ -4,7 +4,7 @@ import logging
 import re
 from functools import wraps
 from os import PathLike
-from typing import Dict, List, Set, TextIO, Tuple, TypedDict, Union
+from typing import Dict, List, TextIO, Tuple, TypedDict, Union
 
 import attr  # NOQA
 
@@ -13,6 +13,7 @@ from pkg_resources import resource_string  # NOQA
 from scalpl import Cut  # NOQA
 
 logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 
 class Property(TypedDict):
@@ -94,13 +95,15 @@ class CSVStatsCollector:
     # Stats for each field, collected by processing items
     _stats: Dict[str, Header] = attr.ib(init=False, default=attr.Factory(dict))
     # TODO Add description
-    _invalid_properties: Set[str] = attr.ib(init=False, default=attr.Factory(set))
+    _invalid_properties: Dict[str, str] = attr.ib(
+        init=False, default=attr.Factory(dict)
+    )
 
     @property
     def stats(self):
         return {
             "stats": self._stats,
-            "invalid_properties": list(self._invalid_properties),
+            "invalid_properties": self._invalid_properties,
         }
 
     def process_items(self, items: List[Dict]):
@@ -133,10 +136,9 @@ class CSVStatsCollector:
         elements_types = set([type(x) for x in array_value])
         for et in ((dict,), (list, tuple)):
             if len(set([x in et for x in elements_types])) > 1:
-                logger.warning(
-                    f"{str(et)}'s can't be mixed with other types in an array ({prefix})."
-                )
-                self._invalid_properties.add(prefix)
+                msg = f"{str(et)}'s can't be mixed with other types in an array ({prefix})."
+                logger.warning(msg)
+                self._invalid_properties[prefix] = msg
                 return
                 # raise ValueError(
                 #     f"{str(et)}'s can't be mixed with other types in an array ({prefix})."
@@ -170,11 +172,12 @@ class CSVStatsCollector:
                 elif isinstance(property_value, dict):
                     self.process_object(property_value, property_path)
                 else:
-                    logger.warning(
+                    msg = (
                         f'Unsupported value type "{type(property_value)}" ({property_value}) '
                         f'for property "{property_path}" ({prefix}).'
                     )
-                    self._invalid_properties.add(property_path)
+                    logger.warning(msg)
+                    self._invalid_properties[property_path] = msg
                     # self._stats[prefix] = {"invalid": True}
                     # return
                     # raise ValueError(
@@ -235,12 +238,12 @@ class CSVStatsCollector:
                     and property_stats != {}
                     and property_stats is not None
                 ):
-                    # TODO Add boolean check if the user want to don't throw an error and just stringify
-                    logger.warning(
+                    msg = (
                         f"Field ({property_path}) was processed as non-hashable "
                         f"but later got hashable value: ({property_value})"
                     )
-                    self._invalid_properties.add(property_path)
+                    logger.warning(msg)
+                    self._invalid_properties[property_path] = msg
                     continue
                     # self._stats[prefix] = {"invalid": True}
                     # return
@@ -250,11 +253,12 @@ class CSVStatsCollector:
                     # )
                 # If not hashable, but doesn't have properties
                 if not values_hashable[property_name] and property_stats == {}:
-                    logger.warning(
+                    msg = (
                         f"Field ({property_path}) was processed as hashable "
                         f"but later got non-hashable value: ({property_value})"
                     )
-                    self._invalid_properties.add(property_path)
+                    logger.warning(msg)
+                    self._invalid_properties[property_path] = msg
                     continue
                     # self._stats[prefix] = {"invalid": True}
                     # return
@@ -268,11 +272,12 @@ class CSVStatsCollector:
             ):
                 # Not throwing an error here, but if type was changed from dict to list - the exporter
                 # would throw TypeError because collected dict keys can't be accesed in list
-                logger.warning(
+                msg = (
                     f'Field ({property_path}) value changed the type from "{property_type}" '
                     f"to {type(property_value)}: ({property_value})"
                 )
-                self._invalid_properties.add(property_path)
+                logger.warning(msg)
+                self._invalid_properties[property_path] = msg
                 continue
                 # self._stats[prefix] = {"invalid": True}
                 # return
@@ -288,11 +293,12 @@ class CSVStatsCollector:
             elif isinstance(property_value, dict):
                 self.process_object(object_value[property_name], property_path)
             else:
-                logger.warning(
+                msg = (
                     f'Unsupported value type "{type(property_value)}" ({property_value}) '
                     f'for property "{property_path}" ({prefix}).'
                 )
-                self._invalid_properties.add(property_path)
+                logger.warning(msg)
+                self._invalid_properties[property_path] = msg
                 # Adding empty stats so the property could be stringified later
                 self._stats[property_path] = {}
                 # self._stats[prefix] = {"invalid": True}
@@ -360,7 +366,7 @@ class CSVExporter:
     # Items stats (CSVStatsCollector)
     stats: Dict[str, Header] = attr.ib()
     # List of properties that had invalid data during stats collection
-    invalid_properties: Union[List[str], Set[str]] = attr.ib()
+    invalid_properties: Dict[str, str] = attr.ib()
     # If True: all invalid data would be stringified
     # If False: all columns with invalid data would be skipped
     stringify_invalid: bool = attr.ib(default=True)
@@ -388,6 +394,7 @@ class CSVExporter:
 
     def __attrs_post_init__(self):
         self.field_options = self._prepare_field_options(self.field_options)
+        self._vocalize_invalid_properties()
         self._prepare_for_export()
 
     @field_options.validator
@@ -479,6 +486,18 @@ class CSVExporter:
                 )
             if any([not isinstance(x, str) for x in rmp]):
                 raise ValueError(f"Headers renamings ({rmp}) elements must be strings.")
+
+    def _vocalize_invalid_properties(self):
+        logger.info(
+            f"Columns with invalid data would be {'stringified' if self.stringify_invalid else 'skipped'}."
+        )
+        for prop, prop_msg in self.invalid_properties.items():
+            if self.stringify_invalid:
+                msg = f'All the data in column "{prop}" would be stringified because of data errors:'
+            else:
+                msg = f'Column "{prop}" would be skipped because of data errors:'
+            msg += "\n" + prop_msg
+            logger.info(msg)
 
     def _convert_stats_to_headers(
         self,
@@ -735,7 +754,6 @@ class CSVExporter:
                 row.append(
                     self._export_field_with_options(header, header_path, item_data)
                 )
-        print(row)
         return row
 
     def _get_renamed_headers(self, capitalize: bool = True) -> List[str]:
@@ -845,21 +863,21 @@ if __name__ == "__main__":
         # I assume it's ok :)
         {"b": 123, "c": {"yoko": "yo", "waka": {1, 2}}},
         {"b": 123, "c": {"yoko": {43432, 543}, "waka": {1, 2}}},
-        {"b": 123, "c": {"yoko": {43432, 543}}},
-        {
-            "b": 123,
-            "c": [
-                {"name": {1, 2}, "value": "somevalue1"},
-                {"name": "somename", "value": "somevalue2"},
-            ],
-        },
-        {
-            "b": 456,
-            "c": [
-                {"name": "ok", "value": {3, 4}},
-                {"name": "ok1", "value": "somevalue4"},
-            ],
-        },
+        {"b": 123, "c": {"yoko": {43432, 543}, "waka": "normal"}},
+        # {
+        #     "b": 123,
+        #     "c": [
+        #         {"name": {1, 2}, "value": "somevalue1"},
+        #         {"name": "somename", "value": "somevalue2"},
+        #     ],
+        # },
+        # {
+        #     "b": 456,
+        #     "c": [
+        #         {"name": "ok", "value": {3, 4}},
+        #         {"name": "ok1", "value": "somevalue4"},
+        #     ],
+        # },
         # TODO All nest obj must be invalid? Also order shouldn't matter
         # {
         #     "c": {
@@ -890,12 +908,6 @@ if __name__ == "__main__":
     autocrawl_csv_sc = CSVStatsCollector(named_columns_limit=50)
     # Items could be processed in batch or one-by-one through `process_object`
     autocrawl_csv_sc.process_items(item_list)
-    from pprint import pprint
-
-    pprint(autocrawl_csv_sc._stats)
-    print("*" * 10)
-    pprint(autocrawl_csv_sc._invalid_properties)
-    print("*" * 10)
 
     # BACKEND PART (assuming we send stats to backend)
     csv_exporter = CSVExporter(
@@ -909,8 +921,6 @@ if __name__ == "__main__":
         headers_filters=test_headers_filters,
     )
 
-    pprint(csv_exporter._headers)
-    print("*" * 10)
     # Items could be exported in batch or one-by-one through `export_item_as_row`
     csv_exporter.export_csv_full(
         item_list, f"autocrawl/utils/csv_assets/{file_name.replace('.json', '.csv')}"
