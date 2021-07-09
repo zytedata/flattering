@@ -69,9 +69,11 @@ def prepare_io(func):
             csv_io, need_to_close = self._prepare_io(args[-1])
             args = list(args)
             args[-1]: str = csv_io
-        func(self, *args, **kwargs)
-        if need_to_close:
-            csv_io.close()
+        try:
+            func(self, *args, **kwargs)
+        finally:
+            if need_to_close:
+                csv_io.close()
 
     return prepare_io_wrapper
 
