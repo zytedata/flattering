@@ -4,7 +4,7 @@ import logging
 import re
 from functools import wraps
 from os import PathLike
-from typing import Dict, List, TextIO, Tuple, TypedDict, Union
+from typing import Dict, Hashable, List, TextIO, Tuple, TypedDict, Union
 
 import attr  # NOQA
 
@@ -47,7 +47,7 @@ class FieldOption(TypedDict, total=False):
 def is_hashable(value):
     # The list is not full: tuples, for example, could be used as dict keys (hashable),
     # but for our case we should avoid using them to not to hurt readability
-    if isinstance(value, (str, int, float, complex, bool)) or value is None:
+    if (isinstance(value, Hashable) and not isinstance(value, tuple)) or value is None:
         return True
     else:
         return False
