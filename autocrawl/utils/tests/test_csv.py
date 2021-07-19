@@ -357,6 +357,19 @@ class TestCSV:
                 [{"b": datetime.fromisoformat("2011-11-04T00:05:23")}],
                 [["b"], [str(datetime.fromisoformat("2011-11-04T00:05:23"))]],
             ],
+            # Test nested arrays
+            [
+                {},
+                {},
+                [{"c": [["some_value"]]}],
+                [["c[0][0]"], ["some_value"]],
+            ],
+            [
+                {},
+                {},
+                [{"c": [[["some_value"]]]}],
+                [["c[0][0][0]"], ["some_value"]],
+            ],
         ],
     )
     def test_single_item(
