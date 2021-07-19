@@ -746,7 +746,8 @@ class CSVExporter:
             # TODO Check nested grouping as `c[0]->list | grouped=True`
             if header_path[0] not in self.field_options:
                 try:
-                    row.append(item_data.get(header, ""))
+                    value = item_data.get(header, "")
+                    row.append(str(value) if value is not None else "")
                 except TypeError:
                     # Could be an often case, so commenting to avoid overflowing logs
                     # logger.debug(f"{er} Returning empty data.")

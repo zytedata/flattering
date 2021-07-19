@@ -4,6 +4,7 @@ import io
 import json
 import logging
 import re
+from datetime import datetime
 from typing import Dict, List
 
 import pytest  # NOQA
@@ -349,6 +350,13 @@ class TestCSV:
                 ],
                 [["c->name", "c->value"], ["color\nsize\nmaterial", "green\n\ncloth"]],
             ],
+            # Test other hashable types
+            [
+                {"b": FieldOption(named=False, grouped=False)},
+                {},
+                [{"b": datetime.fromisoformat("2011-11-04T00:05:23")}],
+                [["b"], [str(datetime.fromisoformat("2011-11-04T00:05:23"))]],
+            ],
         ],
     )
     def test_single_item(
@@ -394,7 +402,7 @@ class TestCSV:
                 [
                     ["c->name", "c->value", "c->list[0]", "c->list[1]"],
                     ["color", "green", "", ""],
-                    ["color", "blue", 1, 2],
+                    ["color", "blue", "1", "2"],
                 ],
             ],
             # Don't count None as a type, so don't throw exceptions and process normally
@@ -407,7 +415,7 @@ class TestCSV:
                 ],
                 [
                     ["c->name", "c->value[0]", "c->value[1]"],
-                    ["color", 1, 2],
+                    ["color", "1", "2"],
                     ["color", "", ""],
                 ],
             ],
