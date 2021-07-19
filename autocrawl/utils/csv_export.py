@@ -142,9 +142,10 @@ class CSVStatsCollector:
                 logger.warning(msg)
                 self._invalid_properties[prefix] = msg
                 return
-                # raise ValueError(
-                #     f"{str(et)}'s can't be mixed with other types in an array ({prefix})."
-                # )
+                # TODO If one element is mixed, than this element should be marked invalid
+                # while other elements could be processed. Or better to stringify all elements of the array?
+                # For now, for situations like {"c": [[1, 2], (3, 4), "danco"]} whole array seems to be skipped,
+                # which is a wrong behavior
         if self._stats.get(prefix) is None:
             self._stats[prefix] = {"count": 0, "properties": {}, "type": "array"}
         if is_hashable(array_value[0]):
@@ -180,12 +181,6 @@ class CSVStatsCollector:
                     )
                     logger.warning(msg)
                     self._invalid_properties[property_path] = msg
-                    # self._stats[prefix] = {"invalid": True}
-                    # return
-                    # raise ValueError(
-                    #     f'Unsupported value type "{type(property_value)}" ({property_path}) '
-                    #     f'for property "{property_name}" ({prefix}).'
-                    # )
 
     def process_object(self, object_value: Dict, prefix: str = ""):
         if prefix in self._invalid_properties:
@@ -247,12 +242,6 @@ class CSVStatsCollector:
                     logger.warning(msg)
                     self._invalid_properties[property_path] = msg
                     continue
-                    # self._stats[prefix] = {"invalid": True}
-                    # return
-                    # raise ValueError(
-                    #     f"Field ({property_path}) was processed as non-hashable "
-                    #     f"but later got hashable value: ({property_value})"
-                    # )
                 # If not hashable, but doesn't have properties
                 if not values_hashable[property_name] and property_stats == {}:
                     msg = (
@@ -262,12 +251,6 @@ class CSVStatsCollector:
                     logger.warning(msg)
                     self._invalid_properties[property_path] = msg
                     continue
-                    # self._stats[prefix] = {"invalid": True}
-                    # return
-                    # raise ValueError(
-                    #     f"Field ({property_path}) was processed as hashable "
-                    #     f"but later got non-hashable value: ({property_value})"
-                    # )
             property_type = property_stats.get("type") if property_stats else None
             if property_type and not isinstance(
                 property_value, self._map_types(property_name, property_type)
@@ -281,12 +264,6 @@ class CSVStatsCollector:
                 logger.warning(msg)
                 self._invalid_properties[property_path] = msg
                 continue
-                # self._stats[prefix] = {"invalid": True}
-                # return
-                # raise ValueError(
-                #     f'Field ({property_path}) value changed the type from "{property_type}" '
-                #     f"to {type(property_value)}: ({property_value})"
-                # )
             if is_hashable(property_value):
                 if self._stats.get(property_path) is None:
                     self._stats[property_path] = {}
@@ -303,12 +280,6 @@ class CSVStatsCollector:
                 self._invalid_properties[property_path] = msg
                 # Adding empty stats so the property could be stringified later
                 self._stats[property_path] = {}
-                # self._stats[prefix] = {"invalid": True}
-                # return
-                # raise ValueError(
-                #     f'Unsupported value type "{type(property_value)}" ({property_value}) '
-                #     f'for property "{property_path}" ({prefix}).'
-                # )
 
     def _process_hashable_object(self, object_value: Dict, prefix: str = ""):
         if not self._stats.get(prefix):
@@ -854,7 +825,7 @@ if __name__ == "__main__":
     # )
     file_name = "custom.json"
     item_list: List[Dict] = [
-        # {"c": [[1, 2], (3, 4), 123]},
+        {"c": [[1, 2], (3, 4), "danco"]},
         # {"c": [[1, 2], (3, 4), "text"]},
         # {"c": [[1, 2], (3, 4), {1, 2, 3}]},
         # {"c": [[1, 2], (3, 4), False]},
@@ -901,8 +872,6 @@ if __name__ == "__main__":
         #         "nestobj": {"nname": "somename3", "nvalue": "somevalue3"},
         #     }
         # },
-        # TODO Check arrays of arrays (nested)
-        {"c": [["some_value"]]}
     ]
 
     # AUTOCRAWL PART
