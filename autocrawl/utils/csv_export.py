@@ -854,7 +854,6 @@ if __name__ == "__main__":
     # )
     file_name = "custom.json"
     item_list: List[Dict] = [
-        # DONE: Mixed arrays covered
         # {"c": [[1, 2], (3, 4), 123]},
         # {"c": [[1, 2], (3, 4), "text"]},
         # {"c": [[1, 2], (3, 4), {1, 2, 3}]},
@@ -863,9 +862,9 @@ if __name__ == "__main__":
         # These ones look file
         # TODO Think what to do if datatype changes - from array to dict, so data would be inaccesible
         # I assume it's ok :)
-        {"b": 123, "c": {"yoko": "yo", "waka": {1, 2}}},
-        {"b": 123, "c": {"yoko": {43432, 543}, "waka": {1, 2}}},
-        {"b": 123, "c": {"yoko": {43432, 543}, "waka": "normal"}},
+        # {"b": 123, "c": {"yoko": "yo", "waka": {1, 2}}},
+        # {"b": 123, "c": {"yoko": {43432, 543}, "waka": {1, 2}}},
+        # {"b": 123, "c": {"yoko": {43432, 543}, "waka": "normal"}},
         # {
         #     "b": 123,
         #     "c": [
@@ -903,7 +902,7 @@ if __name__ == "__main__":
         #     }
         # },
         # TODO Check arrays of arrays (nested)
-        # TODO Add test cases for invalid data
+        [{"c": "some_value"}]
     ]
 
     # AUTOCRAWL PART

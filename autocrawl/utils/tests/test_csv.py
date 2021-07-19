@@ -573,6 +573,33 @@ class TestCSV:
         assert re.match(warning_pattern, caplog.text)
 
     @pytest.mark.parametrize(
+        "field_options, array_limits, items, exception_type, exception_pattern",
+        [
+            # Arrays of simple elements can't be named
+            [
+                {},
+                {},
+                [
+                    [{"c": "value"}],
+                ],
+                TypeError,
+                r"Items must be dicts \(not arrays\) to be supported.",
+            ]
+        ],
+    )
+    def test_stats_exceptions(
+        self,
+        field_options: Dict[str, FieldOption],
+        array_limits: Dict[str, int],
+        items: List[Dict],
+        exception_type: TypeError,
+        exception_pattern: str,
+    ):
+        with pytest.raises(exception_type, match=exception_pattern) as _:  # NOQA
+            csv_stats_col = CSVStatsCollector()
+            csv_stats_col.process_items(items)
+
+    @pytest.mark.parametrize(
         "field_options, array_limits, items, exception_type, exception_pattern, named_columns_limit",
         [
             # Arrays of simple elements can't be named
