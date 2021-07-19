@@ -294,26 +294,26 @@ class TestCSV:
                 {"c": FieldOption(grouped=False, named=True, name="name")},
                 {},
                 [{"c": {"name": "color", "value": "green"}, "b": [1, 2]}],
-                [["c->color->value", "b[0]", "b[1]"], ["green", 1, 2]],
+                [["c->color->value", "b[0]", "b[1]"], ["green", "1", "2"]],
             ],
             # Subproperty as a tuple
             [
                 {"c": FieldOption(grouped=False, named=True, name="name")},
                 {},
                 [{"c": {"name": "color", "value": "green"}, "b": (1, 2)}],
-                [["c->color->value", "b[0]", "b[1]"], ["green", 1, 2]],
+                [["c->color->value", "b[0]", "b[1]"], ["green", "1", "2"]],
             ],
             [
                 {},
                 {},
                 [{"c": {"name": "color", "value": "green"}, "b": [1, 2]}],
-                [["c->name", "c->value", "b[0]", "b[1]"], ["color", "green", 1, 2]],
+                [["c->name", "c->value", "b[0]", "b[1]"], ["color", "green", "1", "2"]],
             ],
             [
                 {"b": FieldOption(named=False, name="name", grouped=False)},
                 {},
                 [{"b": [1, 2]}],
-                [["b[0]", "b[1]"], [1, 2]],
+                [["b[0]", "b[1]"], ["1", "2"]],
             ],
             [
                 {"b": FieldOption(named=False, name="name", grouped=True)},
@@ -389,7 +389,7 @@ class TestCSV:
                     {"c": {"name": "color", "value": "green"}},
                     {"c": {"name": "color", "value": None}},
                 ],
-                [["c->name", "c->value"], ["color", "green"], ["color", None]],
+                [["c->name", "c->value"], ["color", "green"], ["color", ""]],
             ],
             # Items with some non-hashable values, no field options
             [
@@ -575,7 +575,7 @@ class TestCSV:
     @pytest.mark.parametrize(
         "field_options, array_limits, items, exception_type, exception_pattern",
         [
-            # Arrays of simple elements can't be named
+            # Arrays of arrays
             [
                 {},
                 {},
@@ -584,7 +584,16 @@ class TestCSV:
                 ],
                 TypeError,
                 r"Items must be dicts \(not arrays\) to be supported.",
-            ]
+            ],
+            [
+                {},
+                {},
+                [
+                    [[["value"]]],
+                ],
+                TypeError,
+                r"Items must be dicts \(not arrays\) to be supported.",
+            ],
         ],
     )
     def test_stats_exceptions(

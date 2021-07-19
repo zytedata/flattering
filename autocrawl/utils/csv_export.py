@@ -902,7 +902,7 @@ if __name__ == "__main__":
         #     }
         # },
         # TODO Check arrays of arrays (nested)
-        [{"c": "some_value"}]
+        {"c": [["some_value"]]}
     ]
 
     # AUTOCRAWL PART
