@@ -7,7 +7,7 @@ import re
 from datetime import datetime
 from typing import Dict, List
 
-import pytest  # NOQA
+import pytest
 from pkg_resources import resource_stream, resource_string
 
 from flattering.csv_export import CSVExporter, CSVStatsCollector, FieldOption
