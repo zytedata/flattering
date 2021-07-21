@@ -128,7 +128,7 @@ class TestCSV:
             ] == row
 
     @pytest.mark.parametrize(
-        "field_options, array_limits, items, expected",
+        "field_options, export_options, items, expected",
         [
             # Base list
             [
@@ -370,12 +370,32 @@ class TestCSV:
                 [{"c": [[["some_value"]]]}],
                 [["c[0][0][0]"], ["some_value"]],
             ],
+            # Headers order (check non-existing headers also)
+            [
+                {},
+                {"headers_order": ["another_name", "name", "non-existing-header"]},
+                [{"name": "value", "another_name": "another_value"}],
+                [["another_name", "name"], ["another_value", "value"]],
+            ],
+            # Headers filters (check non-existing headers also)
+            [
+                {},
+                {"headers_filters": [r"name", "non-existing-header"]},
+                [{"name": "value", "another_name": "another_value"}],
+                [["another_name"], ["another_value"]],
+            ],
+            [
+                {},
+                {"headers_filters": [r".*name", "non-existing-header"]},
+                [{"name": "value", "another_name": "another_value"}],
+                [[], []],
+            ],
         ],
     )
     def test_single_item(
         self,
         field_options: Dict[str, FieldOption],
-        array_limits: Dict[str, int],
+        export_options: Dict,
         items,
         expected,
     ):
@@ -386,7 +406,7 @@ class TestCSV:
             stats=csv_stats_col._stats,
             invalid_properties=csv_stats_col._invalid_properties,
             field_options=field_options,
-            array_limits=array_limits,
+            **export_options,
         )
         exp_items = [csv_exporter.export_item_as_row(item) for item in items]
         assert [csv_exporter._get_renamed_headers()] + exp_items == expected
@@ -506,9 +526,24 @@ class TestCSV:
                 TypeError,
                 r"Unsupported item type \(<class 'int'>\).",
             ],
+            # Arrays of arrays
+            [
+                [
+                    [{"c": "value"}],
+                ],
+                TypeError,
+                r"Items must be dicts \(not arrays\) to be supported.",
+            ],
+            [
+                [
+                    [[["value"]]],
+                ],
+                TypeError,
+                r"Items must be dicts \(not arrays\) to be supported.",
+            ],
         ],
     )
-    def test_stat_exceptions(
+    def test_stats_exceptions(
         self,
         items: List[Dict],
         exception_type: TypeError,
@@ -574,7 +609,7 @@ class TestCSV:
             ],
         ],
     )
-    def test_stat_warnings(
+    def test_stats_warnings(
         self,
         caplog,
         items: List[Dict],
@@ -586,43 +621,7 @@ class TestCSV:
         assert re.match(warning_pattern, caplog.text)
 
     @pytest.mark.parametrize(
-        "field_options, array_limits, items, exception_type, exception_pattern",
-        [
-            # Arrays of arrays
-            [
-                {},
-                {},
-                [
-                    [{"c": "value"}],
-                ],
-                TypeError,
-                r"Items must be dicts \(not arrays\) to be supported.",
-            ],
-            [
-                {},
-                {},
-                [
-                    [[["value"]]],
-                ],
-                TypeError,
-                r"Items must be dicts \(not arrays\) to be supported.",
-            ],
-        ],
-    )
-    def test_stats_exceptions(
-        self,
-        field_options: Dict[str, FieldOption],
-        array_limits: Dict[str, int],
-        items: List[Dict],
-        exception_type: TypeError,
-        exception_pattern: str,
-    ):
-        with pytest.raises(exception_type, match=exception_pattern) as _:  # NOQA
-            csv_stats_col = CSVStatsCollector()
-            csv_stats_col.process_items(items)
-
-    @pytest.mark.parametrize(
-        "field_options, array_limits, items, exception_type, exception_pattern, named_columns_limit",
+        "field_options, export_options, items, exception_type, exception_pattern, named_columns_limit",
         [
             # Arrays of simple elements can't be named
             [
@@ -694,12 +693,30 @@ class TestCSV:
                 r"collecting stats, so \"named\" option can't be applied.",
                 2,
             ],
+            # Incorrect headers_order
+            [
+                {},
+                {"headers_order": ["name", 123]},
+                [{"name": "value", "another_name": "another_value"}],
+                ValueError,
+                r"Headers provided through headers_order must be strings, not <class 'int'>.",
+                50,
+            ],
+            # Incorrect headers_filters
+            [
+                {},
+                {"headers_filters": ["name", 123]},
+                [{"name": "value", "another_name": "another_value"}],
+                ValueError,
+                r"Regex statements provided through headers_filters must be strings, not <class 'int'>.",
+                50,
+            ],
         ],
     )
     def test_export_exceptions(
         self,
         field_options: Dict[str, FieldOption],
-        array_limits: Dict[str, int],
+        export_options: Dict,
         items: List[Dict],
         exception_type: ValueError,
         exception_pattern: str,
@@ -712,7 +729,7 @@ class TestCSV:
                 stats=csv_stats_col._stats,
                 invalid_properties=csv_stats_col._invalid_properties,
                 field_options=field_options,
-                array_limits=array_limits,
+                **export_options,
             )
 
     @pytest.mark.parametrize(

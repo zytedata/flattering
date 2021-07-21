@@ -353,9 +353,8 @@ class CSVExporter:
     # List to sort CSV headers. All headers that are present both it this list and actual
     # file - would be sorted. All other headers would be appended in a natural order.
     # Headers should be provided in the form before renaming ("offers[0]->price", not "Price").
-    # TODO: Add validator
     headers_order: List[str] = attr.ib(default=attr.Factory(list))
-    # TODO Add description and validator
+    # Regex statements. If the header matches any of these statements the column would be skipped.
     headers_filters: List[str] = attr.ib(default=attr.Factory(list))
     # Separator to divide values when grouping data in a single cell (grouped=True)
     grouped_separator: str = attr.ib(default="\n")
@@ -420,6 +419,14 @@ class CSVExporter:
             if not isinstance(header, str):
                 raise ValueError(
                     f"Headers provided through headers_order must be strings, not {type(header)}."
+                )
+
+    @headers_filters.validator
+    def check_headers_filters(self, _, value: List[str]):
+        for header in value:
+            if not isinstance(header, str):
+                raise ValueError(
+                    f"Regex statements provided through headers_filters must be strings, not {type(header)}."
                 )
 
     @staticmethod
