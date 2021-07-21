@@ -374,7 +374,7 @@ class CSVExporter:
     def check_field_options(self, _, value: Dict):
         allowed_separators = (";", ",", "\n")
         for property_name, property_value in value.items():
-            for tp in ["named", "grouped"]:
+            for tp in ("named", "grouped"):
                 if not isinstance(property_value.get(tp), bool):
                     raise ValueError(
                         f"Adjusted properties ({property_name}) must include `{tp}` parameter with boolean value."
@@ -413,6 +413,14 @@ class CSVExporter:
                             f'were limited by "named_columns_limit" when collecting stats, '
                             f'so "named" option can\'t be applied.'
                         )
+
+    @headers_order.validator
+    def check_headers_order(self, _, value: List[str]):
+        for header in value:
+            if not isinstance(header, str):
+                raise ValueError(
+                    f"Headers provided through headers_order must be strings, not {type(header)}."
+                )
 
     @staticmethod
     def _prepare_io(
