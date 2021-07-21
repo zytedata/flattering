@@ -10,7 +10,7 @@ from typing import Dict, List
 import pytest  # NOQA
 from pkg_resources import resource_stream, resource_string
 
-from ..csv_export import CSVExporter, CSVStatsCollector, FieldOption
+from flattering.csv_export import CSVExporter, CSVStatsCollector, FieldOption
 
 LOGGER = logging.getLogger(__name__)
 
