@@ -17,7 +17,7 @@ LOGGER = logging.getLogger(__name__)
 
 class TestCSV:
     @pytest.mark.parametrize(
-        "case_name, field_options, array_limits",
+        "case_name, field_options, export_options",
         [
             ("articles_xod_test", {}, {}),
             (
@@ -46,7 +46,7 @@ class TestCSV:
                         "grouped": False,
                     },
                 },
-                {"offers": 1},
+                {"array_limits": {"offers": 1}},
             ),
             (
                 "products_simple_xod_test",
@@ -58,7 +58,7 @@ class TestCSV:
                         "grouped": False,
                     },
                 },
-                {"offers": 1},
+                {"array_limits": {"offers": 1}},
             ),
             (
                 "products_xod_test",
@@ -70,7 +70,7 @@ class TestCSV:
                         "grouped": False,
                     },
                 },
-                {"offers": 1},
+                {"array_limits": {"offers": 1}},
             ),
             (
                 "products_xod_100_test",
@@ -82,7 +82,7 @@ class TestCSV:
                         "grouped": False,
                     },
                 },
-                {"offers": 1},
+                {"array_limits": {"offers": 1}},
             ),
             (
                 "items_simple_test",
@@ -91,7 +91,7 @@ class TestCSV:
             ),
         ],
     )
-    def test_csv_export(self, case_name, field_options, array_limits):
+    def test_csv_export(self, case_name, field_options, export_options):
         # Load item list from JSON (simulate API response)
         item_list = json.loads(
             resource_string(__name__, f"assets/{case_name}.json").decode("utf-8")
@@ -107,7 +107,7 @@ class TestCSV:
             stats=csv_stats_col._stats,
             invalid_properties=csv_stats_col._invalid_properties,
             field_options=field_options,
-            array_limits=array_limits,
+            **export_options,
         )
         # Compare with pre-processed data
         csv_data = list(
@@ -412,7 +412,7 @@ class TestCSV:
         assert [csv_exporter._get_renamed_headers()] + exp_items == expected
 
     @pytest.mark.parametrize(
-        "field_options, array_limits, items, expected",
+        "field_options, export_options, items, expected",
         [
             # Items with all hashable values, no field options
             [
@@ -483,7 +483,7 @@ class TestCSV:
     def test_multiple_items(
         self,
         field_options: Dict[str, FieldOption],
-        array_limits: Dict[str, int],
+        export_options: Dict,
         items,
         expected,
     ):
@@ -494,7 +494,7 @@ class TestCSV:
             stats=csv_stats_col._stats,
             invalid_properties=csv_stats_col._invalid_properties,
             field_options=field_options,
-            array_limits=array_limits,
+            **export_options,
         )
         exp_items = [csv_exporter.export_item_as_row(item) for item in items]
         assert [csv_exporter._get_renamed_headers()] + exp_items == expected
@@ -733,7 +733,7 @@ class TestCSV:
             )
 
     @pytest.mark.parametrize(
-        "field_options, array_limits, items, named_columns_limit",
+        "field_options, export_options, items, named_columns_limit",
         [
             # If both grouped and named - everything is a single cell, so no limits would be applied
             [
@@ -751,7 +751,7 @@ class TestCSV:
     def test_no_exceptions(
         self,
         field_options: Dict[str, FieldOption],
-        array_limits: Dict[str, int],
+        export_options: Dict,
         items: List[Dict],
         named_columns_limit: int,
     ):
@@ -761,7 +761,7 @@ class TestCSV:
             stats=csv_stats_col._stats,
             invalid_properties=csv_stats_col._invalid_properties,
             field_options=field_options,
-            array_limits=array_limits,
+            **export_options,
         )
 
     def test_buffer_io(self):

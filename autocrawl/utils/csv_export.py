@@ -729,7 +729,6 @@ class CSVExporter:
                 row.append(str(item_data.get(header, "")))
                 continue
             header_path = header.split(separator)
-            # TODO Check nested grouping as `c[0]->list | grouped=True`
             if header_path[0] not in self.field_options:
                 try:
                     value = item_data.get(header, "")
@@ -818,6 +817,7 @@ if __name__ == "__main__":
         # TODO What should happend if hashable dict if both grouped and named? I assume, that should be impossible?
         # TODO Test nested cases like `c->list`
         # TODO Check arrays of arrays processing, but not on item level, but on nested level
+        # TODO Check nested grouping as `c[0]->list | grouped=True`
         # "c": FieldOption(named=False, name="name", grouped=True),
     }
     test_headers_renaming = [
@@ -844,9 +844,7 @@ if __name__ == "__main__":
         # {"c": [[1, 2], (3, 4), "text"]},
         # {"c": [[1, 2], (3, 4), {1, 2, 3}]},
         # {"c": [[1, 2], (3, 4), False]},
-        # # TODO: Update _process_base_array - Unsupported value type
         # These ones look file
-        # TODO Think what to do if datatype changes - from array to dict, so data would be inaccesible
         # I assume it's ok :)
         # {"b": 123, "c": {"yoko": "yo", "waka": {1, 2}}},
         # {"b": 123, "c": {"yoko": {43432, 543}, "waka": {1, 2}}},
@@ -865,7 +863,6 @@ if __name__ == "__main__":
         #         {"name": "ok1", "value": "somevalue4"},
         #     ],
         # },
-        # TODO All nest obj must be invalid? Also order shouldn't matter
         # {
         #     "c": {
         #         "name": "somename1",
