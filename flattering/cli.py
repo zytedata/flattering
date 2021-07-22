@@ -96,3 +96,4 @@ if __name__ == "__main__":
 # Command to test:
 # python cli.py --path="/home/sortafreel/Desktop/to_delete/products_xod_test.json"
 # --outpath="/home/sortafreel/Desktop/to_delete/products_xod_test.csv"
+# TODO: Add actual tests
