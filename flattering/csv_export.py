@@ -755,9 +755,11 @@ class CSVExporter:
                 row.append(
                     self._export_field_with_options(header, header_path, item_data)
                 )
+        print(row)
         return row
 
     def _get_renamed_headers(self, capitalize: bool = True) -> List[str]:
+        print(self._headers)
         if not self.headers_renaming:
             return self._headers
         renamed_headers = []
@@ -832,7 +834,7 @@ if __name__ == "__main__":
         # TODO Test nested cases like `c->list`
         # TODO Check arrays of arrays processing, but not on item level, but on nested level
         # TODO Check nested grouping as `c[0]->list | grouped=True`
-        # "c": FieldOption(named=False, name="name", grouped=True),
+        "c": FieldOption(named=False, name="name", grouped=True),
     }
     test_headers_renaming = [
         (r"^offers\[0\]->", ""),
@@ -854,86 +856,36 @@ if __name__ == "__main__":
     # )
     file_name = "custom.json"
     item_list: List[Dict] = [
-        # {"c": [[1, 2], "text", (5, 6)]},
+        # {"c": [{"name": "size", "value": [123]}, {"name": "color", "value": "blue"}]},
+        # {"c": [{"name": "size", "value": "L"}, {"name": "color", "value": "green"}]},
+        # {"c": {"name": "size"}},
+        # {"c": {"name": "size"}},
+        # TODO Check the difference of processing "value": "XL" and "value": [1,2,3]
+        # TODO Check the same when c is an array of such objects
+        # THOUGHT: If I don't want to keep values for stringified fields then I can't group
+        # or name them also, so field options shouldn't apply
+        # Still, if only one property is corrupted (like "value"), why not to save another one (like "size")?
+        {"c": {"name": "size", "value": "XL"}},
+        # {"c": {"name": "size", "value": [1,2,3]}},
+        {"c": {"name": "size", "value": "L"}},
         # {"c": [[1, 2], (5, 6), 100, {"test": "some"}]},
 
-        # {"c": [[1, 2], "anopther_text", {"test": "some"}]},
-        # {"c": [1, "text", 3]},
 
-        # {"c": [[1, 2, 3]], "b": "text"},
-        # {"c": [1, 2, 3], "b": "text"},
-
-        # {"c": 123, "b": "text"},
-        # {"c": [456], "b": 321},
-        # {"c": 123, "b": "text"},
-
-
-        # {"c": [456], "b": 321},
-        # {"c": 123, "b": "text"},
-        # {"c": [456], "b": 321},
-
-
-        {"c": [[1, 2], "text", (5, 6)]},
-        {"c": [[1, 2], (5, 6), 100, {"test": "some"}]},
-
-
-
-        # {"c": [[1, 2], (5, 6), 900]},
-        # {"c": [[1, 2], (3, 4), {1, 2, 3}]},
-        # {"c": [[1, 2], (3, 4), False]},
-        # These ones look file
-        # I assume it's ok :)
-        # {"b": 123, "c": {"yoko": "yo", "waka": {1, 2}}},
-        # {"b": 123, "c": {"yoko": {43432, 543}, "waka": {1, 2}}},
-        # {"b": 123, "c": {"yoko": {43432, 543}, "waka": "normal"}},
-        # {
-        #     "b": 123,
-        #     "c": [
-        #         {"name": {1, 2}, "value": "somevalue1"},
-        #         {"name": "somename", "value": "somevalue2"},
-        #     ],
-        # },
-        # {
-        #     "b": 456,
-        #     "c": [
-        #         {"name": "ok", "value": {3, 4}},
-        #         {"name": "ok1", "value": "somevalue4"},
-        #     ],
-        # },
-        # {
-        #     "c": {
-        #         "name": "somename1",
-        #         "value": "somevalue1",
-        #         "nestobj": {"nname": "somename1", "nvalue": {1, 2}},
-        #     }
-        # },
-        # {
-        #     "c": {
-        #         "name": "somename1",
-        #         "value": "somevalue1",
-        #         "nestobj": {"nname": {1, 2}, "nvalue": "somevalue1"},
-        #     }
-        # },
-        # {
-        #     "c": {
-        #         "name": "somename1",
-        #         "value": "somevalue1",
-        #         "nestobj": {"nname": "somename3", "nvalue": "somevalue3"},
-        #     }
-        # },
     ]
 
     # AUTOCRAWL PART
     autocrawl_csv_sc = CSVStatsCollector(named_columns_limit=50)
     # Items could be processed in batch or one-by-one through `process_object`
     autocrawl_csv_sc.process_items(item_list)
+    print(autocrawl_csv_sc.stats["stats"])
+    print(autocrawl_csv_sc.stats["invalid_properties"])
 
     # BACKEND PART (assuming we send stats to backend)
     csv_exporter = CSVExporter(
         stats=autocrawl_csv_sc.stats["stats"],
         invalid_properties=autocrawl_csv_sc.stats["invalid_properties"],
         stringify_invalid=False,
-        # field_options=test_field_options,
+        field_options=test_field_options,
         # array_limits=test_array_limits,
         # headers_renaming=test_headers_renaming,
         # headers_order=test_headers_order,
