@@ -133,7 +133,8 @@ class CSVStatsCollector:
             raise TypeError(f"Unsupported item type ({type(items[0])}).")
 
     def _process_array(self, array_value: List, prefix: str = ""):
-        if len(array_value) == 0 or prefix in self._invalid_properties:
+        # Skip empty arrays or invalid columns that would be stringified
+        if len(array_value) == 0 or (prefix in self._invalid_properties and self._stats[prefix] == {}):
             return
         elements_types = set([type(x) for x in array_value])
         for et in ((dict,), (list, tuple)):
@@ -141,14 +142,15 @@ class CSVStatsCollector:
                 msg = f"{str(et)}'s can't be mixed with other types in an array ({prefix})."
                 logger.warning(msg)
                 self._invalid_properties[prefix] = msg
-                return
+                break
                 # TODO If one element is mixed, than this element should be marked invalid
                 # while other elements could be processed. Or better to stringify all elements of the array?
                 # For now, for situations like {"c": [[1, 2], (3, 4), "danco"]} whole array seems to be skipped,
                 # which is a wrong behavior
         if self._stats.get(prefix) is None:
             self._stats[prefix] = {"count": 0, "properties": {}, "type": "array"}
-        if is_hashable(array_value[0]):
+        # Process invalid arrays as arrays of hashable objects because they would be either stringified or skipped
+        if is_hashable(array_value[0]) or prefix in self._invalid_properties:
             self._stats[prefix]["count"] = max(
                 self._stats[prefix]["count"], len(array_value)
             )
@@ -156,6 +158,7 @@ class CSVStatsCollector:
             for i, element in enumerate(array_value):
                 property_path = f"{prefix}[{i}]"
                 self._process_array(element, property_path)
+        # If objects
         else:
             self._process_base_array(array_value, prefix)
 
@@ -175,6 +178,7 @@ class CSVStatsCollector:
                 elif isinstance(property_value, dict):
                     self.process_object(property_value, property_path)
                 else:
+                    # TODO Add test case/example for that
                     msg = (
                         f'Unsupported value type "{type(property_value)}" ({property_value}) '
                         f'for property "{property_path}" ({prefix}).'
@@ -191,7 +195,6 @@ class CSVStatsCollector:
         if self._stats.get(prefix, {}).get("count") == 0:
             self._process_base_object(object_value, prefix, values_hashable)
             return
-
         # If everything is hashable - collect names and values, so the field could be grouped later
         # Skip if init (no prefix) to avoid parenting like `->value` because no parent is present
         if all(values_hashable.values()) and prefix:
@@ -225,8 +228,6 @@ class CSVStatsCollector:
                 if prefix
                 else property_name
             )
-            if property_path in self._invalid_properties:
-                continue
             property_stats = self._stats.get(property_path)
             if values_hashable:
                 # If hashable, but have existing non-empty properties
@@ -241,6 +242,8 @@ class CSVStatsCollector:
                     )
                     logger.warning(msg)
                     self._invalid_properties[property_path] = msg
+                    self.clear_outdated_stats(property_path)
+                    self._stats[property_path] = {}
                     continue
                 # If not hashable, but doesn't have properties
                 if not values_hashable[property_name] and property_stats == {}:
@@ -250,11 +253,12 @@ class CSVStatsCollector:
                     )
                     logger.warning(msg)
                     self._invalid_properties[property_path] = msg
+                    self._stats[property_path] = {}
                     continue
             property_type = property_stats.get("type") if property_stats else None
             if property_type and not isinstance(
-                property_value, self._map_types(property_name, property_type)
-            ):
+                    property_value, self._map_types(property_name, property_type)
+            ) and property_path not in self._invalid_properties:
                 # Not throwing an error here, but if type was changed from dict to list - the exporter
                 # would throw TypeError because collected dict keys can't be accesed in list
                 msg = (
@@ -327,6 +331,15 @@ class CSVStatsCollector:
             raise TypeError(
                 f"Unexpected property type ({type_name}) for property ({property_name})."
             )
+
+    def clear_outdated_stats(self, prefix):
+        """
+        If property converted from array or dict to hashable, then all of the headers
+        created for potential columns should be removed, because all the values would
+        be stringified in a single column or skipped
+        """
+        self._stats = {k: v for k, v in self._stats.items() if
+                       not re.match(r"^(" + prefix + r"\[\d+\].*|" + prefix + self.cut_separator + r".*)", k)}
 
 
 @attr.s(auto_attribs=True)

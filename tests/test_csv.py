@@ -478,6 +478,19 @@ class TestCSV:
                     ["color", "one", "two"],
                 ],
             ],
+            [
+                {},
+                {},
+                [
+                    {"c": {"name": "color", "value": None}},
+                    {"c": {"name": "color", "value": {"some1": "one", "some2": "two"}}},
+                ],
+                [
+                    ["c->name", "c->value->some1", "c->value->some2"],
+                    ["color", "", ""],
+                    ["color", "one", "two"],
+                ],
+            ]
         ],
     )
     def test_multiple_items(
@@ -486,6 +499,275 @@ class TestCSV:
         export_options: Dict,
         items,
         expected,
+    ):
+        csv_stats_col = CSVStatsCollector(named_columns_limit=50)
+        csv_stats_col.process_items(items)
+
+        csv_exporter = CSVExporter(
+            stats=csv_stats_col._stats,
+            invalid_properties=csv_stats_col._invalid_properties,
+            field_options=field_options,
+            **export_options,
+        )
+        exp_items = [csv_exporter.export_item_as_row(item) for item in items]
+        assert [csv_exporter._get_renamed_headers()] + exp_items == expected
+
+    @pytest.mark.parametrize(
+        "field_options, export_options, items, expected",
+        [
+            # Mixed types, should be stringified
+            [
+                {},
+                {},
+                [
+                    {"c": [[1, 2], "text", (5, 6)]},
+                    {"c": [[1, 2], (5, 6), 100, {"test": "some"}]},
+                ],
+                [
+                    ['c[0]', 'c[1]', 'c[2]', 'c[3]'],
+                    ['[1, 2]', 'text', '(5, 6)', ''],
+                    ['[1, 2]', '(5, 6)', '100', "{'test': 'some'}"]
+                ],
+            ],
+            [
+                {},
+                {},
+                [
+                    {"c": 123},
+                    {"c": [[1, 2], "text", (5, 6)]},
+                    {"c": [[1, 2], (5, 6), 100, {"test": "some"}]},
+                ],
+                [
+                    ['c'],
+                    ['123'],
+                    ["[[1, 2], 'text', (5, 6)]"],
+                    ["[[1, 2], (5, 6), 100, {'test': 'some'}]"]
+                ],
+            ],
+            [
+                {},
+                {},
+                [
+                    {"c": [[1, 2], "text", (5, 6)]},
+                    {"c": [[1, 2], (5, 6), 100, {"test": "some"}]},
+                    {"c": 123}
+                ],
+                [
+                    ['c'],
+                    ["[[1, 2], 'text', (5, 6)]"],
+                    ["[[1, 2], (5, 6), 100, {'test': 'some'}]"],
+                    ['123']
+                ],
+            ],
+            # From hashable array to non-hashable array
+            [
+                {},
+                {},
+                [
+                    {"c": [1, "text", 3]},
+                    {"c": [[1, 2], "anopther_text", {"test": "some"}]},
+                ],
+                [
+                    ['c[0]', 'c[1]', 'c[2]'],
+                    ['1', 'text', '3'],
+                    ['[1, 2]', 'anopther_text', "{'test': 'some'}"]
+                ],
+            ],
+            # From hashable values to non-hashable
+            [
+                {},
+                {},
+                [
+                    {"c": 123, "b": "text"},
+                    {"c": [456], "b": 321},
+                ],
+                [
+                    ['c', 'b'],
+                    ['123', 'text'],
+                    ['[456]', '321']
+                ],
+            ],
+            [
+                {},
+                {},
+                [
+                    {"c": 123, "b": "text"},
+                    {"c": [456], "b": 321},
+                    {"c": 123, "b": "text"},
+                ],
+                [
+                    ['c', 'b'],
+                    ['123', 'text'],
+                    ['[456]', '321'],
+                    ['123', 'text']
+
+                ],
+
+            ],
+            # From non-hashable values to hashable
+            [
+                {},
+                {},
+                [
+                    {"c": [456], "b": 321},
+                    {"c": 123, "b": "text"},
+                ],
+                [
+                    ['c', 'b'],
+                    ['[456]', '321'],
+                    ['123', 'text']
+
+                ],
+            ],
+            [
+                {},
+                {},
+                [
+                    {"c": [456], "b": 321},
+                    {"c": 123, "b": "text"},
+                    {"c": [456], "b": 321}
+                ],
+                [
+                    ['c', 'b'],
+                    ['[456]', '321'],
+                    ['123', 'text'],
+                    ['[456]', '321']
+
+                ],
+
+            ],
+
+            # TODO Fix the stringified case, where mixed type arrays still get stringified
+            # Mixed types, should be stringified
+            # [
+            #     {},
+            #     {},
+            #     [
+            #         {"c": [[1, 2], "text", (5, 6)]},
+            #         {"c": [[1, 2], (5, 6), 100, {"test": "some"}]},
+            #     ],
+            #     [
+            #         ['c[0]', 'c[1]', 'c[2]', 'c[3]'],
+            #         ['[1, 2]', 'text', '(5, 6)', ''],
+            #         ['[1, 2]', '(5, 6)', '100', "{'test': 'some'}"]
+            #     ],
+            # ],
+            [
+                {},
+                {"stringify_invalid": False},
+                [
+                    {"c": 123},
+                    {"c": [[1, 2], "text", (5, 6)]},
+                    {"c": [[1, 2], (5, 6), 100, {"test": "some"}]},
+                ],
+                [
+                    [],
+                    [],
+                    [],
+                    []
+                ],
+            ],
+            [
+                {},
+                {"stringify_invalid": False},
+                [
+                    {"c": [[1, 2], "text", (5, 6)]},
+                    {"c": [[1, 2], (5, 6), 100, {"test": "some"}]},
+                    {"c": 123}
+                ],
+                [
+                    [],
+                    [],
+                    [],
+                    []
+                ],
+            ],
+            # # From hashable array to non-hashable array
+            # [
+            #     {},
+            #     {},
+            #     [
+            #         {"c": [1, "text", 3]},
+            #         {"c": [[1, 2], "anopther_text", {"test": "some"}]},
+            #     ],
+            #     [
+            #         ['c[0]', 'c[1]', 'c[2]'],
+            #         ['1', 'text', '3'],
+            #         ['[1, 2]', 'anopther_text', "{'test': 'some'}"]
+            #     ],
+            # ],
+            # # From hashable values to non-hashable
+            # [
+            #     {},
+            #     {},
+            #     [
+            #         {"c": 123, "b": "text"},
+            #         {"c": [456], "b": 321},
+            #     ],
+            #     [
+            #         ['c', 'b'],
+            #         ['123', 'text'],
+            #         ['[456]', '321']
+            #     ],
+            # ],
+            # [
+            #     {},
+            #     {},
+            #     [
+            #         {"c": 123, "b": "text"},
+            #         {"c": [456], "b": 321},
+            #         {"c": 123, "b": "text"},
+            #     ],
+            #     [
+            #         ['c', 'b'],
+            #         ['123', 'text'],
+            #         ['[456]', '321'],
+            #         ['123', 'text']
+            #
+            #     ],
+            #
+            # ],
+            # # From non-hashable values to hashable
+            # [
+            #     {},
+            #     {},
+            #     [
+            #         {"c": [456], "b": 321},
+            #         {"c": 123, "b": "text"},
+            #     ],
+            #     [
+            #         ['c', 'b'],
+            #         ['[456]', '321'],
+            #         ['123', 'text']
+            #
+            #     ],
+            # ],
+            # [
+            #     {},
+            #     {},
+            #     [
+            #         {"c": [456], "b": 321},
+            #         {"c": 123, "b": "text"},
+            #         {"c": [456], "b": 321}
+            #     ],
+            #     [
+            #         ['c', 'b'],
+            #         ['[456]', '321'],
+            #         ['123', 'text'],
+            #         ['[456]', '321']
+            #
+            #     ],
+            #
+            # ],
+        ]
+    )
+    # TODO Add skip cases (instead of stringify)
+    def test_multiple_invalid_items(
+            self,
+            field_options: Dict[str, FieldOption],
+            export_options: Dict,
+            items,
+            expected,
     ):
         csv_stats_col = CSVStatsCollector(named_columns_limit=50)
         csv_stats_col.process_items(items)
