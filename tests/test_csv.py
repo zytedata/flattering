@@ -21,73 +21,73 @@ class TestCSV:
         [
             ("articles_xod_test", {}, {}),
             (
-                "items_recursive_test",
-                {
-                    "named_array_field": {
-                        "named": True,
-                        "name": "name",
-                        "grouped": False,
-                    }
-                },
-                {},
+                    "items_recursive_test",
+                    {
+                        "named_array_field": {
+                            "named": True,
+                            "name": "name",
+                            "grouped": False,
+                        }
+                    },
+                    {},
             ),
             (
-                "products_full_schema_test",
-                {
-                    "gtin": {"named": True, "name": "type", "grouped": False},
-                    "additionalProperty": {
-                        "named": True,
-                        "name": "name",
-                        "grouped": False,
+                    "products_full_schema_test",
+                    {
+                        "gtin": {"named": True, "name": "type", "grouped": False},
+                        "additionalProperty": {
+                            "named": True,
+                            "name": "name",
+                            "grouped": False,
+                        },
+                        "ratingHistogram": {
+                            "named": True,
+                            "name": "ratingOption",
+                            "grouped": False,
+                        },
                     },
-                    "ratingHistogram": {
-                        "named": True,
-                        "name": "ratingOption",
-                        "grouped": False,
-                    },
-                },
-                {"array_limits": {"offers": 1}},
+                    {"array_limits": {"offers": 1}},
             ),
             (
-                "products_simple_xod_test",
-                {
-                    "gtin": {"named": True, "name": "type", "grouped": False},
-                    "additionalProperty": {
-                        "named": True,
-                        "name": "name",
-                        "grouped": False,
+                    "products_simple_xod_test",
+                    {
+                        "gtin": {"named": True, "name": "type", "grouped": False},
+                        "additionalProperty": {
+                            "named": True,
+                            "name": "name",
+                            "grouped": False,
+                        },
                     },
-                },
-                {"array_limits": {"offers": 1}},
+                    {"array_limits": {"offers": 1}},
             ),
             (
-                "products_xod_test",
-                {
-                    "gtin": {"named": True, "name": "type", "grouped": False},
-                    "additionalProperty": {
-                        "named": True,
-                        "name": "name",
-                        "grouped": False,
+                    "products_xod_test",
+                    {
+                        "gtin": {"named": True, "name": "type", "grouped": False},
+                        "additionalProperty": {
+                            "named": True,
+                            "name": "name",
+                            "grouped": False,
+                        },
                     },
-                },
-                {"array_limits": {"offers": 1}},
+                    {"array_limits": {"offers": 1}},
             ),
             (
-                "products_xod_100_test",
-                {
-                    "gtin": {"named": True, "name": "type", "grouped": False},
-                    "additionalProperty": {
-                        "named": True,
-                        "name": "name",
-                        "grouped": False,
+                    "products_xod_100_test",
+                    {
+                        "gtin": {"named": True, "name": "type", "grouped": False},
+                        "additionalProperty": {
+                            "named": True,
+                            "name": "name",
+                            "grouped": False,
+                        },
                     },
-                },
-                {"array_limits": {"offers": 1}},
+                    {"array_limits": {"offers": 1}},
             ),
             (
-                "items_simple_test",
-                {},
-                {},
+                    "items_simple_test",
+                    {},
+                    {},
             ),
         ],
     )
@@ -123,9 +123,9 @@ class TestCSV:
         for item, row in zip(item_list, csv_data[1:]):
             # Stringify all values because to match string data from csv
             assert [
-                str(x) if x is not None else ""
-                for x in csv_exporter.export_item_as_row(item)
-            ] == row
+                       str(x) if x is not None else ""
+                       for x in csv_exporter.export_item_as_row(item)
+                   ] == row
 
     @pytest.mark.parametrize(
         "field_options, export_options, items, expected",
@@ -393,11 +393,11 @@ class TestCSV:
         ],
     )
     def test_single_item(
-        self,
-        field_options: Dict[str, FieldOption],
-        export_options: Dict,
-        items,
-        expected,
+            self,
+            field_options: Dict[str, FieldOption],
+            export_options: Dict,
+            items,
+            expected,
     ):
         csv_stats_col = CSVStatsCollector(named_columns_limit=50)
         csv_stats_col.process_items(items)
@@ -494,11 +494,11 @@ class TestCSV:
         ],
     )
     def test_multiple_items(
-        self,
-        field_options: Dict[str, FieldOption],
-        export_options: Dict,
-        items,
-        expected,
+            self,
+            field_options: Dict[str, FieldOption],
+            export_options: Dict,
+            items,
+            expected,
     ):
         csv_stats_col = CSVStatsCollector(named_columns_limit=50)
         csv_stats_col.process_items(items)
@@ -826,10 +826,10 @@ class TestCSV:
         ],
     )
     def test_stats_exceptions(
-        self,
-        items: List[Dict],
-        exception_type: TypeError,
-        exception_pattern: str,
+            self,
+            items: List[Dict],
+            exception_type: TypeError,
+            exception_pattern: str,
     ):
         with pytest.raises(exception_type, match=exception_pattern) as _:  # NOQA
             csv_stats_col = CSVStatsCollector()
@@ -892,10 +892,10 @@ class TestCSV:
         ],
     )
     def test_stats_warnings(
-        self,
-        caplog,
-        items: List[Dict],
-        warning_pattern: str,
+            self,
+            caplog,
+            items: List[Dict],
+            warning_pattern: str,
     ):
         with caplog.at_level(logging.WARNING):
             csv_stats_col = CSVStatsCollector(named_columns_limit=50)
@@ -996,13 +996,13 @@ class TestCSV:
         ],
     )
     def test_export_exceptions(
-        self,
-        field_options: Dict[str, FieldOption],
-        export_options: Dict,
-        items: List[Dict],
-        exception_type: ValueError,
-        exception_pattern: str,
-        named_columns_limit: int,
+            self,
+            field_options: Dict[str, FieldOption],
+            export_options: Dict,
+            items: List[Dict],
+            exception_type: ValueError,
+            exception_pattern: str,
+            named_columns_limit: int,
     ):
         csv_stats_col = CSVStatsCollector(named_columns_limit=named_columns_limit)
         csv_stats_col.process_items(items)
@@ -1031,11 +1031,11 @@ class TestCSV:
         ],
     )
     def test_no_exceptions(
-        self,
-        field_options: Dict[str, FieldOption],
-        export_options: Dict,
-        items: List[Dict],
-        named_columns_limit: int,
+            self,
+            field_options: Dict[str, FieldOption],
+            export_options: Dict,
+            items: List[Dict],
+            named_columns_limit: int,
     ):
         csv_stats_col = CSVStatsCollector(named_columns_limit=named_columns_limit)
         csv_stats_col.process_items(items)

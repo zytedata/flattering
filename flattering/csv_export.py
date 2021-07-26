@@ -213,10 +213,10 @@ class CSVStatsCollector:
             self._process_base_object(object_value, prefix, values_hashable)
 
     def _process_base_object(
-        self,
-        object_value: Dict,
-        prefix: str = "",
-        values_hashable: Dict[str, bool] = None,
+            self,
+            object_value: Dict,
+            prefix: str = "",
+            values_hashable: Dict[str, bool] = None,
     ):
         for property_name, property_value in object_value.items():
             # Skip None values; if there're items with actual values for
@@ -232,9 +232,9 @@ class CSVStatsCollector:
             if values_hashable:
                 # If hashable, but have existing non-empty properties
                 if (
-                    values_hashable[property_name]
-                    and property_stats != {}
-                    and property_stats is not None
+                        values_hashable[property_name]
+                        and property_stats != {}
+                        and property_stats is not None
                 ):
                     msg = (
                         f"Field ({property_path}) was processed as non-hashable "
@@ -296,10 +296,10 @@ class CSVStatsCollector:
             self._process_hashable_value(property_name, property_value, prefix)
 
     def _process_hashable_value(
-        self,
-        property_name: str,
-        property_value: Union[str, int, float, bool, None],
-        prefix: str,
+            self,
+            property_name: str,
+            property_value: Union[str, int, float, bool, None],
+            prefix: str,
     ):
         if property_name not in self._stats[prefix]["properties"]:
             # Using dictionaries instead of sets to keep order
@@ -444,7 +444,7 @@ class CSVExporter:
 
     @staticmethod
     def _prepare_io(
-        export_path: Union[str, bytes, PathLike, TextIO]
+            export_path: Union[str, bytes, PathLike, TextIO]
     ) -> Tuple[TextIO, bool]:
         need_to_close = False
         if isinstance(export_path, (str, bytes, PathLike)):
@@ -458,7 +458,7 @@ class CSVExporter:
 
     @staticmethod
     def _prepare_field_options(
-        properties: Dict[str, FieldOption]
+            properties: Dict[str, FieldOption]
     ) -> Dict[str, FieldOption]:
         to_filter = set()
         for property_name, property_value in properties.items():
@@ -501,10 +501,10 @@ class CSVExporter:
             logger.info(msg)
 
     def _convert_stats_to_headers(
-        self,
-        stats: Dict[str, Header],
-        separator: str,
-        field_options: Dict[str, FieldOption],
+            self,
+            stats: Dict[str, Header],
+            separator: str,
+            field_options: Dict[str, FieldOption],
     ) -> List[str]:
         def expand(field, meta, field_option: FieldOption):
             field_option = field_option or {}
@@ -626,14 +626,14 @@ class CSVExporter:
         return str(value).replace(separator, escaped_separator)
 
     def _export_field_with_options(
-        self, header: str, header_path: List[str], item_data: Cut
+            self, header: str, header_path: List[str], item_data: Cut
     ) -> str:
         if self.field_options[header_path[0]]["grouped"]:
             separator = (
-                self.field_options.get(header_path[0], {})
-                .get("grouped_separators", {})
-                .get(header)
-                or self.grouped_separator
+                    self.field_options.get(header_path[0], {})
+                    .get("grouped_separators", {})
+                    .get(header)
+                    or self.grouped_separator
             )
             # Grouped
             if not self.field_options[header_path[0]]["named"]:
@@ -648,7 +648,7 @@ class CSVExporter:
             return self._export_named_field(item_data, header_path)
 
     def _export_grouped_field(
-        self, item_data: Cut, header_path: List[str], separator: str
+            self, item_data: Cut, header_path: List[str], separator: str
     ) -> str:
         if len(header_path) == 1:
             value = item_data.get(header_path[0])
@@ -681,7 +681,7 @@ class CSVExporter:
             )
 
     def _export_grouped_and_named_field(
-        self, item_data: Cut, header_path: List[str], separator: str
+            self, item_data: Cut, header_path: List[str], separator: str
     ) -> str:
         name = self.field_options[header_path[0]]["name"]
         values = []
@@ -918,7 +918,7 @@ if __name__ == "__main__":
 
     # Items could be exported in batch or one-by-one through `export_item_as_row`
     csv_exporter.export_csv_full(
-        item_list, f"autocrawl/utils/csv_assets/{file_name.replace('.json', '.csv')}"
+        item_list, f"playground/csv_assets/{file_name.replace('.json', '.csv')}"
     )
 
     # with open(f"autocrawl/utils/csv_assets/{file_name.replace('.json', '.csv')}", "w") as f:
