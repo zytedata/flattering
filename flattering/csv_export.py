@@ -143,10 +143,6 @@ class CSVStatsCollector:
                 logger.warning(msg)
                 self._invalid_properties[prefix] = msg
                 break
-                # TODO If one element is mixed, than this element should be marked invalid
-                # while other elements could be processed. Or better to stringify all elements of the array?
-                # For now, for situations like {"c": [[1, 2], (3, 4), "danco"]} whole array seems to be skipped,
-                # which is a wrong behavior
         if self._stats.get(prefix) is None:
             self._stats[prefix] = {"count": 0, "properties": {}, "type": "array"}
         # Process invalid arrays as arrays of hashable objects because they would be either stringified or skipped
@@ -549,16 +545,21 @@ class CSVExporter:
                 headers = [f"{f}{separator}{pr}" for f in headers for pr in properties]
             return headers
 
-        processed_headers = [
-            f
-            for field, meta in stats.items()
-            for f in expand(field, meta, field_options.get(field, {}))
-        ]
         # Skip columns with invalid data
         if not self.stringify_invalid:
-            return [x for x in processed_headers if x not in self.invalid_properties]
+            processed_headers = [
+                f
+                for field, meta in stats.items()
+                if field not in self.invalid_properties
+                for f in expand(field, meta, field_options.get(field, {}))
+            ]
         else:
-            return processed_headers
+            processed_headers = [
+                f
+                for field, meta in stats.items()
+                for f in expand(field, meta, field_options.get(field, {}))
+            ]
+        return processed_headers
 
     def _limit_field_elements(self):
         """
@@ -853,8 +854,31 @@ if __name__ == "__main__":
     # )
     file_name = "custom.json"
     item_list: List[Dict] = [
-        {"c": [[1, 2], (3, 4), "danco"]},
-        # {"c": [[1, 2], (3, 4), "text"]},
+        # {"c": [[1, 2], "text", (5, 6)]},
+        # {"c": [[1, 2], (5, 6), 100, {"test": "some"}]},
+
+        # {"c": [[1, 2], "anopther_text", {"test": "some"}]},
+        # {"c": [1, "text", 3]},
+
+        # {"c": [[1, 2, 3]], "b": "text"},
+        # {"c": [1, 2, 3], "b": "text"},
+
+        # {"c": 123, "b": "text"},
+        # {"c": [456], "b": 321},
+        # {"c": 123, "b": "text"},
+
+
+        # {"c": [456], "b": 321},
+        # {"c": 123, "b": "text"},
+        # {"c": [456], "b": 321},
+
+
+        {"c": [[1, 2], "text", (5, 6)]},
+        {"c": [[1, 2], (5, 6), 100, {"test": "some"}]},
+
+
+
+        # {"c": [[1, 2], (5, 6), 900]},
         # {"c": [[1, 2], (3, 4), {1, 2, 3}]},
         # {"c": [[1, 2], (3, 4), False]},
         # These ones look file
@@ -908,12 +932,12 @@ if __name__ == "__main__":
     csv_exporter = CSVExporter(
         stats=autocrawl_csv_sc.stats["stats"],
         invalid_properties=autocrawl_csv_sc.stats["invalid_properties"],
-        # stringify_invalid=False,
-        field_options=test_field_options,
-        array_limits=test_array_limits,
-        headers_renaming=test_headers_renaming,
-        headers_order=test_headers_order,
-        headers_filters=test_headers_filters,
+        stringify_invalid=False,
+        # field_options=test_field_options,
+        # array_limits=test_array_limits,
+        # headers_renaming=test_headers_renaming,
+        # headers_order=test_headers_order,
+        # headers_filters=test_headers_filters,
     )
 
     # Items could be exported in batch or one-by-one through `export_item_as_row`

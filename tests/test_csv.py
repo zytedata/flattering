@@ -565,12 +565,26 @@ class TestCSV:
                 {},
                 [
                     {"c": [1, "text", 3]},
-                    {"c": [[1, 2], "anopther_text", {"test": "some"}]},
+                    {"c": [[1, 2], "another_text", {"test": "some"}]},
                 ],
                 [
                     ['c[0]', 'c[1]', 'c[2]'],
                     ['1', 'text', '3'],
-                    ['[1, 2]', 'anopther_text', "{'test': 'some'}"]
+                    ['[1, 2]', 'another_text', "{'test': 'some'}"]
+                ],
+            ],
+            # From non-hashable array to hashable array
+            [
+                {},
+                {},
+                [
+                    {"c": [[1, 2], "another_text", {"test": "some"}]},
+                    {"c": [1, "text", 3]},
+                ],
+                [
+                    ['c[0]', 'c[1]', 'c[2]'],
+                    ['[1, 2]', 'another_text', "{'test': 'some'}"],
+                    ['1', 'text', '3']
                 ],
             ],
             # From hashable values to non-hashable
@@ -636,22 +650,20 @@ class TestCSV:
                 ],
 
             ],
-
-            # TODO Fix the stringified case, where mixed type arrays still get stringified
-            # Mixed types, should be stringified
-            # [
-            #     {},
-            #     {},
-            #     [
-            #         {"c": [[1, 2], "text", (5, 6)]},
-            #         {"c": [[1, 2], (5, 6), 100, {"test": "some"}]},
-            #     ],
-            #     [
-            #         ['c[0]', 'c[1]', 'c[2]', 'c[3]'],
-            #         ['[1, 2]', 'text', '(5, 6)', ''],
-            #         ['[1, 2]', '(5, 6)', '100', "{'test': 'some'}"]
-            #     ],
-            # ],
+            # Mixed types, should be skipped
+            [
+                {},
+                {"stringify_invalid": False},
+                [
+                    {"c": [[1, 2], "text", (5, 6)]},
+                    {"c": [[1, 2], (5, 6), 100, {"test": "some"}]},
+                ],
+                [
+                    [],
+                    [],
+                    [],
+                ],
+            ],
             [
                 {},
                 {"stringify_invalid": False},
@@ -682,83 +694,101 @@ class TestCSV:
                     []
                 ],
             ],
-            # # From hashable array to non-hashable array
-            # [
-            #     {},
-            #     {},
-            #     [
-            #         {"c": [1, "text", 3]},
-            #         {"c": [[1, 2], "anopther_text", {"test": "some"}]},
-            #     ],
-            #     [
-            #         ['c[0]', 'c[1]', 'c[2]'],
-            #         ['1', 'text', '3'],
-            #         ['[1, 2]', 'anopther_text', "{'test': 'some'}"]
-            #     ],
-            # ],
-            # # From hashable values to non-hashable
-            # [
-            #     {},
-            #     {},
-            #     [
-            #         {"c": 123, "b": "text"},
-            #         {"c": [456], "b": 321},
-            #     ],
-            #     [
-            #         ['c', 'b'],
-            #         ['123', 'text'],
-            #         ['[456]', '321']
-            #     ],
-            # ],
-            # [
-            #     {},
-            #     {},
-            #     [
-            #         {"c": 123, "b": "text"},
-            #         {"c": [456], "b": 321},
-            #         {"c": 123, "b": "text"},
-            #     ],
-            #     [
-            #         ['c', 'b'],
-            #         ['123', 'text'],
-            #         ['[456]', '321'],
-            #         ['123', 'text']
-            #
-            #     ],
-            #
-            # ],
-            # # From non-hashable values to hashable
-            # [
-            #     {},
-            #     {},
-            #     [
-            #         {"c": [456], "b": 321},
-            #         {"c": 123, "b": "text"},
-            #     ],
-            #     [
-            #         ['c', 'b'],
-            #         ['[456]', '321'],
-            #         ['123', 'text']
-            #
-            #     ],
-            # ],
-            # [
-            #     {},
-            #     {},
-            #     [
-            #         {"c": [456], "b": 321},
-            #         {"c": 123, "b": "text"},
-            #         {"c": [456], "b": 321}
-            #     ],
-            #     [
-            #         ['c', 'b'],
-            #         ['[456]', '321'],
-            #         ['123', 'text'],
-            #         ['[456]', '321']
-            #
-            #     ],
-            #
-            # ],
+            # From hashable array to non-hashable array
+            # Non-stable fields should be skipped
+            [
+                {},
+                {"stringify_invalid": False},
+                [
+                    {"c": [1, "text", 3]},
+                    {"c": [[1, 2], "another_text", {"test": "some"}]},
+                ],
+                [
+                    [],
+                    [],
+                    []
+                ],
+            ],
+            # From non-hashable array to hashable array
+            # Non-stable fields should be skipped
+            [
+                {},
+                {"stringify_invalid": False},
+                [
+                    {"c": [[1, 2], "another_text", {"test": "some"}]},
+                    {"c": [1, "text", 3]},
+                ],
+                [
+                    [],
+                    [],
+                    []
+                ],
+            ],
+            # From hashable values to non-hashable
+            # Non-stable fields should be skipped
+            [
+                {},
+                {"stringify_invalid": False},
+                [
+                    {"c": 123, "b": "text"},
+                    {"c": [456], "b": 321},
+                ],
+                [
+                    ['b'],
+                    ['text'],
+                    ['321']
+                ],
+            ],
+            [
+                {},
+                {"stringify_invalid": False},
+                [
+                    {"c": 123, "b": "text"},
+                    {"c": [456], "b": 321},
+                    {"c": 123, "b": "text"},
+                ],
+                [
+                    ['b'],
+                    ['text'],
+                    ['321'],
+                    ['text']
+
+                ],
+
+            ],
+            # From non-hashable values to hashable
+            # Non-stable fields should be skipped
+            [
+                {},
+                {"stringify_invalid": False},
+                [
+                    {"c": [456], "b": 321},
+                    {"c": 123, "b": "text"},
+                ],
+                [
+                    ['b'],
+                    ['321'],
+                    ['text']
+
+                ],
+            ],
+            [
+                {},
+                {"stringify_invalid": False},
+                [
+                    {"c": [456], "b": 321},
+                    {"c": 123, "b": "text"},
+                    {"c": [456], "b": 321}
+                ],
+                [
+                    ['b'],
+                    ['321'],
+                    ['text'],
+                    ['321']
+
+                ],
+
+            ],
         ]
     )
     # TODO Add skip cases (instead of stringify)
