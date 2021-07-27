@@ -618,6 +618,22 @@ class TestCSV:
                 ],
 
             ],
+            [
+                {},
+                {},
+                [
+                    {"c": {"name": "size", "value": "XL"}},
+                    {"c": {"name": "size", "value": [1, 2, 3]}},
+                    {"c": {"name": "size", "value": [1, 2, 3]}}
+                ],
+                [
+                    ['c->name', 'c->value'],
+                    ['size', 'XL'],
+                    ['size', '[1, 2, 3]'],
+                    ['size', '[1, 2, 3]']
+                ],
+
+            ],
             # From non-hashable values to hashable
             [
                 {},
@@ -647,6 +663,22 @@ class TestCSV:
                     ['123', 'text'],
                     ['[456]', '321']
 
+                ],
+
+            ],
+            [
+                {},
+                {},
+                [
+                    {"c": {"name": "size", "value": [1, 2, 3]}},
+                    {"c": {"name": "size", "value": "XL"}},
+                    {"c": {"name": "size", "value": [1, 2, 3]}}
+                ],
+                [
+                    ['c->name', 'c->value'],
+                    ['size', '[1, 2, 3]'],
+                    ['size', 'XL'],
+                    ['size', '[1, 2, 3]']
                 ],
 
             ],
@@ -756,6 +788,23 @@ class TestCSV:
                 ],
 
             ],
+            [
+                {},
+                {"stringify_invalid": False},
+                [
+                    {"c": {"name": "size", "value": "XL"}},
+                    {"c": {"name": "size", "value": [1, 2, 3]}},
+                    {"c": {"name": "size", "value": [1, 2, 3]}}
+                ],
+                [
+                    ['c->name'],
+                    ['size'],
+                    ['size'],
+                    ['size']
+
+                ],
+
+            ],
             # From non-hashable values to hashable
             # Non-stable fields should be skipped
             [
@@ -785,6 +834,23 @@ class TestCSV:
                     ['321'],
                     ['text'],
                     ['321']
+
+                ],
+
+            ],
+            [
+                {},
+                {"stringify_invalid": False},
+                [
+                    {"c": {"name": "size", "value": [1, 2, 3]}},
+                    {"c": {"name": "size", "value": "XL"}},
+                    {"c": {"name": "size", "value": [1, 2, 3]}}
+                ],
+                [
+                    ['c->name'],
+                    ['size'],
+                    ['size'],
+                    ['size']
 
                 ],
 
