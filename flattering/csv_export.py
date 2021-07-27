@@ -374,8 +374,9 @@ class CSVExporter:
     _headers: List[str] = attr.ib(init=False, default=attr.Factory(list))
 
     def __attrs_post_init__(self):
-        self.field_options = self._prepare_field_options(self.field_options)
         self._vocalize_invalid_properties()
+        self._filter_stats()
+        self._filter_field_options()
         self._prepare_for_export()
 
     @field_options.validator
@@ -452,21 +453,36 @@ class CSVExporter:
             raise TypeError(f"Unexpeted export_path type ({type(export_path)}).")
         return export_file, need_to_close
 
-    @staticmethod
-    def _prepare_field_options(
-            properties: Dict[str, FieldOption]
-    ) -> Dict[str, FieldOption]:
-        to_filter = set()
-        for property_name, property_value in properties.items():
-            if not property_value.get("named") and not property_value.get("grouped"):
+    def _filter_stats(self):
+        """
+        Filter stats that can't be used to be able to remove
+        impossible field options to avoid bad formatting.
+        """
+        updated_stats = {}
+        for s_key, s_value in self.stats.items():
+            if s_value.get("count") == 0:
+                continue
+            updated_stats[s_key] = s_value
+        self.stats = updated_stats
+
+    def _filter_field_options(self):
+        """
+        Filter field options that can't be applied.
+        """
+        updated_field_options = {}
+        for fo_key, fo_value in self.field_options.items():
+            if not fo_value.get("named") and not fo_value.get("grouped"):
                 logger.warning(
-                    f"Adjusted properties ({property_name}) without either `named` or `grouped` "
+                    f"Adjusted properties ({fo_key}) without either `named` or `grouped` "
                     "parameters will be skipped."
                 )
-                to_filter.add(property_name)
-        for flt in to_filter:
-            properties.pop(flt, None)
-        return properties
+                continue
+            if fo_key not in self.stats:
+                logger.warning(f"Field option for field \"{fo_key}\" will be skipped. Either this field doesn't "
+                               f"exist, or input items have invalid/inconsistent data, so can't be grouped or named.")
+                continue
+            updated_field_options[fo_key] = fo_value
+        self.field_options = updated_field_options
 
     @headers_renaming.validator
     def check_headers_renaming(self, _, value: List[Tuple[str, str]]):
@@ -561,21 +577,7 @@ class CSVExporter:
                 for field, meta in stats.items()
                 for f in expand(field, meta, field_options.get(field, {}))
             ]
-        self._filter_field_options(processed_headers)
         return processed_headers
-
-    def _filter_field_options(self, processed_headers: List[str]):
-        """
-        Filter field options that can't be applied.
-        """
-        updated_field_options = {}
-        for fo_key, fo_value in self.field_options.items():
-            if fo_key not in processed_headers:
-                logger.info(f"Field option for field \"{fo_key}\" will be skipped. Either this field doesn't "
-                            f"exist, or input items have invalid/inconsistent data, so can't be grouped or named.")
-                continue
-            updated_field_options[fo_key] = fo_value
-        self.field_options = updated_field_options
 
     def _limit_field_elements(self):
         """
@@ -851,7 +853,7 @@ if __name__ == "__main__":
         # TODO Check arrays of arrays processing, but not on item level, but on nested level
         # TODO Check nested grouping as `c[0]->list | grouped=True`
         # "c": FieldOption(named=False, name="name", grouped=True),
-        # "c->name": FieldOption(named=False, name="name", grouped=True),
+        "c->parameter1": FieldOption(named=True, name="name", grouped=False),
     }
     test_headers_renaming = [
         (r"^offers\[0\]->", ""),
@@ -882,10 +884,38 @@ if __name__ == "__main__":
         # THOUGHT: If I don't want to keep values for stringified fields then I can't group
         # or name them also, so field options shouldn't apply
         # Still, if only one property is corrupted (like "value"), why not to save another one (like "size")?
-        {"c": {"name": "size", "value": "XL"}},
-        {"c": {"name": "size", "value": [1, 2, 3]}},
+
+        # TODO Add test for the case
+        # {"c": {"name": "size", "value": "XL"}},
+        # {"c": {"name": "size", "value": [1, 2, 3]}},
         # {"c": {"name": "size", "value": "L"}},
-        # {"c": [[1, 2], (5, 6), 100, {"test": "some"}]},
+
+        {"c":
+            {
+                "parameter1": [{"name": "size", "value": "XL"}, {"name": "color", "value": "blue"}],
+                "parameter2": "some"
+            }},
+        # {"c":
+        #     {
+        #         "parameter1": [{"name": "size", "value": "L"}, {"name": "color", "value": "green"}],
+        #         "parameter2": [1, 2, 3]
+        #     }},
+        {"c":
+            {
+                "parameter1": [{"name": "size", "value": "L"}, {"name": "color", "value": "green"}],
+                "parameter2": "another some"
+            }},
+
+        # {"c":
+        #     {
+        #         "parameter1": {"name": "size", "value": "L"},
+        #         "parameter2": "some"
+        #     }},
+        # {"c":
+        #     {
+        #         "parameter1": {"name": "size", "value": "XL"},
+        #         "parameter2": "another some"
+        #     }},
 
     ]
 
