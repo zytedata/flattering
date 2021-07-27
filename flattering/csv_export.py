@@ -9,7 +9,7 @@ from typing import Dict, Hashable, List, TextIO, Tuple, TypedDict, Union
 import attr
 
 # Using scalpl (instead of jmespath/etc.) as an existing fast backend dependency
-from pkg_resources import resource_string # NOQA
+from pkg_resources import resource_string  # NOQA
 from scalpl import Cut
 
 logger = logging.getLogger(__name__)
@@ -485,6 +485,8 @@ class CSVExporter:
                 raise ValueError(f"Headers renamings ({rmp}) elements must be strings.")
 
     def _vocalize_invalid_properties(self):
+        if not self.invalid_properties:
+            return
         logger.info(
             f"Columns with invalid data would be {'stringified' if self.stringify_invalid else 'skipped'}."
         )
@@ -559,7 +561,21 @@ class CSVExporter:
                 for field, meta in stats.items()
                 for f in expand(field, meta, field_options.get(field, {}))
             ]
+        self._filter_field_options(processed_headers)
         return processed_headers
+
+    def _filter_field_options(self, processed_headers: List[str]):
+        """
+        Filter field options that can't be applied.
+        """
+        updated_field_options = {}
+        for fo_key, fo_value in self.field_options.items():
+            if fo_key not in processed_headers:
+                logger.info(f"Field option for field \"{fo_key}\" will be skipped. Either this field doesn't "
+                            f"exist, or input items have invalid/inconsistent data, so can't be grouped or named.")
+                continue
+            updated_field_options[fo_key] = fo_value
+        self.field_options = updated_field_options
 
     def _limit_field_elements(self):
         """
@@ -834,7 +850,8 @@ if __name__ == "__main__":
         # TODO Test nested cases like `c->list`
         # TODO Check arrays of arrays processing, but not on item level, but on nested level
         # TODO Check nested grouping as `c[0]->list | grouped=True`
-        "c": FieldOption(named=False, name="name", grouped=True),
+        # "c": FieldOption(named=False, name="name", grouped=True),
+        # "c->name": FieldOption(named=False, name="name", grouped=True),
     }
     test_headers_renaming = [
         (r"^offers\[0\]->", ""),
@@ -866,10 +883,9 @@ if __name__ == "__main__":
         # or name them also, so field options shouldn't apply
         # Still, if only one property is corrupted (like "value"), why not to save another one (like "size")?
         {"c": {"name": "size", "value": "XL"}},
-        # {"c": {"name": "size", "value": [1,2,3]}},
-        {"c": {"name": "size", "value": "L"}},
+        {"c": {"name": "size", "value": [1, 2, 3]}},
+        # {"c": {"name": "size", "value": "L"}},
         # {"c": [[1, 2], (5, 6), 100, {"test": "some"}]},
-
 
     ]
 
