@@ -659,6 +659,7 @@ class CSVExporter:
             main_header = None
             child_headers = None
             for i in range(len(header_path)):
+                # TODO Maybe pre-filter field options at the start, instead for each separate item?
                 option_path = self.cut_separator.join(header_path[0:i + 1])
                 if option_path in self.field_options:
                     if not main_header:
@@ -865,7 +866,7 @@ if __name__ == "__main__":
         # TODO Check arrays of arrays processing, but not on item level, but on nested level
         # TODO Check nested grouping as `c[0]->list | grouped=True`
         # "c": FieldOption(named=False, name="name", grouped=True),
-        "c->parameter1": FieldOption(named=True, name="name", grouped=False),
+        "c->parameter1": FieldOption(named=True, name="name", grouped=True),
     }
     test_headers_renaming = [
         (r"^offers\[0\]->", ""),

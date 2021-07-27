@@ -490,6 +490,71 @@ class TestCSV:
                     ["color", "", ""],
                     ["color", "one", "two"],
                 ],
+            ],
+            # Field options for nested fields
+            # TODO Add tests for invalid fields
+            [
+                {"c->parameter1": FieldOption(named=True, name="name", grouped=False)},
+                {},
+                [
+                    {"c":
+                        {
+                            "parameter1": [{"name": "size", "value": "XL"}, {"name": "color", "value": "blue"}],
+                            "parameter2": "some"
+                        }},
+                    {"c":
+                        {
+                            "parameter1": [{"name": "size", "value": "L"}, {"name": "color", "value": "green"}],
+                            "parameter2": "another some"
+                        }},
+                ],
+                [
+                    ['c->parameter1->size->value', 'c->parameter1->color->value', 'c->parameter2'],
+                    ['XL', 'blue', 'some'],
+                    ['L', 'green', 'another some'],
+                ],
+            ],
+            [
+                {"c->parameter1": FieldOption(named=False, name="name", grouped=True)},
+                {},
+                [
+                    {"c":
+                        {
+                            "parameter1": [{"name": "size", "value": "XL"}, {"name": "color", "value": "blue"}],
+                            "parameter2": "some"
+                        }},
+                    {"c":
+                        {
+                            "parameter1": [{"name": "size", "value": "L"}, {"name": "color", "value": "green"}],
+                            "parameter2": "another some"
+                        }},
+                ],
+                [
+                    ['c->parameter1->name', 'c->parameter1->value', 'c->parameter2'],
+                    ['size\ncolor', 'XL\nblue', 'some'],
+                    ['size\ncolor', 'L\ngreen', 'another some']
+                ],
+            ],
+            [
+                {"c->parameter1": FieldOption(named=True, name="name", grouped=True)},
+                {},
+                [
+                    {"c":
+                        {
+                            "parameter1": [{"name": "size", "value": "XL"}, {"name": "color", "value": "blue"}],
+                            "parameter2": "some"
+                        }},
+                    {"c":
+                        {
+                            "parameter1": [{"name": "size", "value": "L"}, {"name": "color", "value": "green"}],
+                            "parameter2": "another some"
+                        }},
+                ],
+                [
+                    ['c->parameter1', 'c->parameter2'],
+                    ['size: XL\ncolor: blue', 'some'],
+                    ['size: L\ncolor: green', 'another some']
+                ],
             ]
         ],
     )
