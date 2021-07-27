@@ -644,33 +644,71 @@ class CSVExporter:
         escaped_separator = f"\\{separator}" if separator != "\n" else "\\n"
         return str(value).replace(separator, escaped_separator)
 
+    def export_item_as_row(self, item: Dict) -> List:
+        row = []
+        separator = self.cut_separator
+        item_data = Cut(item, sep=separator)
+        for header in self._headers:
+            # Stringify invalid data
+            if self.stringify_invalid and header in self.invalid_properties:
+                row.append(str(item_data.get(header, "")))
+                continue
+            header_path = header.split(separator)
+            # TODO Check all possible paths (from 0 to end), pick first available
+            # Log that all deeper ones would be skipped
+            main_header = None
+            child_headers = None
+            for i in range(len(header_path)):
+                option_path = self.cut_separator.join(header_path[0:i + 1])
+                if option_path in self.field_options:
+                    if not main_header:
+                        main_header = option_path
+                        child_headers = header_path[i + 1:]
+                    else:
+                        logger.info(f"Field option for field \"{option_path}\" would be ignored "
+                                    f"because option for higher level field \"{main_header}\" exists.")
+            if main_header:
+                row.append(
+                    self._export_field_with_options(header, main_header, child_headers, item_data)
+                )
+            else:
+                try:
+                    value = item_data.get(header, "")
+                    row.append(str(value) if value is not None else "")
+                except TypeError:
+                    # Could be an often case, so commenting to avoid overflowing logs
+                    # logger.debug(f"{er} Returning empty data.")
+                    row.append("")
+        print(row)
+        return row
+
     def _export_field_with_options(
-            self, header: str, header_path: List[str], item_data: Cut
+            self, header: str, main_header: str, child_headers: List[str], item_data: Cut
     ) -> str:
-        if self.field_options[header_path[0]]["grouped"]:
+        if self.field_options[main_header]["grouped"]:
             separator = (
-                    self.field_options.get(header_path[0], {})
+                    self.field_options.get(main_header, {})
                     .get("grouped_separators", {})
                     .get(header)
                     or self.grouped_separator
             )
             # Grouped
-            if not self.field_options[header_path[0]]["named"]:
-                return self._export_grouped_field(item_data, header_path, separator)
+            if not self.field_options[main_header]["named"]:
+                return self._export_grouped_field(item_data, main_header, child_headers, separator)
             # Grouped AND Named
             else:
                 return self._export_grouped_and_named_field(
-                    item_data, header_path, separator
+                    item_data, main_header, child_headers, separator
                 )
         # Named; if not grouped and not named - adjusted property was filtered
         else:
-            return self._export_named_field(item_data, header_path)
+            return self._export_named_field(item_data, main_header, child_headers)
 
     def _export_grouped_field(
-            self, item_data: Cut, header_path: List[str], separator: str
+            self, item_data: Cut, main_header: str, child_headers: List[str], separator: str
     ) -> str:
-        if len(header_path) == 1:
-            value = item_data.get(header_path[0])
+        if len(child_headers) == 0:
+            value = item_data.get(main_header)
             if value is None:
                 return ""
             elif is_hashable(value):
@@ -689,9 +727,9 @@ class CSVExporter:
                 )
         else:
             value = []
-            for element in item_data.get(header_path[0], []):
-                if element.get(header_path[1]) is not None:
-                    value.append(element[header_path[1]])
+            for element in item_data.get(main_header, []):
+                if element.get(child_headers[0]) is not None:
+                    value.append(element[child_headers[0]])
                 else:
                     # Add empty values to make all grouped columns the same height for better readability
                     value.append("")
@@ -700,11 +738,11 @@ class CSVExporter:
             )
 
     def _export_grouped_and_named_field(
-            self, item_data: Cut, header_path: List[str], separator: str
+            self, item_data: Cut, main_header: str, child_headers: List[str], separator: str
     ) -> str:
-        name = self.field_options[header_path[0]]["name"]
+        name = self.field_options[main_header]["name"]
         values = []
-        for element in item_data.get(header_path[0], []):
+        for element in item_data.get(main_header, []):
             element_name = element.get(name, "")
             element_values = []
             for property_name, property_value in element.items():
@@ -714,7 +752,7 @@ class CSVExporter:
             # Check how many properties, except name, the field has
             properties_stats = [
                 x
-                for x in self.stats.get(header_path[0], {}).get("properties", {}).keys()
+                for x in self.stats.get(main_header, {}).get("properties", {}).keys()
                 if x != name
             ]
             # If there're more then one - use name as a header and other properties as separate rows
@@ -728,53 +766,27 @@ class CSVExporter:
                 values.append(
                     f"{element_name}: {','.join([pv for pn, pv in element_values])}"
                 )
-
         return separator.join([self._escape_grouped_data(x, separator) for x in values])
 
-    def _export_named_field(self, item_data: Cut, header_path: List[str]) -> str:
-        name = self.field_options[header_path[0]]["name"]
-        elements = item_data.get(header_path[0], [])
+    def _export_named_field(self, item_data: Cut, main_header: str, child_headers: List[str]) -> str:
+        name = self.field_options[main_header]["name"]
+        elements = item_data.get(main_header, [])
         if is_list(elements):
             for element in elements:
-                if element.get(name) == header_path[1]:
-                    return element.get(header_path[2], "")
+                if element.get(name) == child_headers[0]:
+                    return element.get(child_headers[1], "")
             else:
                 return ""
         elif isinstance(elements, dict):
             for element_key, element_value in elements.items():
-                if element_key == header_path[2]:
+                if element_key == child_headers[1]:
                     return element_value
             else:
                 return ""
         else:
             raise ValueError(
-                f"Unexpected value type ({type(elements)}) for field ({header_path}): {elements}"
+                f"Unexpected value type ({type(elements)}) for field ({[main_header] + child_headers}): {elements}"
             )
-
-    def export_item_as_row(self, item: Dict) -> List:
-        row = []
-        separator = self.cut_separator
-        item_data = Cut(item, sep=separator)
-        for header in self._headers:
-            # Stringify invalid data
-            if self.stringify_invalid and header in self.invalid_properties:
-                row.append(str(item_data.get(header, "")))
-                continue
-            header_path = header.split(separator)
-            if header_path[0] not in self.field_options:
-                try:
-                    value = item_data.get(header, "")
-                    row.append(str(value) if value is not None else "")
-                except TypeError:
-                    # Could be an often case, so commenting to avoid overflowing logs
-                    # logger.debug(f"{er} Returning empty data.")
-                    row.append("")
-            else:
-                row.append(
-                    self._export_field_with_options(header, header_path, item_data)
-                )
-        print(row)
-        return row
 
     def _get_renamed_headers(self, capitalize: bool = True) -> List[str]:
         print(self._headers)
@@ -884,11 +896,6 @@ if __name__ == "__main__":
         # THOUGHT: If I don't want to keep values for stringified fields then I can't group
         # or name them also, so field options shouldn't apply
         # Still, if only one property is corrupted (like "value"), why not to save another one (like "size")?
-
-        # TODO Add test for the case
-        # {"c": {"name": "size", "value": "XL"}},
-        # {"c": {"name": "size", "value": [1, 2, 3]}},
-        # {"c": {"name": "size", "value": "L"}},
 
         {"c":
             {
