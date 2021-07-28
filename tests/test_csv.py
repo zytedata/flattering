@@ -21,73 +21,73 @@ class TestCSV:
         [
             ("articles_xod_test", {}, {}),
             (
-                    "items_recursive_test",
-                    {
-                        "named_array_field": {
-                            "named": True,
-                            "name": "name",
-                            "grouped": False,
-                        }
-                    },
-                    {},
+                "items_recursive_test",
+                {
+                    "named_array_field": {
+                        "named": True,
+                        "name": "name",
+                        "grouped": False,
+                    }
+                },
+                {},
             ),
             (
-                    "products_full_schema_test",
-                    {
-                        "gtin": {"named": True, "name": "type", "grouped": False},
-                        "additionalProperty": {
-                            "named": True,
-                            "name": "name",
-                            "grouped": False,
-                        },
-                        "ratingHistogram": {
-                            "named": True,
-                            "name": "ratingOption",
-                            "grouped": False,
-                        },
+                "products_full_schema_test",
+                {
+                    "gtin": {"named": True, "name": "type", "grouped": False},
+                    "additionalProperty": {
+                        "named": True,
+                        "name": "name",
+                        "grouped": False,
                     },
-                    {"array_limits": {"offers": 1}},
+                    "ratingHistogram": {
+                        "named": True,
+                        "name": "ratingOption",
+                        "grouped": False,
+                    },
+                },
+                {"array_limits": {"offers": 1}},
             ),
             (
-                    "products_simple_xod_test",
-                    {
-                        "gtin": {"named": True, "name": "type", "grouped": False},
-                        "additionalProperty": {
-                            "named": True,
-                            "name": "name",
-                            "grouped": False,
-                        },
+                "products_simple_xod_test",
+                {
+                    "gtin": {"named": True, "name": "type", "grouped": False},
+                    "additionalProperty": {
+                        "named": True,
+                        "name": "name",
+                        "grouped": False,
                     },
-                    {"array_limits": {"offers": 1}},
+                },
+                {"array_limits": {"offers": 1}},
             ),
             (
-                    "products_xod_test",
-                    {
-                        "gtin": {"named": True, "name": "type", "grouped": False},
-                        "additionalProperty": {
-                            "named": True,
-                            "name": "name",
-                            "grouped": False,
-                        },
+                "products_xod_test",
+                {
+                    "gtin": {"named": True, "name": "type", "grouped": False},
+                    "additionalProperty": {
+                        "named": True,
+                        "name": "name",
+                        "grouped": False,
                     },
-                    {"array_limits": {"offers": 1}},
+                },
+                {"array_limits": {"offers": 1}},
             ),
             (
-                    "products_xod_100_test",
-                    {
-                        "gtin": {"named": True, "name": "type", "grouped": False},
-                        "additionalProperty": {
-                            "named": True,
-                            "name": "name",
-                            "grouped": False,
-                        },
+                "products_xod_100_test",
+                {
+                    "gtin": {"named": True, "name": "type", "grouped": False},
+                    "additionalProperty": {
+                        "named": True,
+                        "name": "name",
+                        "grouped": False,
                     },
-                    {"array_limits": {"offers": 1}},
+                },
+                {"array_limits": {"offers": 1}},
             ),
             (
-                    "items_simple_test",
-                    {},
-                    {},
+                "items_simple_test",
+                {},
+                {},
             ),
         ],
     )
@@ -123,9 +123,9 @@ class TestCSV:
         for item, row in zip(item_list, csv_data[1:]):
             # Stringify all values because to match string data from csv
             assert [
-                       str(x) if x is not None else ""
-                       for x in csv_exporter.export_item_as_row(item)
-                   ] == row
+                str(x) if x is not None else ""
+                for x in csv_exporter.export_item_as_row(item)
+            ] == row
 
     @pytest.mark.parametrize(
         "field_options, export_options, items, expected",
@@ -393,11 +393,11 @@ class TestCSV:
         ],
     )
     def test_single_item(
-            self,
-            field_options: Dict[str, FieldOption],
-            export_options: Dict,
-            items,
-            expected,
+        self,
+        field_options: Dict[str, FieldOption],
+        export_options: Dict,
+        items,
+        expected,
     ):
         csv_stats_col = CSVStatsCollector(named_columns_limit=50)
         csv_stats_col.process_items(items)
@@ -497,73 +497,101 @@ class TestCSV:
                 {"c->parameter1": FieldOption(named=True, name="name", grouped=False)},
                 {},
                 [
-                    {"c":
-                        {
-                            "parameter1": [{"name": "size", "value": "XL"}, {"name": "color", "value": "blue"}],
-                            "parameter2": "some"
-                        }},
-                    {"c":
-                        {
-                            "parameter1": [{"name": "size", "value": "L"}, {"name": "color", "value": "green"}],
-                            "parameter2": "another some"
-                        }},
+                    {
+                        "c": {
+                            "parameter1": [
+                                {"name": "size", "value": "XL"},
+                                {"name": "color", "value": "blue"},
+                            ],
+                            "parameter2": "some",
+                        }
+                    },
+                    {
+                        "c": {
+                            "parameter1": [
+                                {"name": "size", "value": "L"},
+                                {"name": "color", "value": "green"},
+                            ],
+                            "parameter2": "another some",
+                        }
+                    },
                 ],
                 [
-                    ['c->parameter1->size->value', 'c->parameter1->color->value', 'c->parameter2'],
-                    ['XL', 'blue', 'some'],
-                    ['L', 'green', 'another some'],
+                    [
+                        "c->parameter1->size->value",
+                        "c->parameter1->color->value",
+                        "c->parameter2",
+                    ],
+                    ["XL", "blue", "some"],
+                    ["L", "green", "another some"],
                 ],
             ],
             [
                 {"c->parameter1": FieldOption(named=False, name="name", grouped=True)},
                 {},
                 [
-                    {"c":
-                        {
-                            "parameter1": [{"name": "size", "value": "XL"}, {"name": "color", "value": "blue"}],
-                            "parameter2": "some"
-                        }},
-                    {"c":
-                        {
-                            "parameter1": [{"name": "size", "value": "L"}, {"name": "color", "value": "green"}],
-                            "parameter2": "another some"
-                        }},
+                    {
+                        "c": {
+                            "parameter1": [
+                                {"name": "size", "value": "XL"},
+                                {"name": "color", "value": "blue"},
+                            ],
+                            "parameter2": "some",
+                        }
+                    },
+                    {
+                        "c": {
+                            "parameter1": [
+                                {"name": "size", "value": "L"},
+                                {"name": "color", "value": "green"},
+                            ],
+                            "parameter2": "another some",
+                        }
+                    },
                 ],
                 [
-                    ['c->parameter1->name', 'c->parameter1->value', 'c->parameter2'],
-                    ['size\ncolor', 'XL\nblue', 'some'],
-                    ['size\ncolor', 'L\ngreen', 'another some']
+                    ["c->parameter1->name", "c->parameter1->value", "c->parameter2"],
+                    ["size\ncolor", "XL\nblue", "some"],
+                    ["size\ncolor", "L\ngreen", "another some"],
                 ],
             ],
             [
                 {"c->parameter1": FieldOption(named=True, name="name", grouped=True)},
                 {},
                 [
-                    {"c":
-                        {
-                            "parameter1": [{"name": "size", "value": "XL"}, {"name": "color", "value": "blue"}],
-                            "parameter2": "some"
-                        }},
-                    {"c":
-                        {
-                            "parameter1": [{"name": "size", "value": "L"}, {"name": "color", "value": "green"}],
-                            "parameter2": "another some"
-                        }},
+                    {
+                        "c": {
+                            "parameter1": [
+                                {"name": "size", "value": "XL"},
+                                {"name": "color", "value": "blue"},
+                            ],
+                            "parameter2": "some",
+                        }
+                    },
+                    {
+                        "c": {
+                            "parameter1": [
+                                {"name": "size", "value": "L"},
+                                {"name": "color", "value": "green"},
+                            ],
+                            "parameter2": "another some",
+                        }
+                    },
                 ],
                 [
-                    ['c->parameter1', 'c->parameter2'],
-                    ['size: XL\ncolor: blue', 'some'],
-                    ['size: L\ncolor: green', 'another some']
+                    ["c->parameter1", "c->parameter2"],
+                    ["size: XL\ncolor: blue", "some"],
+                    ["size: L\ncolor: green", "another some"],
                 ],
-            ]
+            ],
         ],
     )
     def test_multiple_items(
-            self,
-            field_options: Dict[str, FieldOption],
-            export_options: Dict,
-            items,
-            expected,
+        self,
+        field_options: Dict[str, FieldOption],
+        export_options: Dict,
+        items,
+        expected,
     ):
         csv_stats_col = CSVStatsCollector(named_columns_limit=50)
         csv_stats_col.process_items(items)
@@ -589,9 +617,9 @@ class TestCSV:
                     {"c": [[1, 2], (5, 6), 100, {"test": "some"}]},
                 ],
                 [
-                    ['c[0]', 'c[1]', 'c[2]', 'c[3]'],
-                    ['[1, 2]', 'text', '(5, 6)', ''],
-                    ['[1, 2]', '(5, 6)', '100', "{'test': 'some'}"]
+                    ["c[0]", "c[1]", "c[2]", "c[3]"],
+                    ["[1, 2]", "text", "(5, 6)", ""],
+                    ["[1, 2]", "(5, 6)", "100", "{'test': 'some'}"],
                 ],
             ],
             [
@@ -603,10 +631,10 @@ class TestCSV:
                     {"c": [[1, 2], (5, 6), 100, {"test": "some"}]},
                 ],
                 [
-                    ['c'],
-                    ['123'],
+                    ["c"],
+                    ["123"],
                     ["[[1, 2], 'text', (5, 6)]"],
-                    ["[[1, 2], (5, 6), 100, {'test': 'some'}]"]
+                    ["[[1, 2], (5, 6), 100, {'test': 'some'}]"],
                 ],
             ],
             [
@@ -615,13 +643,13 @@ class TestCSV:
                 [
                     {"c": [[1, 2], "text", (5, 6)]},
                     {"c": [[1, 2], (5, 6), 100, {"test": "some"}]},
-                    {"c": 123}
+                    {"c": 123},
                 ],
                 [
-                    ['c'],
+                    ["c"],
                     ["[[1, 2], 'text', (5, 6)]"],
                     ["[[1, 2], (5, 6), 100, {'test': 'some'}]"],
-                    ['123']
+                    ["123"],
                 ],
             ],
             # From hashable array to non-hashable array
@@ -633,9 +661,9 @@ class TestCSV:
                     {"c": [[1, 2], "another_text", {"test": "some"}]},
                 ],
                 [
-                    ['c[0]', 'c[1]', 'c[2]'],
-                    ['1', 'text', '3'],
-                    ['[1, 2]', 'another_text', "{'test': 'some'}"]
+                    ["c[0]", "c[1]", "c[2]"],
+                    ["1", "text", "3"],
+                    ["[1, 2]", "another_text", "{'test': 'some'}"],
                 ],
             ],
             # From non-hashable array to hashable array
@@ -647,9 +675,9 @@ class TestCSV:
                     {"c": [1, "text", 3]},
                 ],
                 [
-                    ['c[0]', 'c[1]', 'c[2]'],
-                    ['[1, 2]', 'another_text', "{'test': 'some'}"],
-                    ['1', 'text', '3']
+                    ["c[0]", "c[1]", "c[2]"],
+                    ["[1, 2]", "another_text", "{'test': 'some'}"],
+                    ["1", "text", "3"],
                 ],
             ],
             # From hashable values to non-hashable
@@ -660,11 +688,7 @@ class TestCSV:
                     {"c": 123, "b": "text"},
                     {"c": [456], "b": 321},
                 ],
-                [
-                    ['c', 'b'],
-                    ['123', 'text'],
-                    ['[456]', '321']
-                ],
+                [["c", "b"], ["123", "text"], ["[456]", "321"]],
             ],
             [
                 {},
@@ -674,14 +698,7 @@ class TestCSV:
                     {"c": [456], "b": 321},
                     {"c": 123, "b": "text"},
                 ],
-                [
-                    ['c', 'b'],
-                    ['123', 'text'],
-                    ['[456]', '321'],
-                    ['123', 'text']
-
-                ],
-
+                [["c", "b"], ["123", "text"], ["[456]", "321"], ["123", "text"]],
             ],
             [
                 {},
@@ -689,15 +706,14 @@ class TestCSV:
                 [
                     {"c": {"name": "size", "value": "XL"}},
                     {"c": {"name": "size", "value": [1, 2, 3]}},
-                    {"c": {"name": "size", "value": [1, 2, 3]}}
+                    {"c": {"name": "size", "value": [1, 2, 3]}},
                 ],
                 [
-                    ['c->name', 'c->value'],
-                    ['size', 'XL'],
-                    ['size', '[1, 2, 3]'],
-                    ['size', '[1, 2, 3]']
+                    ["c->name", "c->value"],
+                    ["size", "XL"],
+                    ["size", "[1, 2, 3]"],
+                    ["size", "[1, 2, 3]"],
                 ],
-
             ],
             # From non-hashable values to hashable
             [
@@ -707,12 +723,7 @@ class TestCSV:
                     {"c": [456], "b": 321},
                     {"c": 123, "b": "text"},
                 ],
-                [
-                    ['c', 'b'],
-                    ['[456]', '321'],
-                    ['123', 'text']
-
-                ],
+                [["c", "b"], ["[456]", "321"], ["123", "text"]],
             ],
             [
                 {},
@@ -720,16 +731,9 @@ class TestCSV:
                 [
                     {"c": [456], "b": 321},
                     {"c": 123, "b": "text"},
-                    {"c": [456], "b": 321}
+                    {"c": [456], "b": 321},
                 ],
-                [
-                    ['c', 'b'],
-                    ['[456]', '321'],
-                    ['123', 'text'],
-                    ['[456]', '321']
-
-                ],
-
+                [["c", "b"], ["[456]", "321"], ["123", "text"], ["[456]", "321"]],
             ],
             [
                 {},
@@ -737,15 +741,14 @@ class TestCSV:
                 [
                     {"c": {"name": "size", "value": [1, 2, 3]}},
                     {"c": {"name": "size", "value": "XL"}},
-                    {"c": {"name": "size", "value": [1, 2, 3]}}
+                    {"c": {"name": "size", "value": [1, 2, 3]}},
                 ],
                 [
-                    ['c->name', 'c->value'],
-                    ['size', '[1, 2, 3]'],
-                    ['size', 'XL'],
-                    ['size', '[1, 2, 3]']
+                    ["c->name", "c->value"],
+                    ["size", "[1, 2, 3]"],
+                    ["size", "XL"],
+                    ["size", "[1, 2, 3]"],
                 ],
-
             ],
             # Mixed types, should be skipped
             [
@@ -769,12 +772,7 @@ class TestCSV:
                     {"c": [[1, 2], "text", (5, 6)]},
                     {"c": [[1, 2], (5, 6), 100, {"test": "some"}]},
                 ],
-                [
-                    [],
-                    [],
-                    [],
-                    []
-                ],
+                [[], [], [], []],
             ],
             [
                 {},
@@ -782,14 +780,9 @@ class TestCSV:
                 [
                     {"c": [[1, 2], "text", (5, 6)]},
                     {"c": [[1, 2], (5, 6), 100, {"test": "some"}]},
-                    {"c": 123}
+                    {"c": 123},
                 ],
-                [
-                    [],
-                    [],
-                    [],
-                    []
-                ],
+                [[], [], [], []],
             ],
             # From hashable array to non-hashable array
             # Non-stable fields should be skipped
@@ -800,11 +793,7 @@ class TestCSV:
                     {"c": [1, "text", 3]},
                     {"c": [[1, 2], "another_text", {"test": "some"}]},
                 ],
-                [
-                    [],
-                    [],
-                    []
-                ],
+                [[], [], []],
             ],
             # From non-hashable array to hashable array
             # Non-stable fields should be skipped
@@ -815,11 +804,7 @@ class TestCSV:
                     {"c": [[1, 2], "another_text", {"test": "some"}]},
                     {"c": [1, "text", 3]},
                 ],
-                [
-                    [],
-                    [],
-                    []
-                ],
+                [[], [], []],
             ],
             # From hashable values to non-hashable
             # Non-stable fields should be skipped
@@ -830,11 +815,7 @@ class TestCSV:
                     {"c": 123, "b": "text"},
                     {"c": [456], "b": 321},
                 ],
-                [
-                    ['b'],
-                    ['text'],
-                    ['321']
-                ],
+                [["b"], ["text"], ["321"]],
             ],
             [
                 {},
@@ -844,14 +825,7 @@ class TestCSV:
                     {"c": [456], "b": 321},
                     {"c": 123, "b": "text"},
                 ],
-                [
-                    ['b'],
-                    ['text'],
-                    ['321'],
-                    ['text']
-
-                ],
-
+                [["b"], ["text"], ["321"], ["text"]],
             ],
             [
                 {},
@@ -859,16 +833,9 @@ class TestCSV:
                 [
                     {"c": {"name": "size", "value": "XL"}},
                     {"c": {"name": "size", "value": [1, 2, 3]}},
-                    {"c": {"name": "size", "value": [1, 2, 3]}}
+                    {"c": {"name": "size", "value": [1, 2, 3]}},
                 ],
-                [
-                    ['c->name'],
-                    ['size'],
-                    ['size'],
-                    ['size']
-
-                ],
-
+                [["c->name"], ["size"], ["size"], ["size"]],
             ],
             # From non-hashable values to hashable
             # Non-stable fields should be skipped
@@ -879,12 +846,7 @@ class TestCSV:
                     {"c": [456], "b": 321},
                     {"c": 123, "b": "text"},
                 ],
-                [
-                    ['b'],
-                    ['321'],
-                    ['text']
-
-                ],
+                [["b"], ["321"], ["text"]],
             ],
             [
                 {},
@@ -892,16 +854,9 @@ class TestCSV:
                 [
                     {"c": [456], "b": 321},
                     {"c": 123, "b": "text"},
-                    {"c": [456], "b": 321}
+                    {"c": [456], "b": 321},
                 ],
-                [
-                    ['b'],
-                    ['321'],
-                    ['text'],
-                    ['321']
-
-                ],
-
+                [["b"], ["321"], ["text"], ["321"]],
             ],
             [
                 {},
@@ -909,26 +864,19 @@ class TestCSV:
                 [
                     {"c": {"name": "size", "value": [1, 2, 3]}},
                     {"c": {"name": "size", "value": "XL"}},
-                    {"c": {"name": "size", "value": [1, 2, 3]}}
+                    {"c": {"name": "size", "value": [1, 2, 3]}},
                 ],
-                [
-                    ['c->name'],
-                    ['size'],
-                    ['size'],
-                    ['size']
-
-                ],
-
+                [["c->name"], ["size"], ["size"], ["size"]],
             ],
-        ]
+        ],
     )
     # TODO Add skip cases (instead of stringify)
     def test_multiple_invalid_items(
-            self,
-            field_options: Dict[str, FieldOption],
-            export_options: Dict,
-            items,
-            expected,
+        self,
+        field_options: Dict[str, FieldOption],
+        export_options: Dict,
+        items,
+        expected,
     ):
         csv_stats_col = CSVStatsCollector(named_columns_limit=50)
         csv_stats_col.process_items(items)
@@ -987,10 +935,10 @@ class TestCSV:
         ],
     )
     def test_stats_exceptions(
-            self,
-            items: List[Dict],
-            exception_type: TypeError,
-            exception_pattern: str,
+        self,
+        items: List[Dict],
+        exception_type: TypeError,
+        exception_pattern: str,
     ):
         with pytest.raises(exception_type, match=exception_pattern) as _:  # NOQA
             csv_stats_col = CSVStatsCollector()
@@ -1053,10 +1001,10 @@ class TestCSV:
         ],
     )
     def test_stats_warnings(
-            self,
-            caplog,
-            items: List[Dict],
-            warning_pattern: str,
+        self,
+        caplog,
+        items: List[Dict],
+        warning_pattern: str,
     ):
         with caplog.at_level(logging.WARNING):
             csv_stats_col = CSVStatsCollector(named_columns_limit=50)
@@ -1149,13 +1097,13 @@ class TestCSV:
         ],
     )
     def test_export_warnings(
-            self,
-            caplog,
-            field_options: Dict[str, FieldOption],
-            export_options: Dict,
-            items: List[Dict],
-            warning_pattern: str,
-            named_columns_limit: int,
+        self,
+        caplog,
+        field_options: Dict[str, FieldOption],
+        export_options: Dict,
+        items: List[Dict],
+        warning_pattern: str,
+        named_columns_limit: int,
     ):
         csv_stats_col = CSVStatsCollector(named_columns_limit=named_columns_limit)
         csv_stats_col.process_items(items)
@@ -1185,11 +1133,11 @@ class TestCSV:
         ],
     )
     def test_no_exceptions(
-            self,
-            field_options: Dict[str, FieldOption],
-            export_options: Dict,
-            items: List[Dict],
-            named_columns_limit: int,
+        self,
+        field_options: Dict[str, FieldOption],
+        export_options: Dict,
+        items: List[Dict],
+        named_columns_limit: int,
     ):
         csv_stats_col = CSVStatsCollector(named_columns_limit=named_columns_limit)
         csv_stats_col.process_items(items)

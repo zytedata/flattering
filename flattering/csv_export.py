@@ -147,7 +147,9 @@ class CSVStatsCollector:
 
     def _process_array(self, array_value: List, prefix: str = ""):
         # Skip empty arrays or invalid columns that would be stringified
-        if len(array_value) == 0 or (prefix in self._invalid_properties and self._stats[prefix] == {}):
+        if len(array_value) == 0 or (
+            prefix in self._invalid_properties and self._stats[prefix] == {}
+        ):
             return
         elements_types = set([type(x) for x in array_value])
         for et in ((dict,), (list, tuple)):
@@ -222,10 +224,10 @@ class CSVStatsCollector:
             self._process_base_object(object_value, prefix, values_hashable)
 
     def _process_base_object(
-            self,
-            object_value: Dict,
-            prefix: str = "",
-            values_hashable: Dict[str, bool] = None,
+        self,
+        object_value: Dict,
+        prefix: str = "",
+        values_hashable: Dict[str, bool] = None,
     ):
         for property_name, property_value in object_value.items():
             # Skip None values; if there're items with actual values for
@@ -241,9 +243,9 @@ class CSVStatsCollector:
             if values_hashable:
                 # If hashable, but have existing non-empty properties
                 if (
-                        values_hashable[property_name]
-                        and property_stats != {}
-                        and property_stats is not None
+                    values_hashable[property_name]
+                    and property_stats != {}
+                    and property_stats is not None
                 ):
                     msg = (
                         f"Field ({property_path}) was processed as non-hashable "
@@ -265,9 +267,13 @@ class CSVStatsCollector:
                     self._stats[property_path] = {}
                     continue
             property_type = property_stats.get("type") if property_stats else None
-            if property_type and not isinstance(
+            if (
+                property_type
+                and not isinstance(
                     property_value, self._map_types(property_name, property_type)
-            ) and property_path not in self._invalid_properties:
+                )
+                and property_path not in self._invalid_properties
+            ):
                 # Not throwing an error here, but if type was changed from dict to list - the exporter
                 # would throw TypeError because collected dict keys can't be accesed in list
                 msg = (
@@ -305,10 +311,10 @@ class CSVStatsCollector:
             self._process_hashable_value(property_name, property_value, prefix)
 
     def _process_hashable_value(
-            self,
-            property_name: str,
-            property_value: Union[str, int, float, bool, None],
-            prefix: str,
+        self,
+        property_name: str,
+        property_value: Union[str, int, float, bool, None],
+        prefix: str,
     ):
         if property_name not in self._stats[prefix]["properties"]:
             # Using dictionaries instead of sets to keep order
@@ -347,8 +353,13 @@ class CSVStatsCollector:
         created for potential columns should be removed, because all the values would
         be stringified in a single column or skipped
         """
-        self._stats = {k: v for k, v in self._stats.items() if
-                       not re.match(r"^(" + prefix + r"\[\d+\].*|" + prefix + self.cut_separator + r".*)", k)}
+        self._stats = {
+            k: v
+            for k, v in self._stats.items()
+            if not re.match(
+                r"^(" + prefix + r"\[\d+\].*|" + prefix + self.cut_separator + r".*)", k
+            )
+        }
 
 
 @attr.s(auto_attribs=True)
@@ -395,7 +406,7 @@ class CSVExporter:
 
     @staticmethod
     def _prepare_io(
-            export_path: Union[str, bytes, PathLike, TextIO]
+        export_path: Union[str, bytes, PathLike, TextIO]
     ) -> Tuple[TextIO, bool]:
         need_to_close = False
         if isinstance(export_path, (str, bytes, PathLike)):
@@ -440,20 +451,22 @@ class CSVExporter:
         for property_name, property_value in self.field_options.items():
             invalid_option = False
             if property_name not in self.stats:
-                logger.warning(f"Field option for field \"{property_name}\" will be skipped. Either this field doesn't "
-                               f"exist, or input items have invalid data, so can't be grouped or named.")
+                logger.warning(
+                    f'Field option for field "{property_name}" will be skipped. Either this field doesn\'t '
+                    f"exist, or input items have invalid data, so can't be grouped or named."
+                )
                 continue
             if not property_value.get("named") and not property_value.get("grouped"):
                 logger.warning(
                     f"Field options must be either `named` or `grouped` or both. "
-                    f"Field option \"{property_name}\" will be skipped."
+                    f'Field option "{property_name}" will be skipped.'
                 )
                 continue
             for tp in ("named", "grouped"):
                 if not isinstance(property_value.get(tp), bool):  # NOQA
                     logger.warning(
                         f"Adjusted properties ({property_name}) must include `{tp}` parameter with boolean value. "
-                        f"Field option \"{property_name}\" will be skipped."
+                        f'Field option "{property_name}" will be skipped.'
                     )
                     invalid_option = True
                     break
@@ -462,7 +475,7 @@ class CSVExporter:
             if property_value.get("named") and not property_value.get("name"):
                 logger.warning(
                     f"Named adjusted properties ({property_name}) must include `name` parameter. "
-                    f"Field option \"{property_name}\" will be skipped."
+                    f'Field option "{property_name}" will be skipped.'
                 )
                 continue
             for key, value in property_value.get("grouped_separators", {}).items():
@@ -470,7 +483,7 @@ class CSVExporter:
                     logger.warning(
                         f"Only {allowed_separators} could be used"
                         f" as custom grouped separators ({key}:{value}). "
-                        f"Field option \"{property_name}\" will be skipped."
+                        f'Field option "{property_name}" will be skipped.'
                     )
                     invalid_option = True
                     break
@@ -485,14 +498,14 @@ class CSVExporter:
                     logger.warning(
                         f'Field "{property_name}" doesn\'t have any properties '
                         f'(as an array of hashable elements), so "named" option can\'t be applied. '
-                        f'Field option \"{property_name}\" will be skipped.'
+                        f'Field option "{property_name}" will be skipped.'
                     )
                     continue
                 if not property_stats["properties"].get(name):
                     logger.warning(
                         f'Field "{property_name}" doesn\'t have name property '
                         f"\"{property_value['name']}\", so \"named\" option can't be applied. "
-                        f"Field option \"{property_name}\" will be skipped."
+                        f'Field option "{property_name}" will be skipped.'
                     )
                     continue
                 # If property is both grouped and named - we don't care columns limit because
@@ -503,7 +516,7 @@ class CSVExporter:
                             f"Field \"{property_name}\" values for name property \"{property_value['name']}\" "
                             f'were limited by "named_columns_limit" when collecting stats, '
                             f'so "named" option can\'t be applied. '
-                            f'Field option \"{property_name}\" will be skipped.'
+                            f'Field option "{property_name}" will be skipped.'
                         )
                         continue
             validated_field_options[property_name] = property_value
@@ -540,10 +553,10 @@ class CSVExporter:
             logger.info(msg)
 
     def _convert_stats_to_headers(
-            self,
-            stats: Dict[str, Header],
-            separator: str,
-            field_options: Dict[str, FieldOption],
+        self,
+        stats: Dict[str, Header],
+        separator: str,
+        field_options: Dict[str, FieldOption],
     ) -> List[str]:
         def expand(field, meta, field_option: FieldOption):
             field_option = field_option or {}
@@ -682,20 +695,24 @@ class CSVExporter:
             # TODO Check all possible paths (from 0 to end), pick first available
             # Log that all deeper ones would be skipped
             main_header = None
-            child_headers = None
+            child_headers = []
             for i in range(len(header_path)):
                 # TODO Maybe pre-filter field options at the start, instead for each separate item?
-                option_path = self.cut_separator.join(header_path[0:i + 1])
+                option_path = self.cut_separator.join(header_path[0 : i + 1])
                 if option_path in self.field_options:
                     if not main_header:
                         main_header = option_path
-                        child_headers = header_path[i + 1:]
+                        child_headers = header_path[i + 1 :]
                     else:
-                        logger.info(f"Field option for field \"{option_path}\" would be ignored "
-                                    f"because option for higher level field \"{main_header}\" exists.")
+                        logger.info(
+                            f'Field option for field "{option_path}" would be ignored '
+                            f'because option for higher level field "{main_header}" exists.'
+                        )
             if main_header:
                 row.append(
-                    self._export_field_with_options(header, main_header, child_headers, item_data)
+                    self._export_field_with_options(
+                        header, main_header, child_headers, item_data
+                    )
                 )
             else:
                 try:
@@ -709,18 +726,20 @@ class CSVExporter:
         return row
 
     def _export_field_with_options(
-            self, header: str, main_header: str, child_headers: List[str], item_data: Cut
+        self, header: str, main_header: str, child_headers: List[str], item_data: Cut
     ) -> str:
         if self.field_options[main_header]["grouped"]:
             separator = (
-                    self.field_options.get(main_header, {})
-                    .get("grouped_separators", {})
-                    .get(header)
-                    or self.grouped_separator
+                self.field_options.get(main_header, {})
+                .get("grouped_separators", {})
+                .get(header)
+                or self.grouped_separator
             )
             # Grouped
             if not self.field_options[main_header]["named"]:
-                return self._export_grouped_field(item_data, main_header, child_headers, separator)
+                return self._export_grouped_field(
+                    item_data, main_header, child_headers, separator
+                )
             # Grouped AND Named
             else:
                 return self._export_grouped_and_named_field(
@@ -731,7 +750,7 @@ class CSVExporter:
             return self._export_named_field(item_data, main_header, child_headers)
 
     def _export_grouped_field(
-            self, item_data: Cut, main_header: str, child_headers: List[str], separator: str
+        self, item_data: Cut, main_header: str, child_headers: List[str], separator: str
     ) -> str:
         if len(child_headers) == 0:
             value = item_data.get(main_header)
@@ -764,7 +783,7 @@ class CSVExporter:
             )
 
     def _export_grouped_and_named_field(
-            self, item_data: Cut, main_header: str, child_headers: List[str], separator: str
+        self, item_data: Cut, main_header: str, child_headers: List[str], separator: str
     ) -> str:
         name = self.field_options[main_header]["name"]
         values = []
@@ -794,7 +813,9 @@ class CSVExporter:
                 )
         return separator.join([self._escape_grouped_data(x, separator) for x in values])
 
-    def _export_named_field(self, item_data: Cut, main_header: str, child_headers: List[str]) -> str:
+    def _export_named_field(
+        self, item_data: Cut, main_header: str, child_headers: List[str]
+    ) -> str:
         name = self.field_options[main_header]["name"]
         elements = item_data.get(main_header, [])
         if is_list(elements):
@@ -922,7 +943,6 @@ if __name__ == "__main__":
         # THOUGHT: If I don't want to keep values for stringified fields then I can't group
         # or name them also, so field options shouldn't apply
         # Still, if only one property is corrupted (like "value"), why not to save another one (like "size")?
-
         # {"c":
         #     {
         #         "parameter1": [{"name": "size", "value": "XL"}, {"name": "color", "value": "blue"}],
@@ -934,13 +954,12 @@ if __name__ == "__main__":
         #         "parameter1": [{"name": "size", "value": [1, 2, 3]}, {"name": "color", "value": "blue"}],
         #         "parameter2": "some"
         #     }},
-
-        {"c":
-            {
+        {
+            "c": {
                 "parameter1": {"name": "size", "value": [1, 2, 3]},
-                "parameter2": "some"
-            }},
-
+                "parameter2": "some",
+            }
+        },
         # {"c":
         #     {
         #         "parameter1": [{"name": "size", "value": "L"}, {"name": "color", "value": "green"}],
@@ -951,7 +970,6 @@ if __name__ == "__main__":
         #         "parameter1": [{"name": "size", "value": "L"}, {"name": "color", "value": "green"}],
         #         "parameter2": "another some"
         #     }},
-
         # {"c":
         #     {
         #         "parameter1": {"name": "size", "value": "L"},
@@ -962,7 +980,6 @@ if __name__ == "__main__":
         #         "parameter1": {"name": "size", "value": "XL"},
         #         "parameter2": "another some"
         #     }},
-
     ]
 
     # AUTOCRAWL PART
