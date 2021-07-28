@@ -960,6 +960,12 @@ if __name__ == "__main__":
                 "parameter2": "some",
             }
         },
+        {
+            "c": {
+                "parameter1": {"name": "size", "value": "some_value"},
+                "parameter2": "some",
+            }
+        },
         # {"c":
         #     {
         #         "parameter1": [{"name": "size", "value": "L"}, {"name": "color", "value": "green"}],
@@ -993,7 +999,7 @@ if __name__ == "__main__":
     csv_exporter = CSVExporter(
         stats=autocrawl_csv_sc.stats["stats"],
         invalid_properties=autocrawl_csv_sc.stats["invalid_properties"],
-        stringify_invalid=False,
+        stringify_invalid=True,
         field_options=test_field_options,
         # array_limits=test_array_limits,
         # headers_renaming=test_headers_renaming,

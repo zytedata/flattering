@@ -715,6 +715,30 @@ class TestCSV:
                     ["size", "[1, 2, 3]"],
                 ],
             ],
+            # Nested
+            [
+                {},
+                {},
+                [
+                    {
+                        "c": {
+                            "parameter1": {"name": "size", "value": "some_value"},
+                            "parameter2": "some",
+                        }
+                    },
+                    {
+                        "c": {
+                            "parameter1": {"name": "size", "value": [1, 2, 3]},
+                            "parameter2": "some",
+                        }
+                    },
+                ],
+                [
+                    ["c->parameter2", "c->parameter1->name", "c->parameter1->value"],
+                    ["some", "size", "some_value"],
+                    ["some", "size", "[1, 2, 3]"],
+                ],
+            ],
             # From non-hashable values to hashable
             [
                 {},
@@ -748,6 +772,30 @@ class TestCSV:
                     ["size", "[1, 2, 3]"],
                     ["size", "XL"],
                     ["size", "[1, 2, 3]"],
+                ],
+            ],
+            # Nested
+            [
+                {},
+                {},
+                [
+                    {
+                        "c": {
+                            "parameter1": {"name": "size", "value": [1, 2, 3]},
+                            "parameter2": "some",
+                        }
+                    },
+                    {
+                        "c": {
+                            "parameter1": {"name": "size", "value": "some_value"},
+                            "parameter2": "some",
+                        }
+                    },
+                ],
+                [
+                    ["c->parameter1->name", "c->parameter1->value", "c->parameter2"],
+                    ["size", "[1, 2, 3]", "some"],
+                    ["size", "some_value", "some"],
                 ],
             ],
             # Mixed types, should be skipped
@@ -837,6 +885,30 @@ class TestCSV:
                 ],
                 [["c->name"], ["size"], ["size"], ["size"]],
             ],
+            # Nested
+            [
+                {},
+                {"stringify_invalid": False},
+                [
+                    {
+                        "c": {
+                            "parameter1": {"name": "size", "value": "some_value"},
+                            "parameter2": "some",
+                        }
+                    },
+                    {
+                        "c": {
+                            "parameter1": {"name": "size", "value": [1, 2, 3]},
+                            "parameter2": "some",
+                        }
+                    },
+                ],
+                [
+                    ["c->parameter2", "c->parameter1->name"],
+                    ["some", "size"],
+                    ["some", "size"],
+                ],
+            ],
             # From non-hashable values to hashable
             # Non-stable fields should be skipped
             [
@@ -868,9 +940,32 @@ class TestCSV:
                 ],
                 [["c->name"], ["size"], ["size"], ["size"]],
             ],
+            # Nested
+            [
+                {},
+                {"stringify_invalid": False},
+                [
+                    {
+                        "c": {
+                            "parameter1": {"name": "size", "value": [1, 2, 3]},
+                            "parameter2": "some",
+                        }
+                    },
+                    {
+                        "c": {
+                            "parameter1": {"name": "size", "value": "some_value"},
+                            "parameter2": "some",
+                        }
+                    },
+                ],
+                [
+                    ["c->parameter1->name", "c->parameter2"],
+                    ["size", "some"],
+                    ["size", "some"],
+                ],
+            ],
         ],
     )
-    # TODO Add skip cases (instead of stringify)
     def test_multiple_invalid_items(
         self,
         field_options: Dict[str, FieldOption],
