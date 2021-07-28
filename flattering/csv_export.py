@@ -104,7 +104,7 @@ class CSVStatsCollector:
     @property
     def stats(self):
         return {
-            "stats": self._stats,
+            "stats": self._filter_stats(self._stats),
             "invalid_properties": self._invalid_properties,
         }
 
@@ -131,6 +131,19 @@ class CSVStatsCollector:
             raise TypeError("Items must be dicts (not arrays) to be supported.")
         else:
             raise TypeError(f"Unsupported item type ({type(items[0])}).")
+
+    @staticmethod
+    def _filter_stats(stats: Dict[str, Header]) -> Dict[str, Header]:
+        """
+        Filter stats that can't be used to be able to remove
+        impossible field options to avoid bad formatting.
+        """
+        updated_stats = {}
+        for s_key, s_value in stats.items():
+            if s_value.get("count") == 0:
+                continue
+            updated_stats[s_key] = s_value
+        return updated_stats
 
     def _process_array(self, array_value: List, prefix: str = ""):
         # Skip empty arrays or invalid columns that would be stringified
@@ -375,69 +388,10 @@ class CSVExporter:
 
     def __attrs_post_init__(self):
         self._vocalize_invalid_properties()
-        self._filter_stats()
-        self._filter_field_options()
+        self._validate_field_options()
+        self._validate_headers_order()
+        self._validate_headers_filters()
         self._prepare_for_export()
-
-    @field_options.validator
-    def check_field_options(self, _, value: Dict):
-        allowed_separators = (";", ",", "\n")
-        for property_name, property_value in value.items():
-            for tp in ("named", "grouped"):
-                if not isinstance(property_value.get(tp), bool):
-                    raise ValueError(
-                        f"Adjusted properties ({property_name}) must include `{tp}` parameter with boolean value."
-                    )
-            if property_value.get("named") and not property_value.get("name"):
-                raise ValueError(
-                    f"Named adjusted properties ({property_name}) must include `name` parameter."
-                )
-            for key, value in property_value.get("grouped_separators", {}).items():
-                if value not in allowed_separators:
-                    raise ValueError(
-                        f"Only {allowed_separators} could be used"
-                        f" as custom grouped separators ({key}:{value})."
-                    )
-            property_stats = self.stats.get(property_name)
-            if not property_stats:
-                continue
-            if property_value.get("named"):
-                name = property_value["name"]
-                if not property_stats.get("properties"):
-                    raise ValueError(
-                        f'Field "{property_name}" doesn\'t have any properties '
-                        f'(as an array of hashable elements), so "named" option can\'t be applied.'
-                    )
-                if not property_stats["properties"].get(name):
-                    raise ValueError(
-                        f'Field "{property_name}" doesn\'t have name property '
-                        f"\"{property_value['name']}\", so \"named\" option can't be applied."
-                    )
-                # If property is both grouped and named - we don't care columns limit because
-                # everytihg will be grouped in a single cell
-                if not property_value.get("grouped"):
-                    if property_stats["properties"][name].get("limited"):
-                        raise ValueError(
-                            f"Field \"{property_name}\" values for name property \"{property_value['name']}\" "
-                            f'were limited by "named_columns_limit" when collecting stats, '
-                            f'so "named" option can\'t be applied.'
-                        )
-
-    @headers_order.validator
-    def check_headers_order(self, _, value: List[str]):
-        for header in value:
-            if not isinstance(header, str):
-                raise ValueError(
-                    f"Headers provided through headers_order must be strings, not {type(header)}."
-                )
-
-    @headers_filters.validator
-    def check_headers_filters(self, _, value: List[str]):
-        for header in value:
-            if not isinstance(header, str):
-                raise ValueError(
-                    f"Regex statements provided through headers_filters must be strings, not {type(header)}."
-                )
 
     @staticmethod
     def _prepare_io(
@@ -453,36 +407,107 @@ class CSVExporter:
             raise TypeError(f"Unexpeted export_path type ({type(export_path)}).")
         return export_file, need_to_close
 
-    def _filter_stats(self):
-        """
-        Filter stats that can't be used to be able to remove
-        impossible field options to avoid bad formatting.
-        """
-        updated_stats = {}
-        for s_key, s_value in self.stats.items():
-            if s_value.get("count") == 0:
-                continue
-            updated_stats[s_key] = s_value
-        self.stats = updated_stats
-
-    def _filter_field_options(self):
-        """
-        Filter field options that can't be applied.
-        """
-        updated_field_options = {}
-        for fo_key, fo_value in self.field_options.items():
-            if not fo_value.get("named") and not fo_value.get("grouped"):
+    def _validate_headers_order(self):
+        validated_headers_order = []
+        for header in self.headers_order:
+            if not isinstance(header, str):
                 logger.warning(
-                    f"Adjusted properties ({fo_key}) without either `named` or `grouped` "
-                    "parameters will be skipped."
+                    f"Headers provided through headers_order must be strings, not {type(header)}. "
+                    f"Header {header} would be skipped."
                 )
                 continue
-            if fo_key not in self.stats:
-                logger.warning(f"Field option for field \"{fo_key}\" will be skipped. Either this field doesn't "
-                               f"exist, or input items have invalid/inconsistent data, so can't be grouped or named.")
+            validated_headers_order.append(header)
+        self.headers_order = validated_headers_order
+
+    def _validate_headers_filters(self):
+        validated_headers_filters = []
+        for header_filter in self.headers_filters:
+            if not isinstance(header_filter, str):
+                logger.warning(
+                    f"Regex statements provided through headers_filters must be strings, not {type(header_filter)}. "
+                    f"Header filter {header_filter} will be skipped."
+                )
                 continue
-            updated_field_options[fo_key] = fo_value
-        self.field_options = updated_field_options
+            validated_headers_filters.append(header_filter)
+        self.headers_filters = validated_headers_filters
+
+    def _validate_field_options(self):
+        """
+        Validate and filter field options that can't be applied.
+        """
+        validated_field_options = {}
+        allowed_separators = (";", ",", "\n")
+        for property_name, property_value in self.field_options.items():
+            invalid_option = False
+            if property_name not in self.stats:
+                logger.warning(f"Field option for field \"{property_name}\" will be skipped. Either this field doesn't "
+                               f"exist, or input items have invalid data, so can't be grouped or named.")
+                continue
+            if not property_value.get("named") and not property_value.get("grouped"):
+                logger.warning(
+                    f"Field options must be either `named` or `grouped` or both. "
+                    f"Field option \"{property_name}\" will be skipped."
+                )
+                continue
+            for tp in ("named", "grouped"):
+                if not isinstance(property_value.get(tp), bool):  # NOQA
+                    logger.warning(
+                        f"Adjusted properties ({property_name}) must include `{tp}` parameter with boolean value. "
+                        f"Field option \"{property_name}\" will be skipped."
+                    )
+                    invalid_option = True
+                    break
+            if invalid_option:
+                continue
+            if property_value.get("named") and not property_value.get("name"):
+                logger.warning(
+                    f"Named adjusted properties ({property_name}) must include `name` parameter. "
+                    f"Field option \"{property_name}\" will be skipped."
+                )
+                continue
+            for key, value in property_value.get("grouped_separators", {}).items():
+                if value not in allowed_separators:
+                    logger.warning(
+                        f"Only {allowed_separators} could be used"
+                        f" as custom grouped separators ({key}:{value}). "
+                        f"Field option \"{property_name}\" will be skipped."
+                    )
+                    invalid_option = True
+                    break
+            if invalid_option:
+                continue
+            property_stats = self.stats.get(property_name)
+            if not property_stats:
+                continue
+            if property_value.get("named"):
+                name = property_value["name"]
+                if not property_stats.get("properties"):
+                    logger.warning(
+                        f'Field "{property_name}" doesn\'t have any properties '
+                        f'(as an array of hashable elements), so "named" option can\'t be applied. '
+                        f'Field option \"{property_name}\" will be skipped.'
+                    )
+                    continue
+                if not property_stats["properties"].get(name):
+                    logger.warning(
+                        f'Field "{property_name}" doesn\'t have name property '
+                        f"\"{property_value['name']}\", so \"named\" option can't be applied. "
+                        f"Field option \"{property_name}\" will be skipped."
+                    )
+                    continue
+                # If property is both grouped and named - we don't care columns limit because
+                # everytihg will be grouped in a single cell
+                if not property_value.get("grouped"):
+                    if property_stats["properties"][name].get("limited"):
+                        logger.warning(
+                            f"Field \"{property_name}\" values for name property \"{property_value['name']}\" "
+                            f'were limited by "named_columns_limit" when collecting stats, '
+                            f'so "named" option can\'t be applied. '
+                            f'Field option \"{property_name}\" will be skipped.'
+                        )
+                        continue
+            validated_field_options[property_name] = property_value
+        self.field_options = validated_field_options
 
     @headers_renaming.validator
     def check_headers_renaming(self, _, value: List[Tuple[str, str]]):
@@ -898,21 +923,34 @@ if __name__ == "__main__":
         # or name them also, so field options shouldn't apply
         # Still, if only one property is corrupted (like "value"), why not to save another one (like "size")?
 
+        # {"c":
+        #     {
+        #         "parameter1": [{"name": "size", "value": "XL"}, {"name": "color", "value": "blue"}],
+        #         "parameter2": "some"
+        #     }},
+        # # TODO Check how to deal with [1, 2, 3] instead of str
+        # {"c":
+        #     {
+        #         "parameter1": [{"name": "size", "value": [1, 2, 3]}, {"name": "color", "value": "blue"}],
+        #         "parameter2": "some"
+        #     }},
+
         {"c":
             {
-                "parameter1": [{"name": "size", "value": "XL"}, {"name": "color", "value": "blue"}],
+                "parameter1": {"name": "size", "value": [1, 2, 3]},
                 "parameter2": "some"
             }},
+
         # {"c":
         #     {
         #         "parameter1": [{"name": "size", "value": "L"}, {"name": "color", "value": "green"}],
         #         "parameter2": [1, 2, 3]
         #     }},
-        {"c":
-            {
-                "parameter1": [{"name": "size", "value": "L"}, {"name": "color", "value": "green"}],
-                "parameter2": "another some"
-            }},
+        # {"c":
+        #     {
+        #         "parameter1": [{"name": "size", "value": "L"}, {"name": "color", "value": "green"}],
+        #         "parameter2": "another some"
+        #     }},
 
         # {"c":
         #     {

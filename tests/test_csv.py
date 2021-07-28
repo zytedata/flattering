@@ -1064,7 +1064,7 @@ class TestCSV:
         assert re.match(warning_pattern, caplog.text)
 
     @pytest.mark.parametrize(
-        "field_options, export_options, items, exception_type, exception_pattern, named_columns_limit",
+        "field_options, export_options, items, warning_pattern, named_columns_limit",
         [
             # Arrays of simple elements can't be named
             [
@@ -1073,8 +1073,7 @@ class TestCSV:
                 [
                     {"c": [1, 2, 3]},
                 ],
-                ValueError,
-                r"Field \".*?\" doesn't have any properties \(.*?\), so \"named\" option can't be applied\.",
+                r".*Field \".*?\" doesn't have any properties \(.*?\), so \"named\" option can't be applied.*",
                 50,
             ],
             # No `name` field to use
@@ -1084,8 +1083,7 @@ class TestCSV:
                 [
                     {"c": {"name1": "color", "value": "blue"}},
                 ],
-                ValueError,
-                r"Field \".*?\" doesn't have name property \".*?\", so \"named\" option can't be applied.",
+                r".*Field \".*?\" doesn't have name property \".*?\", so \"named\" option can't be applied.*",
                 50,
             ],
             [
@@ -1094,8 +1092,7 @@ class TestCSV:
                 [
                     {"c": [{"name1": "color", "value": "blue"}]},
                 ],
-                ValueError,
-                r"Field \".*?\" doesn't have name property \".*?\", so \"named\" option can't be applied.",
+                r".*Field \".*?\" doesn't have name property \".*?\", so \"named\" option can't be applied.*",
                 50,
             ],
             # Non-hashable dict can't be named (no names/values collected)
@@ -1105,8 +1102,7 @@ class TestCSV:
                 [
                     {"c": {"name": "color", "value": "blue", "list": [1, 2, 3]}},
                 ],
-                ValueError,
-                r"Field \".*?\" doesn't have any properties \(.*?\), so \"named\" option can't be applied\.",
+                r".*Field \".*?\" doesn't have any properties \(.*?\), so \"named\" option can't be applied.*",
                 50,
             ],
             # No names and values to used because of the limits
@@ -1118,9 +1114,8 @@ class TestCSV:
                     {"c": [{"name": "color", "value": "green"}]},
                     {"c": [{"name": "color", "value": "red"}]},
                 ],
-                ValueError,
-                r"Field \".*?\" values for name property \".*?\" were limited by \"named_columns_limit\" when "
-                r"collecting stats, so \"named\" option can't be applied.",
+                r".*Field \".*?\" values for name property \".*?\" were limited by \"named_columns_limit\" when "
+                r"collecting stats, so \"named\" option can't be applied.*",
                 2,
             ],
             [
@@ -1131,9 +1126,8 @@ class TestCSV:
                     {"c": {"name": "color", "value": "green"}},
                     {"c": {"name": "color", "value": "red"}},
                 ],
-                ValueError,
-                r"Field \".*?\" values for name property \".*?\" were limited by \"named_columns_limit\" when "
-                r"collecting stats, so \"named\" option can't be applied.",
+                r".*Field \".*?\" values for name property \".*?\" were limited by \"named_columns_limit\" when "
+                r"collecting stats, so \"named\" option can't be applied.*",
                 2,
             ],
             # Incorrect headers_order
@@ -1141,8 +1135,7 @@ class TestCSV:
                 {},
                 {"headers_order": ["name", 123]},
                 [{"name": "value", "another_name": "another_value"}],
-                ValueError,
-                r"Headers provided through headers_order must be strings, not <class 'int'>.",
+                r".*Headers provided through headers_order must be strings, not <class 'int'>.*",
                 50,
             ],
             # Incorrect headers_filters
@@ -1150,30 +1143,30 @@ class TestCSV:
                 {},
                 {"headers_filters": ["name", 123]},
                 [{"name": "value", "another_name": "another_value"}],
-                ValueError,
-                r"Regex statements provided through headers_filters must be strings, not <class 'int'>.",
+                r".*Regex statements provided through headers_filters must be strings, not <class 'int'>.*",
                 50,
             ],
         ],
     )
-    def test_export_exceptions(
+    def test_export_warnings(
             self,
+            caplog,
             field_options: Dict[str, FieldOption],
             export_options: Dict,
             items: List[Dict],
-            exception_type: ValueError,
-            exception_pattern: str,
+            warning_pattern: str,
             named_columns_limit: int,
     ):
         csv_stats_col = CSVStatsCollector(named_columns_limit=named_columns_limit)
         csv_stats_col.process_items(items)
-        with pytest.raises(exception_type, match=exception_pattern) as _:  # NOQA
+        with caplog.at_level(logging.WARNING):
             CSVExporter(
                 stats=csv_stats_col._stats,
                 invalid_properties=csv_stats_col._invalid_properties,
                 field_options=field_options,
                 **export_options,
             )
+        assert re.match(warning_pattern, caplog.text)
 
     @pytest.mark.parametrize(
         "field_options, export_options, items, named_columns_limit",
