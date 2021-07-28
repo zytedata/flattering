@@ -12,7 +12,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
         description="Export JSON as CSV.", formatter_class=Formatter
-    )  # NOQA
+    )
     parser.add_argument(
         "--path", metavar="path", type=str, help="the path to JSON file;", required=True
     )
