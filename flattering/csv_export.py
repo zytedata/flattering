@@ -982,7 +982,8 @@ if __name__ == "__main__":
     # # with open(f"autocrawl/utils/csv_assets/{file_name.replace('.json', '.csv')}", "w") as f:
     # #     csv_exporter.export_csv_full(item_list, f)
 
-    # item_list = [{"some_field": "some_value"}]
-    # sc = StatsCollector(named_columns_limit=50)
-    # # Items could be processed in batch or one-by-one through `process_object`
-    # autocrawl_csv_sc.process_items(item_list)
+    item_list = [{"some_field": "some_value", "another_field": [1, 2, 3]}]
+    sc = StatsCollector()
+    sc.process_items(item_list)
+    exporter = Exporter(sc.stats["stats"], sc.stats["invalid_properties"])
+    exporter.export_csv_full(item_list, "example.csv")
