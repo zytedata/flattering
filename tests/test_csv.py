@@ -769,6 +769,204 @@ class TestCSV:
                     ],
                 ],
             ],
+            # Triple nested
+            [
+                {
+                    "c->nested_c->double_nested_c[0]": FieldOption(
+                        named=False, name="name", grouped=True
+                    )
+                },
+                {},
+                [
+                    {
+                        "c": {
+                            "nested_c": {"double_nested_c": [[1, 2, 3]]},
+                            "some_field_1": "some_value_1",
+                        },
+                        "b": "some_other_value_1",
+                    },
+                    {
+                        "c": {
+                            "nested_c": {"double_nested_c": [[4, 5, 6, 7]]},
+                            "some_field_2": "some_value_2",
+                        },
+                        "b": "some_other_value_2",
+                    },
+                ],
+                [
+                    [
+                        "c->nested_c->double_nested_c[0]",
+                        "c->some_field_1",
+                        "b",
+                        "c->some_field_2",
+                    ],
+                    ["1\n2\n3", "some_value_1", "some_other_value_1", ""],
+                    ["4\n5\n6\n7", "", "some_other_value_2", "some_value_2"],
+                ],
+            ],
+            [
+                {
+                    "c->nested_c->double_nested_c[0]": FieldOption(
+                        named=True, name="name", grouped=True
+                    )
+                },
+                {},
+                [
+                    {
+                        "c": {
+                            "nested_c": {
+                                "double_nested_c": [
+                                    [
+                                        {"name": "size", "value": "L"},
+                                        {"name": "color", "value": "blue"},
+                                    ]
+                                ]
+                            },
+                            "some_field_1": "some_value_1",
+                        },
+                        "b": "some_other_value_1",
+                    },
+                    {
+                        "c": {
+                            "nested_c": {
+                                "double_nested_c": [
+                                    [
+                                        {"name": "size", "value": "XL"},
+                                        {"name": "color", "value": "green"},
+                                    ]
+                                ]
+                            },
+                            "some_field_2": "some_value_2",
+                        },
+                        "b": "some_other_value_2",
+                    },
+                ],
+                [
+                    [
+                        "c->nested_c->double_nested_c[0]",
+                        "c->some_field_1",
+                        "b",
+                        "c->some_field_2",
+                    ],
+                    ["size: L\ncolor: blue", "some_value_1", "some_other_value_1", ""],
+                    [
+                        "size: XL\ncolor: green",
+                        "",
+                        "some_other_value_2",
+                        "some_value_2",
+                    ],
+                ],
+            ],
+            [
+                {
+                    "c->nested_c->double_nested_c[0]": FieldOption(
+                        named=True, name="name", grouped=False
+                    )
+                },
+                {},
+                [
+                    {
+                        "c": {
+                            "nested_c": {
+                                "double_nested_c": [
+                                    [
+                                        {"name": "size", "value": "L"},
+                                        {"name": "color", "value": "blue"},
+                                    ]
+                                ]
+                            },
+                            "some_field_1": "some_value_1",
+                        },
+                        "b": "some_other_value_1",
+                    },
+                    {
+                        "c": {
+                            "nested_c": {
+                                "double_nested_c": [
+                                    [
+                                        {"name": "size", "value": "XL"},
+                                        {"name": "color", "value": "green"},
+                                    ]
+                                ]
+                            },
+                            "some_field_2": "some_value_2",
+                        },
+                        "b": "some_other_value_2",
+                    },
+                ],
+                [
+                    [
+                        "c->nested_c->double_nested_c[0]->size->value",
+                        "c->nested_c->double_nested_c[0]->color->value",
+                        "c->some_field_1",
+                        "b",
+                        "c->some_field_2",
+                    ],
+                    ["L", "blue", "some_value_1", "some_other_value_1", ""],
+                    ["XL", "green", "", "some_other_value_2", "some_value_2"],
+                ],
+            ],
+            [
+                {
+                    "c->nested_c->double_nested_c[0]": FieldOption(
+                        named=False, name="name", grouped=True
+                    )
+                },
+                {},
+                [
+                    {
+                        "c": {
+                            "nested_c": {
+                                "double_nested_c": [
+                                    [
+                                        {"name": "size", "value": "L"},
+                                        {"name": "color", "value": "blue"},
+                                    ]
+                                ]
+                            },
+                            "some_field_1": "some_value_1",
+                        },
+                        "b": "some_other_value_1",
+                    },
+                    {
+                        "c": {
+                            "nested_c": {
+                                "double_nested_c": [
+                                    [
+                                        {"name": "size", "value": "XL"},
+                                        {"name": "color", "value": "green"},
+                                    ]
+                                ]
+                            },
+                            "some_field_2": "some_value_2",
+                        },
+                        "b": "some_other_value_2",
+                    },
+                ],
+                [
+                    [
+                        "c->nested_c->double_nested_c[0]->name",
+                        "c->nested_c->double_nested_c[0]->value",
+                        "c->some_field_1",
+                        "b",
+                        "c->some_field_2",
+                    ],
+                    [
+                        "size\ncolor",
+                        "L\nblue",
+                        "some_value_1",
+                        "some_other_value_1",
+                        "",
+                    ],
+                    [
+                        "size\ncolor",
+                        "XL\ngreen",
+                        "",
+                        "some_other_value_2",
+                        "some_value_2",
+                    ],
+                ],
+            ],
         ],
     )
     def test_multiple_items(
