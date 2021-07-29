@@ -938,34 +938,7 @@ if __name__ == "__main__":
     #     resource_string(__name__, f"tests/assets/{file_name}").decode("utf-8")
     # )
     file_name = "custom.json"
-    item_list: List[Dict] = [
-        # TODO Check the difference of processing "value": "XL" and "value": [1,2,3]
-        # TODO Check the same when c is an array of such objects
-        {
-            "c": {
-                "parameter1": {"name": "size", "value": CSVStatsCollector()},
-                "parameter2": "some",
-            }
-        },
-        {
-            "c": {
-                "parameter1": {"name": "size", "value": "some_value"},
-                "parameter2": "some",
-            }
-        },
-        # {
-        #     "c": {
-        #         "parameter1": {"name": "size", "value": [1, 2, 3]},
-        #         "parameter2": "some",
-        #     }
-        # },
-        # {
-        #     "c": {
-        #         "parameter1": {"name": "size", "value": "some_value"},
-        #         "parameter2": "some",
-        #     }
-        # },
-    ]
+    item_list: List[Dict] = []
 
     # AUTOCRAWL PART
     autocrawl_csv_sc = CSVStatsCollector(named_columns_limit=50)

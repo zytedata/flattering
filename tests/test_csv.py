@@ -803,6 +803,37 @@ class TestCSV:
                     ["some", "size", "[1, 2, 3]"],
                 ],
             ],
+            [
+                {},
+                {},
+                [
+                    {
+                        "c": [
+                            {
+                                "parameter1": {"name": "size", "value": "some_value"},
+                                "parameter2": "some",
+                            }
+                        ]
+                    },
+                    {
+                        "c": [
+                            {
+                                "parameter1": {"name": "size", "value": [1, 2, 3]},
+                                "parameter2": "some",
+                            }
+                        ]
+                    },
+                ],
+                [
+                    [
+                        "c[0]->parameter2",
+                        "c[0]->parameter1->name",
+                        "c[0]->parameter1->value",
+                    ],
+                    ["some", "size", "some_value"],
+                    ["some", "size", "[1, 2, 3]"],
+                ],
+            ],
             # From non-hashable values to hashable
             [
                 {},
@@ -860,6 +891,37 @@ class TestCSV:
                     ["c->parameter1->name", "c->parameter1->value", "c->parameter2"],
                     ["size", "[1, 2, 3]", "some"],
                     ["size", "some_value", "some"],
+                ],
+            ],
+            [
+                {},
+                {},
+                [
+                    {
+                        "c": [
+                            {
+                                "parameter1": {"name": "size", "value": [1, 2, 3]},
+                                "parameter2": "some",
+                            }
+                        ]
+                    },
+                    {
+                        "c": [
+                            {
+                                "parameter1": {"name": "size", "value": "some_value"},
+                                "parameter2": "some",
+                            }
+                        ]
+                    },
+                ],
+                [
+                    [
+                        "c[0]->parameter2",
+                        "c[0]->parameter1->name",
+                        "c[0]->parameter1->value",
+                    ],
+                    ["some", "size", "[1, 2, 3]"],
+                    ["some", "size", "some_value"],
                 ],
             ],
             # Unsupported type
@@ -1077,6 +1139,33 @@ class TestCSV:
                     ["some", "size"],
                 ],
             ],
+            [
+                {},
+                {"stringify_invalid": False},
+                [
+                    {
+                        "c": [
+                            {
+                                "parameter1": {"name": "size", "value": "some_value"},
+                                "parameter2": "some",
+                            }
+                        ]
+                    },
+                    {
+                        "c": [
+                            {
+                                "parameter1": {"name": "size", "value": [1, 2, 3]},
+                                "parameter2": "some",
+                            }
+                        ]
+                    },
+                ],
+                [
+                    ["c[0]->parameter2", "c[0]->parameter1->name"],
+                    ["some", "size"],
+                    ["some", "size"],
+                ],
+            ],
             # From non-hashable values to hashable
             # Non-stable fields should be skipped
             [
@@ -1130,6 +1219,33 @@ class TestCSV:
                     ["c->parameter1->name", "c->parameter2"],
                     ["size", "some"],
                     ["size", "some"],
+                ],
+            ],
+            [
+                {},
+                {"stringify_invalid": False},
+                [
+                    {
+                        "c": [
+                            {
+                                "parameter1": {"name": "size", "value": [1, 2, 3]},
+                                "parameter2": "some",
+                            }
+                        ]
+                    },
+                    {
+                        "c": [
+                            {
+                                "parameter1": {"name": "size", "value": "some_value"},
+                                "parameter2": "some",
+                            }
+                        ]
+                    },
+                ],
+                [
+                    ["c[0]->parameter2", "c[0]->parameter1->name"],
+                    ["some", "size"],
+                    ["some", "size"],
                 ],
             ],
             # Unsupported type
