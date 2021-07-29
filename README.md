@@ -4,7 +4,7 @@ Flattering is the tool to flatten, format and export any JSON-like data, no matt
 
 So, items like this:
 
-```javascript
+```yaml
 {
     "name": "Custom product 1",
     "offers": [{"price": "154.95", "currency": "$"}],
