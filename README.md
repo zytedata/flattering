@@ -4,7 +4,7 @@ Flattering is the tool to flatten, format and export any JSON-like data, no matt
 
 So, items like this:
 
-```
+```json
 [
     {
         "name": "Custom product 1",
@@ -42,7 +42,7 @@ Flattering consists of two elements:
 - `StatsCollector`, to understand how many columns are required, what headers they'll have, and what data is mixed/invalid (to skip or stringify).
 - `Exporter`, to format/beatify the data, if needed, and fit it in predefined columns.
 
-```
+```python
 item_list = [{"some_field": "some_value", "another_field": [1, 2, 3]}]
 sc = StatsCollector()
 sc.process_items(item_list)
