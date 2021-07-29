@@ -1,6 +1,6 @@
 # Flattering
 
-Flattering is the tool to flatten, format and export any `JSON`-like data, no matter how complex or mixed it is.
+Flattering is the tool to flatten, format and export any JSON-like data, no matter how complex or mixed it is.
 
 So, items like this:
 
