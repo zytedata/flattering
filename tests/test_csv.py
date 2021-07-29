@@ -652,6 +652,70 @@ class TestCSV:
                     ["123"],
                 ],
             ],
+            # From array of dicts to dict
+            [
+                {},
+                {},
+                [
+                    {
+                        "c": [
+                            {"name": "size", "value": [123]},
+                            {"name": "color", "value": "blue"},
+                        ]
+                    },
+                    {
+                        "c": [
+                            {"name": "size", "value": "L"},
+                            {"name": "color", "value": "green"},
+                        ]
+                    },
+                    {"c": {"name": "color"}},
+                    {"c": {"name": "width"}},
+                ],
+                [
+                    ["c"],
+                    [
+                        "[{'name': 'size', 'value': [123]}, {'name': 'color', 'value': 'blue'}]"
+                    ],
+                    [
+                        "[{'name': 'size', 'value': 'L'}, {'name': 'color', 'value': 'green'}]"
+                    ],
+                    ["{'name': 'color'}"],
+                    ["{'name': 'width'}"],
+                ],
+            ],
+            # From dict to array of dicts
+            [
+                {},
+                {},
+                [
+                    {"c": {"name": "color"}},
+                    {"c": {"name": "width"}},
+                    {
+                        "c": [
+                            {"name": "size", "value": [123]},
+                            {"name": "color", "value": "blue"},
+                        ]
+                    },
+                    {
+                        "c": [
+                            {"name": "size", "value": "L"},
+                            {"name": "color", "value": "green"},
+                        ]
+                    },
+                ],
+                [
+                    ["c"],
+                    ["{'name': 'color'}"],
+                    ["{'name': 'width'}"],
+                    [
+                        "[{'name': 'size', 'value': [123]}, {'name': 'color', 'value': 'blue'}]"
+                    ],
+                    [
+                        "[{'name': 'size', 'value': 'L'}, {'name': 'color', 'value': 'green'}]"
+                    ],
+                ],
+            ],
             # From hashable array to non-hashable array
             [
                 {},
@@ -798,6 +862,66 @@ class TestCSV:
                     ["size", "some_value", "some"],
                 ],
             ],
+            # Unsupported type
+            [
+                {},
+                {},
+                [
+                    {
+                        "c": {
+                            "parameter1": {"name": "size", "value": [1, 2, 3]},
+                            "parameter2": "some",
+                        }
+                    },
+                    {
+                        "c": {
+                            "parameter1": {"name": "size", "value": "some_value"},
+                            "parameter2": CSVStatsCollector(),
+                        }
+                    },
+                ],
+                [
+                    ["c->parameter1->name", "c->parameter1->value", "c->parameter2"],
+                    ["size", "[1, 2, 3]", "some"],
+                    [
+                        "size",
+                        "some_value",
+                        "CSVStatsCollector"
+                        "(named_columns_limit=20, cut_separator='->', _stats={}, _invalid_properties={})",
+                    ],
+                ],
+            ],
+            [
+                {},
+                {},
+                [
+                    {
+                        "c": {
+                            "parameter1": {
+                                "name": "size",
+                                "value": CSVStatsCollector(),
+                            },
+                            "parameter2": "some",
+                        }
+                    },
+                    {
+                        "c": {
+                            "parameter1": {"name": "size", "value": "some_value"},
+                            "parameter2": "some",
+                        }
+                    },
+                ],
+                [
+                    ["c->parameter1->name", "c->parameter1->value", "c->parameter2"],
+                    [
+                        "size",
+                        "CSVStatsCollector"
+                        "(named_columns_limit=20, cut_separator='->', _stats={}, _invalid_properties={})",
+                        "some",
+                    ],
+                    ["size", "some_value", "some"],
+                ],
+            ],
             # Mixed types, should be skipped
             [
                 {},
@@ -831,6 +955,50 @@ class TestCSV:
                     {"c": 123},
                 ],
                 [[], [], [], []],
+            ],
+            # From array of dicts to dict
+            [
+                {},
+                {"stringify_invalid": False},
+                [
+                    {
+                        "c": [
+                            {"name": "size", "value": [123]},
+                            {"name": "color", "value": "blue"},
+                        ]
+                    },
+                    {
+                        "c": [
+                            {"name": "size", "value": "L"},
+                            {"name": "color", "value": "green"},
+                        ]
+                    },
+                    {"c": {"name": "color"}},
+                    {"c": {"name": "width"}},
+                ],
+                [[], [], [], [], []],
+            ],
+            # From dict to array of dicts
+            [
+                {},
+                {"stringify_invalid": False},
+                [
+                    {"c": {"name": "color"}},
+                    {"c": {"name": "width"}},
+                    {
+                        "c": [
+                            {"name": "size", "value": [123]},
+                            {"name": "color", "value": "blue"},
+                        ]
+                    },
+                    {
+                        "c": [
+                            {"name": "size", "value": "L"},
+                            {"name": "color", "value": "green"},
+                        ]
+                    },
+                ],
+                [[], [], [], [], []],
             ],
             # From hashable array to non-hashable array
             # Non-stable fields should be skipped
@@ -948,6 +1116,52 @@ class TestCSV:
                     {
                         "c": {
                             "parameter1": {"name": "size", "value": [1, 2, 3]},
+                            "parameter2": "some",
+                        }
+                    },
+                    {
+                        "c": {
+                            "parameter1": {"name": "size", "value": "some_value"},
+                            "parameter2": "some",
+                        }
+                    },
+                ],
+                [
+                    ["c->parameter1->name", "c->parameter2"],
+                    ["size", "some"],
+                    ["size", "some"],
+                ],
+            ],
+            # Unsupported type
+            [
+                {},
+                {"stringify_invalid": False},
+                [
+                    {
+                        "c": {
+                            "parameter1": {"name": "size", "value": [1, 2, 3]},
+                            "parameter2": "some",
+                        }
+                    },
+                    {
+                        "c": {
+                            "parameter1": {"name": "size", "value": "some_value"},
+                            "parameter2": CSVStatsCollector(),
+                        }
+                    },
+                ],
+                [["c->parameter1->name"], ["size"], ["size"]],
+            ],
+            [
+                {},
+                {"stringify_invalid": False},
+                [
+                    {
+                        "c": {
+                            "parameter1": {
+                                "name": "size",
+                                "value": CSVStatsCollector(),
+                            },
                             "parameter2": "some",
                         }
                     },

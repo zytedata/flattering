@@ -254,16 +254,19 @@ class CSVStatsCollector:
                     logger.warning(msg)
                     self._invalid_properties[property_path] = msg
                     self.clear_outdated_stats(property_path)
+                    # Setting empty stats so the property could be stringified later
                     self._stats[property_path] = {}
                     continue
                 # If not hashable, but doesn't have properties
-                if not values_hashable[property_name] and property_stats == {}:
+                elif not values_hashable[property_name] and property_stats == {}:
                     msg = (
                         f"Field ({property_path}) was processed as hashable "
                         f"but later got non-hashable value: ({property_value})"
                     )
                     logger.warning(msg)
                     self._invalid_properties[property_path] = msg
+                    self.clear_outdated_stats(property_path)
+                    # Setting empty stats so the property could be stringified later
                     self._stats[property_path] = {}
                     continue
             property_type = property_stats.get("type") if property_stats else None
@@ -274,16 +277,17 @@ class CSVStatsCollector:
                 )
                 and property_path not in self._invalid_properties
             ):
-                # Not throwing an error here, but if type was changed from dict to list - the exporter
-                # would throw TypeError because collected dict keys can't be accesed in list
                 msg = (
                     f'Field ({property_path}) value changed the type from "{property_type}" '
                     f"to {type(property_value)}: ({property_value})"
                 )
                 logger.warning(msg)
                 self._invalid_properties[property_path] = msg
+                self.clear_outdated_stats(property_path)
+                # Setting empty stats so the property could be stringified later
+                self._stats[property_path] = {}
                 continue
-            if is_hashable(property_value):
+            elif is_hashable(property_value):
                 if self._stats.get(property_path) is None:
                     self._stats[property_path] = {}
             elif is_list(property_value):
@@ -297,7 +301,8 @@ class CSVStatsCollector:
                 )
                 logger.warning(msg)
                 self._invalid_properties[property_path] = msg
-                # Adding empty stats so the property could be stringified later
+                self.clear_outdated_stats(property_path)
+                # Setting empty stats so the property could be stringified later
                 self._stats[property_path] = {}
 
     def _process_hashable_object(self, object_value: Dict, prefix: str = ""):
@@ -934,29 +939,11 @@ if __name__ == "__main__":
     # )
     file_name = "custom.json"
     item_list: List[Dict] = [
-        # {"c": [{"name": "size", "value": [123]}, {"name": "color", "value": "blue"}]},
-        # {"c": [{"name": "size", "value": "L"}, {"name": "color", "value": "green"}]},
-        # {"c": {"name": "size"}},
-        # {"c": {"name": "size"}},
         # TODO Check the difference of processing "value": "XL" and "value": [1,2,3]
         # TODO Check the same when c is an array of such objects
-        # THOUGHT: If I don't want to keep values for stringified fields then I can't group
-        # or name them also, so field options shouldn't apply
-        # Still, if only one property is corrupted (like "value"), why not to save another one (like "size")?
-        # {"c":
-        #     {
-        #         "parameter1": [{"name": "size", "value": "XL"}, {"name": "color", "value": "blue"}],
-        #         "parameter2": "some"
-        #     }},
-        # # TODO Check how to deal with [1, 2, 3] instead of str
-        # {"c":
-        #     {
-        #         "parameter1": [{"name": "size", "value": [1, 2, 3]}, {"name": "color", "value": "blue"}],
-        #         "parameter2": "some"
-        #     }},
         {
             "c": {
-                "parameter1": {"name": "size", "value": [1, 2, 3]},
+                "parameter1": {"name": "size", "value": CSVStatsCollector()},
                 "parameter2": "some",
             }
         },
@@ -966,34 +953,29 @@ if __name__ == "__main__":
                 "parameter2": "some",
             }
         },
-        # {"c":
-        #     {
-        #         "parameter1": [{"name": "size", "value": "L"}, {"name": "color", "value": "green"}],
-        #         "parameter2": [1, 2, 3]
-        #     }},
-        # {"c":
-        #     {
-        #         "parameter1": [{"name": "size", "value": "L"}, {"name": "color", "value": "green"}],
-        #         "parameter2": "another some"
-        #     }},
-        # {"c":
-        #     {
-        #         "parameter1": {"name": "size", "value": "L"},
-        #         "parameter2": "some"
-        #     }},
-        # {"c":
-        #     {
-        #         "parameter1": {"name": "size", "value": "XL"},
-        #         "parameter2": "another some"
-        #     }},
+        # {
+        #     "c": {
+        #         "parameter1": {"name": "size", "value": [1, 2, 3]},
+        #         "parameter2": "some",
+        #     }
+        # },
+        # {
+        #     "c": {
+        #         "parameter1": {"name": "size", "value": "some_value"},
+        #         "parameter2": "some",
+        #     }
+        # },
     ]
 
     # AUTOCRAWL PART
     autocrawl_csv_sc = CSVStatsCollector(named_columns_limit=50)
     # Items could be processed in batch or one-by-one through `process_object`
     autocrawl_csv_sc.process_items(item_list)
+    print("*" * 50)
     print(autocrawl_csv_sc.stats["stats"])
+    print("*" * 10)
     print(autocrawl_csv_sc.stats["invalid_properties"])
+    print("*" * 10)
 
     # BACKEND PART (assuming we send stats to backend)
     csv_exporter = CSVExporter(
