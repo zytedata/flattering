@@ -748,7 +748,7 @@ class CSVExporter:
             # Grouped AND Named
             else:
                 return self._export_grouped_and_named_field(
-                    item_data, main_header, child_headers, separator
+                    item_data, main_header, separator
                 )
         # Named; if not grouped and not named - adjusted property was filtered
         else:
@@ -788,7 +788,7 @@ class CSVExporter:
             )
 
     def _export_grouped_and_named_field(
-        self, item_data: Cut, main_header: str, child_headers: List[str], separator: str
+        self, item_data: Cut, main_header: str, separator: str
     ) -> str:
         name = self.field_options[main_header]["name"]
         values = []
