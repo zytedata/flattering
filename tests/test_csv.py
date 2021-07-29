@@ -10,7 +10,7 @@ from typing import Dict, List
 import pytest
 from pkg_resources import resource_stream, resource_string
 
-from flattering.csv_export import CSVExporter, CSVStatsCollector, FieldOption
+from flattering.csv_export import Exporter, FieldOption, StatsCollector
 
 LOGGER = logging.getLogger(__name__)
 
@@ -98,12 +98,12 @@ class TestCSV:
         )
 
         # AutoCrawl part
-        csv_stats_col = CSVStatsCollector()
+        csv_stats_col = StatsCollector()
         # Items could be processed in batch or one-by-one through `process_object`
         csv_stats_col.process_items(item_list)
 
         # Backend part
-        csv_exporter = CSVExporter(
+        csv_exporter = Exporter(
             stats=csv_stats_col._stats,
             invalid_properties=csv_stats_col._invalid_properties,
             field_options=field_options,
@@ -399,10 +399,10 @@ class TestCSV:
         items,
         expected,
     ):
-        csv_stats_col = CSVStatsCollector(named_columns_limit=50)
+        csv_stats_col = StatsCollector(named_columns_limit=50)
         csv_stats_col.process_items(items)
 
-        csv_exporter = CSVExporter(
+        csv_exporter = Exporter(
             stats=csv_stats_col._stats,
             invalid_properties=csv_stats_col._invalid_properties,
             field_options=field_options,
@@ -976,10 +976,10 @@ class TestCSV:
         items,
         expected,
     ):
-        csv_stats_col = CSVStatsCollector(named_columns_limit=50)
+        csv_stats_col = StatsCollector(named_columns_limit=50)
         csv_stats_col.process_items(items)
 
-        csv_exporter = CSVExporter(
+        csv_exporter = Exporter(
             stats=csv_stats_col._stats,
             invalid_properties=csv_stats_col._invalid_properties,
             field_options=field_options,
@@ -1321,7 +1321,7 @@ class TestCSV:
                     {
                         "c": {
                             "parameter1": {"name": "size", "value": "some_value"},
-                            "parameter2": CSVStatsCollector(),
+                            "parameter2": StatsCollector(),
                         }
                     },
                 ],
@@ -1331,7 +1331,7 @@ class TestCSV:
                     [
                         "size",
                         "some_value",
-                        "CSVStatsCollector"
+                        "StatsCollector"
                         "(named_columns_limit=20, cut_separator='->', _stats={}, _invalid_properties={})",
                     ],
                 ],
@@ -1344,7 +1344,7 @@ class TestCSV:
                         "c": {
                             "parameter1": {
                                 "name": "size",
-                                "value": CSVStatsCollector(),
+                                "value": StatsCollector(),
                             },
                             "parameter2": "some",
                         }
@@ -1360,7 +1360,7 @@ class TestCSV:
                     ["c->parameter1->name", "c->parameter1->value", "c->parameter2"],
                     [
                         "size",
-                        "CSVStatsCollector"
+                        "StatsCollector"
                         "(named_columns_limit=20, cut_separator='->', _stats={}, _invalid_properties={})",
                         "some",
                     ],
@@ -1645,7 +1645,7 @@ class TestCSV:
                     {
                         "c": {
                             "parameter1": {"name": "size", "value": "some_value"},
-                            "parameter2": CSVStatsCollector(),
+                            "parameter2": StatsCollector(),
                         }
                     },
                 ],
@@ -1659,7 +1659,7 @@ class TestCSV:
                         "c": {
                             "parameter1": {
                                 "name": "size",
-                                "value": CSVStatsCollector(),
+                                "value": StatsCollector(),
                             },
                             "parameter2": "some",
                         }
@@ -1686,10 +1686,10 @@ class TestCSV:
         items,
         expected,
     ):
-        csv_stats_col = CSVStatsCollector(named_columns_limit=50)
+        csv_stats_col = StatsCollector(named_columns_limit=50)
         csv_stats_col.process_items(items)
 
-        csv_exporter = CSVExporter(
+        csv_exporter = Exporter(
             stats=csv_stats_col._stats,
             invalid_properties=csv_stats_col._invalid_properties,
             field_options=field_options,
@@ -1749,7 +1749,7 @@ class TestCSV:
         exception_pattern: str,
     ):
         with pytest.raises(exception_type, match=exception_pattern) as _:  # NOQA
-            csv_stats_col = CSVStatsCollector()
+            csv_stats_col = StatsCollector()
             csv_stats_col.process_items(items)
 
     @pytest.mark.parametrize(
@@ -1815,7 +1815,7 @@ class TestCSV:
         warning_pattern: str,
     ):
         with caplog.at_level(logging.WARNING):
-            csv_stats_col = CSVStatsCollector(named_columns_limit=50)
+            csv_stats_col = StatsCollector(named_columns_limit=50)
             csv_stats_col.process_items(items)
         assert re.match(warning_pattern, caplog.text)
 
@@ -1913,10 +1913,10 @@ class TestCSV:
         warning_pattern: str,
         named_columns_limit: int,
     ):
-        csv_stats_col = CSVStatsCollector(named_columns_limit=named_columns_limit)
+        csv_stats_col = StatsCollector(named_columns_limit=named_columns_limit)
         csv_stats_col.process_items(items)
         with caplog.at_level(logging.WARNING):
-            CSVExporter(
+            Exporter(
                 stats=csv_stats_col._stats,
                 invalid_properties=csv_stats_col._invalid_properties,
                 field_options=field_options,
@@ -1947,9 +1947,9 @@ class TestCSV:
         items: List[Dict],
         named_columns_limit: int,
     ):
-        csv_stats_col = CSVStatsCollector(named_columns_limit=named_columns_limit)
+        csv_stats_col = StatsCollector(named_columns_limit=named_columns_limit)
         csv_stats_col.process_items(items)
-        CSVExporter(
+        Exporter(
             stats=csv_stats_col._stats,
             invalid_properties=csv_stats_col._invalid_properties,
             field_options=field_options,
@@ -1961,9 +1961,9 @@ class TestCSV:
             {"c": {"name": "color", "value": "green"}},
             {"c": {"name": "color", "value": "blue"}},
         ]
-        csv_stats_col = CSVStatsCollector()
+        csv_stats_col = StatsCollector()
         csv_stats_col.process_items(item_list)
-        csv_exporter = CSVExporter(
+        csv_exporter = Exporter(
             stats=csv_stats_col._stats,
             invalid_properties=csv_stats_col._invalid_properties,
         )
@@ -1976,9 +1976,9 @@ class TestCSV:
             {"c": {"name": "color", "value": "green"}},
             {"c": {"name": "color", "value": "blue"}},
         ]
-        csv_stats_col = CSVStatsCollector()
+        csv_stats_col = StatsCollector()
         csv_stats_col.process_items(item_list)
-        csv_exporter = CSVExporter(
+        csv_exporter = Exporter(
             stats=csv_stats_col._stats,
             invalid_properties=csv_stats_col._invalid_properties,
         )
@@ -1993,9 +1993,9 @@ class TestCSV:
             {"c": {"name": "color", "value": "green"}},
             {"c": {"name": "color", "value": "blue"}},
         ]
-        csv_stats_col = CSVStatsCollector()
+        csv_stats_col = StatsCollector()
         csv_stats_col.process_items(item_list)
-        csv_exporter = CSVExporter(
+        csv_exporter = Exporter(
             stats=csv_stats_col._stats,
             invalid_properties=csv_stats_col._invalid_properties,
         )
