@@ -37,7 +37,7 @@ will look like this:
 Flattering consists of two elements:
 
 - `StatsCollector`, to understand how many columns are required, what headers they'll have, and what data is mixed/invalid (to skip or stringify).
-- `Exporter`, to format/beatify the data, if needed, and fit it in predefined columns.
+- `Exporter`, to format and beatify the data, fit it in columns, and export it (as `.csv` or flat data).
 
 ```python
 item_list = [{"some_field": "some_value", "another_field": [1, 2, 3]}]
