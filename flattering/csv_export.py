@@ -79,7 +79,7 @@ def prepare_io(func):
 
 
 @attr.s(auto_attribs=True)
-class CSVStatsCollector:
+class StatsCollector:
     """
     Collect stats from processed items to get the max required number of columns
     for each field, collect values for later grouping/naming using FieldOption's.
@@ -111,7 +111,7 @@ class CSVStatsCollector:
     def process_items(self, items: List[Dict]):
         """
         Validating and collecting stats for provided items.
-        Errors raised by the method should stay in CSVStatsCollector to avoid invalid/broken inputs.
+        Errors raised by the method should stay in StatsCollector to avoid invalid/broken inputs.
         """
         if not is_list(items):
             raise TypeError(f"Initial items data must be array, not {type(items)}.")
@@ -368,13 +368,13 @@ class CSVStatsCollector:
 
 
 @attr.s(auto_attribs=True)
-class CSVExporter:
+class Exporter:
     """
     Export items as CSV based on the previously collected stats.
     Detailed documentation with examples: <place_for_a_link>
     """
 
-    # Items stats (CSVStatsCollector)
+    # Items stats (StatsCollector)
     stats: Dict[str, Header] = attr.ib()
     # Properties that had invalid data during stats collection + messages what happened
     invalid_properties: Dict[str, str] = attr.ib()
@@ -886,85 +886,103 @@ class CSVExporter:
 
 
 if __name__ == "__main__":
-    # CUSTOM OPTIONS
-    test_field_options: Dict[str, FieldOption] = {
-        # "gtin": FieldOption(named=True, grouped=False, name="type"),
-        # "additionalProperty": FieldOption(
-        #     named=True,
-        #     grouped=True,
-        #     name="name",
-        #     grouped_separators={"additionalProperty": "\n"},
-        # ),
-        # "aggregateRating": FieldOption(
-        #     named=False,
-        #     grouped=False,
-        #     name="",
-        #     grouped_separators={"aggregateRating": "\n"},
-        # ),
-        # "images": FieldOption(
-        #     named=False, grouped=True, name="", grouped_separators={"images": "\n"}
-        # ),
-        # "breadcrumbs": FieldOption(
-        #     named=False,
-        #     grouped=True,
-        #     name="name",
-        #     grouped_separators={
-        #         "breadcrumbs.name": "\n",
-        #         "breadcrumbs.link": "\n",
-        #     },
-        # ),
-        # "ratingHistogram": FieldOption(
-        #     named=True,
-        #     grouped=False,
-        #     name="ratingOption",
-        #     grouped_separators={"ratingHistogram": "\n"},
-        # ),
-        # "named_array_field": FieldOption(named=True, name="name", grouped=True),
-        # "c": FieldOption(named=False, name="name", grouped=True),
-        "c": FieldOption(named=True, name="some_field_1", grouped=True),
-    }
-    test_headers_renaming = [
-        (r"^offers\[0\]->", ""),
-        (r"^aggregateRating->", ""),
-        (r"^additionalProperty->(.*)->value", r"\1"),
-        (r"^breadcrumbs->name", "breadcrumbs"),
-        (r"^breadcrumbs->link", "breadcrumbs links"),
-    ]
-    test_headers_order = ["name", "sku"]
-    test_headers_filters = ["_key", r"^breadcrumbs.*", "^images.*"]
-
-    # Define how many elements of array to process
-    test_array_limits = {"offers": 1}
-
-    # DATA TO PROCESS
-    # file_name = "products_simple_xod_test.json"
-    # item_list = json.loads(
-    #     resource_string(__name__, f"tests/assets/{file_name}").decode("utf-8")
+    pass
+    # # CUSTOM OPTIONS
+    # test_field_options: Dict[str, FieldOption] = {
+    #     # "gtin": FieldOption(named=True, grouped=False, name="type"),
+    #     "additionalProperty": FieldOption(
+    #         named=True,
+    #         grouped=True,
+    #         name="name",
+    #         grouped_separators={"additionalProperty": "\n"},
+    #     ),
+    #     "aggregateRating": FieldOption(
+    #         named=False,
+    #         grouped=False,
+    #         name="",
+    #         grouped_separators={"aggregateRating": "\n"},
+    #     ),
+    #     "images": FieldOption(
+    #         named=False, grouped=True, name="", grouped_separators={"images": "\n"}
+    #     ),
+    #     # "breadcrumbs": FieldOption(
+    #     #     named=False,
+    #     #     grouped=True,
+    #     #     name="name",
+    #     #     grouped_separators={
+    #     #         "breadcrumbs.name": "\n",
+    #     #         "breadcrumbs.link": "\n",
+    #     #     },
+    #     # ),
+    #     # "ratingHistogram": FieldOption(
+    #     #     named=True,
+    #     #     grouped=False,
+    #     #     name="ratingOption",
+    #     #     grouped_separators={"ratingHistogram": "\n"},
+    #     # ),
+    #     # "named_array_field": FieldOption(named=True, name="name", grouped=True),
+    # }
+    # test_headers_renaming = [
+    #     (r"^offers\[0\]->", ""),
+    #     (r"^aggregateRating->", ""),
+    #     (r"^additionalProperty->(.*)->value", r"\1"),
+    #     (r"^breadcrumbs->name", "breadcrumbs"),
+    #     (r"^breadcrumbs->link", "breadcrumbs links"),
+    # ]
+    # test_headers_order = ["name", "sku"]
+    # test_headers_filters = ["_key", r"^breadcrumbs.*", "^images.*"]
+    #
+    # # Define how many elements of array to process
+    # test_array_limits = {"offers": 1}
+    #
+    # # DATA TO PROCESS
+    # # file_name = "products_simple_xod_test.json"
+    # # item_list = json.loads(
+    # #     resource_string(__name__, f"tests/assets/{file_name}").decode("utf-8")
+    # # )
+    # file_name = "readme_example_1.json"
+    # item_list: List[Dict] = [
+    #     {
+    #         "name": "Custom product 1",
+    #         "offers": [{"price": "154.95", "currency": "$"}],
+    #         "sku": 9204550,
+    #         "images": [
+    #             "https://m.media-site.com/images/9204550_1.jpg",
+    #             "https://m.media-site.com/images/9204550_2.jpg",
+    #             "https://m.media-site.com/images/9204550_3.jpg"
+    #         ],
+    #         "description": "Custom description\non multiple lines.",
+    #         "additionalProperty": [{"name": "size", "value": "XL"}, {"name": "color", "value": "blue"}],
+    #         "aggregateRating": {"ratingValue": 5.0, "reviewCount": 3}
+    #     }
+    # ]
+    #
+    # # AUTOCRAWL PART
+    # autocrawl_csv_sc = StatsCollector(named_columns_limit=50)
+    # # Items could be processed in batch or one-by-one through `process_object`
+    # autocrawl_csv_sc.process_items(item_list)
+    #
+    # # BACKEND PART (assuming we send stats to backend)
+    # csv_exporter = Exporter(
+    #     stats=autocrawl_csv_sc.stats["stats"],
+    #     invalid_properties=autocrawl_csv_sc.stats["invalid_properties"],
+    #     stringify_invalid=True,
+    #     field_options=test_field_options,
+    #     # array_limits=test_array_limits,
+    #     headers_renaming=test_headers_renaming,
+    #     # headers_order=test_headers_order,
+    #     # headers_filters=test_headers_filters,
     # )
-    file_name = "custom.json"
-    item_list: List[Dict] = []
+    #
+    # # Items could be exported in batch or one-by-one through `export_item_as_row`
+    # csv_exporter.export_csv_full(
+    #     item_list, f"playground/csv_assets/{file_name.replace('.json', '.csv')}"
+    # )
+    #
+    # # with open(f"autocrawl/utils/csv_assets/{file_name.replace('.json', '.csv')}", "w") as f:
+    # #     csv_exporter.export_csv_full(item_list, f)
 
-    # AUTOCRAWL PART
-    autocrawl_csv_sc = CSVStatsCollector(named_columns_limit=50)
-    # Items could be processed in batch or one-by-one through `process_object`
-    autocrawl_csv_sc.process_items(item_list)
-
-    # BACKEND PART (assuming we send stats to backend)
-    csv_exporter = CSVExporter(
-        stats=autocrawl_csv_sc.stats["stats"],
-        invalid_properties=autocrawl_csv_sc.stats["invalid_properties"],
-        stringify_invalid=True,
-        field_options=test_field_options,
-        # array_limits=test_array_limits,
-        # headers_renaming=test_headers_renaming,
-        # headers_order=test_headers_order,
-        # headers_filters=test_headers_filters,
-    )
-
-    # Items could be exported in batch or one-by-one through `export_item_as_row`
-    csv_exporter.export_csv_full(
-        item_list, f"playground/csv_assets/{file_name.replace('.json', '.csv')}"
-    )
-
-    # with open(f"autocrawl/utils/csv_assets/{file_name.replace('.json', '.csv')}", "w") as f:
-    #     csv_exporter.export_csv_full(item_list, f)
+    # item_list = [{"some_field": "some_value"}]
+    # sc = StatsCollector(named_columns_limit=50)
+    # # Items could be processed in batch or one-by-one through `process_object`
+    # autocrawl_csv_sc.process_items(item_list)
