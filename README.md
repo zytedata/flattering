@@ -1,8 +1,8 @@
 # Flattering
 
-## Overview
+Flattering is the tool to flatten, format and export any `JSON`-like data, no matter how complex or mixed it is.
 
-Flattering is the tool to flatten, beautify and export any JSON-like data, no matter how complex or mixed it is. So, items like this:
+So, items like this:
 
 ```
 [
@@ -50,4 +50,4 @@ exporter = Exporter(sc.stats["stats"], sc.stats["invalid_properties"])
 exporter.export_csv_full(item_list, "example.csv")
 ```
 
-You could use both parts on the same side or separately. For example, collect stats during a running job, and then provide them (tiny JSON with numbers) to the backend when a user wants to export the data.
+You could use both parts on the same side or separately. For example, collect stats during a running job, and then provide them (tiny `JSON` with numbers) to the backend when a user wants to export the data.
