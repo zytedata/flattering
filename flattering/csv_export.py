@@ -502,7 +502,7 @@ class CSVExporter:
                 if not property_stats.get("properties"):
                     logger.warning(
                         f'Field "{property_name}" doesn\'t have any properties '
-                        f'(as an array of hashable elements), so "named" option can\'t be applied. '
+                        f'(not array of objects), so "named" option can\'t be applied. '
                         f'Field option "{property_name}" will be skipped.'
                     )
                     continue
@@ -522,6 +522,16 @@ class CSVExporter:
                             f'were limited by "named_columns_limit" when collecting stats, '
                             f'so "named" option can\'t be applied. '
                             f'Field option "{property_name}" will be skipped.'
+                        )
+                        continue
+                # If grouped - need to check it's an array. No sense to use both `grouped` and `named`
+                # for dict with hashable values, because each key could appear only once anyway.
+                else:
+                    if not property_stats.get("count"):
+                        logger.warning(
+                            f"Only arrays of objects could be grouped and named at the same time. "
+                            f'Field "{property_name}" isn\'t an array, so field option '
+                            f'"{property_name}" will be skipped.'
                         )
                         continue
             validated_field_options[property_name] = property_value
@@ -912,12 +922,8 @@ if __name__ == "__main__":
         #     grouped_separators={"ratingHistogram": "\n"},
         # ),
         # "named_array_field": FieldOption(named=True, name="name", grouped=True),
-        # TODO What should happend if hashable dict if both grouped and named? I assume, that should be impossible?
-        # TODO Test nested cases like `c->list`
-        # TODO Check arrays of arrays processing, but not on item level, but on nested level
-        # TODO Check nested grouping as `c[0]->list | grouped=True`
         # "c": FieldOption(named=False, name="name", grouped=True),
-        "c->parameter1": FieldOption(named=True, name="name", grouped=True),
+        "c": FieldOption(named=True, name="some_field_1", grouped=True),
     }
     test_headers_renaming = [
         (r"^offers\[0\]->", ""),
