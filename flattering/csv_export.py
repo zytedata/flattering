@@ -737,7 +737,6 @@ class CSVExporter:
                     # Could be an often case, so commenting to avoid overflowing logs
                     # logger.debug(f"{er} Returning empty data.")
                     row.append("")
-        print(row)
         return row
 
     def _export_field_with_options(
@@ -851,7 +850,6 @@ class CSVExporter:
             )
 
     def _get_renamed_headers(self, capitalize: bool = True) -> List[str]:
-        print(self._headers)
         if not self.headers_renaming:
             return self._headers
         renamed_headers = []
@@ -950,11 +948,6 @@ if __name__ == "__main__":
     autocrawl_csv_sc = CSVStatsCollector(named_columns_limit=50)
     # Items could be processed in batch or one-by-one through `process_object`
     autocrawl_csv_sc.process_items(item_list)
-    print("*" * 50)
-    print(autocrawl_csv_sc.stats["stats"])
-    print("*" * 10)
-    print(autocrawl_csv_sc.stats["invalid_properties"])
-    print("*" * 10)
 
     # BACKEND PART (assuming we send stats to backend)
     csv_exporter = CSVExporter(
