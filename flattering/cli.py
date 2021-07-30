@@ -1,10 +1,10 @@
 import argparse
 import json
 
-from flatten import Exporter, StatsCollector  # NOQA
+from flattering import Exporter, StatsCollector  # NOQA
 
-if __name__ == "__main__":
 
+def main():
     class Formatter(
         argparse.RawTextHelpFormatter, argparse.RawDescriptionHelpFormatter
     ):
@@ -126,6 +126,10 @@ if __name__ == "__main__":
     export_args["invalid_properties"] = csv_sc.stats["invalid_properties"]
     csv_exp = Exporter(**export_args)
     csv_exp.export_csv_full(items_list, args["outpath"])
+
+
+if __name__ == "__main__":
+    main()
 
 # Command to test:
 # python cli.py --path="/home/sortafreel/Desktop/to_delete/products_xod_test.json"

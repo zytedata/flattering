@@ -18,4 +18,9 @@ setup(
     version=get_version(),
     packages=find_packages(),
     include_package_data=True,
+    entry_points={
+        "console_scripts": [
+            "flattering=flattering.cli:main",
+        ]
+    },
 )
