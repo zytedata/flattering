@@ -401,6 +401,9 @@ class Exporter:
     cut_separator: str = attr.ib(default="->")
     # CSV headers generated from item stats
     _headers: List[str] = attr.ib(init=False, default=attr.Factory(list))
+    # TODO Add headers_match support
+    # Middle storage to allow applying filters and renaming rules to the renamed headers
+    # _headers_match: Dict[str, str] = attr.ib(default=attr.Factory(dict))
 
     def __attrs_post_init__(self):
         self._vocalize_invalid_properties()
