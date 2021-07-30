@@ -96,6 +96,8 @@ the export will look like this:
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | Product | 154.95 | $ | 9204 | https://m.site.com/i/9204_1.jpg | https://m.site.com/i/9204_2.jpg | https://m.site.com/i/9204_3.jpg | Custom description<br>on multiple lines. | size | XL | color | blue | 5.0 | 3 |
 
+### Rename columns
+
 Let's make it a bit more readable with `headers_renaming`:
 
 ```python
@@ -113,6 +115,8 @@ exporter = Exporter(
 | Name | Price | Currency | Sku | Images[0] | Images[1] | Images[2] | Description | AdditionalProperty[0]->name | AdditionalProperty[0]->value | AdditionalProperty[1]->name | AdditionalProperty[1]->value | RatingValue | ReviewCount |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | Product | 154.95 | $ | 9204 | https://m.site.com/i/9204_1.jpg | https://m.site.com/i/9204_2.jpg | https://m.site.com/i/9204_3.jpg | Custom description<br>on multiple lines. | size | XL | color | blue | 5.0 | 3 |
+
+### Format data
 
 Better, but images take too much place. Let's **group them in a single cell**, using the name of the field and `field_options`. Fields could be `grouped` (all data in a single cell), `named` (create columns based on an object property), or both.
 
@@ -155,6 +159,8 @@ Now we have a column with value for each `additionalProperty`. But if you don't 
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
   | Product | 154.95 | $ | 9204 | https://m.site.com/i/9204_1.jpg<br>https://m.site.com/i/9204_2.jpg<br>https://m.site.com/i/9204_3.jpg | Custom description<br>on multiple lines. | size: XL<br>color: blue | 5.0 | 3 |
 
+### Filter columns
+
 Also, let's assume we don't really need `ratingValue` and `reviewCount` in this export, so we want to filter them with `headers_filters`:
 
 ```python
@@ -172,6 +178,8 @@ It's important to remember that filters are regular expressions and work with th
 | Name | Price | Currency | Sku | Images | Description | AdditionalProperty |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | Product | 154.95 | $ | 9204 | https://m.site.com/i/9204_1.jpg<br>https://m.site.com/i/9204_2.jpg<br>https://m.site.com/i/9204_3.jpg | Custom description<br>on multiple lines. | size: XL<br>color: blue |
+
+### Order columns
 
 And, to add a final touch, let's reorder the headers with `headers_order`. For example, I want `Name` and `Sku` as the first two columns:
 
