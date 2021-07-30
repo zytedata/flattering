@@ -26,6 +26,9 @@ will look like this:
 
 ![Alt text](/images/base_example.png?raw=true "Base example")
 
+| <sub>Name</sub> | <sub>Price</sub>  | <sub>Currency</sub>  | <sub>Sku</sub>  | <sub>Images</sub>  | <sub>Description</sub>  | <sub>AdditionalProperty</sub>  | <sub>RatingValue</sub>  | <sub>ReviewCount</sub>  |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| <sub>Custom product 1</sub> | <sub>154.95</sub> | <sub>$</sub> | <sub>9204</sub> | <sub>https://m.site.com/i/9204_1.jpg<br>https://m.site.com/i/9204_2.jpg<br>https://m.site.com/i/9204550_3.jpg</sub> | <sub>Custom<br>multiline description</sub>  | <sub>size: XL<br>color:blue</sub>  | <sub>5</sub>  | <sub>3</sub>  |
 
 ## Requirements
 - Python 3.6+
@@ -48,3 +51,7 @@ exporter.export_csv_full(item_list, "example.csv")
 ```
 
 You could use both parts on the same side or separately. For example, collect stats during a running job, and then provide them (tiny `JSON` with numbers) to the backend when a user wants to export the data.
+
+## CLI
+
+*ADD CLI PART*
