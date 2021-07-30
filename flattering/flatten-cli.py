@@ -1,7 +1,7 @@
 import argparse
 import json
 
-from csv_export import CSVExporter, CSVStatsCollector  # NOQA
+from flatten import Exporter, StatsCollector  # NOQA
 
 if __name__ == "__main__":
 
@@ -103,7 +103,7 @@ if __name__ == "__main__":
     ]:
         if args.get(arg) is not None:
             stats_args[arg_name] = arg
-    csv_sc = CSVStatsCollector(**stats_args)
+    csv_sc = StatsCollector(**stats_args)
     with open(args["path"], "r") as f:
         items_list = json.loads(f.read())
     csv_sc.process_items(items_list)
@@ -124,7 +124,7 @@ if __name__ == "__main__":
         export_args["stringify_invalid"] = not (args["s"])
     export_args["stats"] = csv_sc.stats["stats"]
     export_args["invalid_properties"] = csv_sc.stats["invalid_properties"]
-    csv_exp = CSVExporter(**export_args)
+    csv_exp = Exporter(**export_args)
     csv_exp.export_csv_full(items_list, args["outpath"])
 
 # Command to test:
