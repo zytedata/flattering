@@ -14,7 +14,7 @@ So, items like this:
         "https://m.site.com/i/9204_2.jpg",
         "https://m.site.com/i/9204550_3.jpg"
     ],
-    "description": "Custom description\non multiple lines",
+    "description": "Custom description\non multiple lines.",
     "additionalProperty": [
         {"name": "size", "value": "XL"}, {"name": "color", "value": "blue"}
     ],
@@ -26,7 +26,7 @@ will look like this:
 
 | <sub>Name</sub> | <sub>Price</sub>  | <sub>Currency</sub>  | <sub>Sku</sub>  | <sub>Images</sub>  | <sub>Description&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</sub> | <sub>AdditionalProperty</sub>  | <sub>RatingValue</sub>  | <sub>ReviewCount</sub>  |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| <sub>Product</sub> | <sub>154.95</sub> | <sub>$</sub> | <sub>9204</sub> | <sub>https://m.site.com/i/9204_1.jpg<br>https://m.site.com/i/9204_2.jpg<br>https://m.site.com/i/9204550_3.jpg</sub> | <sub>Custom description<br>on multiple lines</sub>  | <sub>size: XL<br>color:blue</sub>  | <sub>5</sub>  | <sub>3</sub>  |
+| <sub>Product</sub> | <sub>154.95</sub> | <sub>$</sub> | <sub>9204</sub> | <sub>https://m.site.com/i/9204_1.jpg<br>https://m.site.com/i/9204_2.jpg<br>https://m.site.com/i/9204550_3.jpg</sub> | <sub>Custom description<br>on multiple lines.</sub>  | <sub>size: XL<br>color:blue</sub>  | <sub>5</sub>  | <sub>3</sub>  |
 
 ## Requirements
 - Python 3.6+
