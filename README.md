@@ -24,9 +24,19 @@ So, items like this:
 
 will look like this:
 
-| <sub>Name</sub> | <sub>Price</sub>  | <sub>Currency</sub>  | <sub>Sku</sub>  | <sub>Images</sub>  | <div style="width:200px"><sub>Description</sub></div>  | <sub>AdditionalProperty</sub>  | <sub>RatingValue</sub>  | <sub>ReviewCount</sub>  |
+<style>
+.example_table table th:nth-of-type(6) {
+    width: 300px;
+}
+</style>
+
+<div class="example_table">
+
+| <sub>Name</sub> | <sub>Price</sub>  | <sub>Currency</sub>  | <sub>Sku</sub>  | <sub>Images</sub>  | <sub>Description</sub> | <sub>AdditionalProperty</sub>  | <sub>RatingValue</sub>  | <sub>ReviewCount</sub>  |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | <sub>Product</sub> | <sub>154.95</sub> | <sub>$</sub> | <sub>9204</sub> | <sub>https://m.site.com/i/9204_1.jpg<br>https://m.site.com/i/9204_2.jpg<br>https://m.site.com/i/9204550_3.jpg</sub> | <sub>Custom description<br>on multiple lines</sub>  | <sub>size: XL<br>color:blue</sub>  | <sub>5</sub>  | <sub>3</sub>  |
+
+</div>
 
 ## Requirements
 - Python 3.6+
