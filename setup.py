@@ -18,6 +18,10 @@ setup(
     version=get_version(),
     packages=find_packages(),
     include_package_data=True,
+    install_requires=[
+        "attrs>=21.2.0",
+        "scalpl>=0.4.2",
+    ],
     entry_points={
         "console_scripts": [
             "flattering=flattering.cli:main",

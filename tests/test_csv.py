@@ -10,7 +10,7 @@ from typing import Dict, List
 import pytest
 from pkg_resources import resource_stream, resource_string
 
-from flattering.flatten import Exporter, FieldOption, StatsCollector
+from flattering import Exporter, FieldOption, StatsCollector
 
 LOGGER = logging.getLogger(__name__)
 
