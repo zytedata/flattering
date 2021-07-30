@@ -60,7 +60,7 @@ CLI supports all the same parameters, you can get full list using `flattering -h
 
 ## What you can do
 
-### Flatten data
+### 1. Flatten data
 
 Let's pick an initial item to explain what parameters and formatting options do.
 
@@ -99,7 +99,7 @@ the export will look like this:
 
 &nbsp;
 
-### Rename columns
+### 2. Rename columns
 
 Let's make it a bit more readable with `headers_renaming`:
 
@@ -121,7 +121,7 @@ exporter = Exporter(
 
 &nbsp;
 
-### Format data
+### 3. Format data
 
 Better, but images take too much place. Let's **group them in a single cell**, using the name of the field and `field_options`. Fields could be `grouped` (all data in a single cell), `named` (create columns based on an object property), or both.
 
@@ -170,7 +170,7 @@ Now we have a column with value for each `additionalProperty`. But if you don't 
 
 &nbsp;
 
-### Filter columns
+### 4. Filter columns
 
 Also, let's assume we don't really need `ratingValue` and `reviewCount` in this export, so we want to filter them with `headers_filters`:
 
@@ -192,7 +192,7 @@ It's important to remember that filters are regular expressions and work with th
 
 &nbsp;
 
-### Order columns
+### 5. Order columns
 
 And, to add a final touch, let's reorder the headers with `headers_order`. For example, I want `Name` and `Sku` as the first two columns:
 
