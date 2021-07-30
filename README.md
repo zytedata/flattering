@@ -6,7 +6,7 @@ So, items like this:
 
 ```yaml
 {
-    "name": "Custom product 1",
+    "name": "Product",
     "offers": [{"price": "154.95", "currency": "$"}],
     "sku": 9204,
     "images": [
@@ -14,7 +14,7 @@ So, items like this:
         "https://m.site.com/i/9204_2.jpg",
         "https://m.site.com/i/9204550_3.jpg"
     ],
-    "description": "Custom\nmultiline description",
+    "description": "Custom description\non multiple lines",
     "additionalProperty": [
         {"name": "size", "value": "XL"}, {"name": "color", "value": "blue"}
     ],
@@ -24,11 +24,9 @@ So, items like this:
 
 will look like this:
 
-![Alt text](/images/base_example.png?raw=true "Base example")
-
-| <sub>Name</sub> | <sub>Price</sub>  | <sub>Currency</sub>  | <sub>Sku</sub>  | <sub>Images</sub>  | <sub>Description</sub>  | <sub>AdditionalProperty</sub>  | <sub>RatingValue</sub>  | <sub>ReviewCount</sub>  |
+| <sub>Name</sub> | <sub>Price</sub>  | <sub>Currency</sub>  | <sub>Sku</sub>  | <sub>Images</sub>  | <div style="width:140px"><sub>Description</sub></div>  | <sub>AdditionalProperty</sub>  | <sub>RatingValue</sub>  | <sub>ReviewCount</sub>  |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| <sub>Custom product 1</sub> | <sub>154.95</sub> | <sub>$</sub> | <sub>9204</sub> | <sub>https://m.site.com/i/9204_1.jpg<br>https://m.site.com/i/9204_2.jpg<br>https://m.site.com/i/9204550_3.jpg</sub> | <sub>Custom<br>multiline description</sub>  | <sub>size: XL<br>color:blue</sub>  | <sub>5</sub>  | <sub>3</sub>  |
+| <sub>Product</sub> | <sub>154.95</sub> | <sub>$</sub> | <sub>9204</sub> | <sub>https://m.site.com/i/9204_1.jpg<br>https://m.site.com/i/9204_2.jpg<br>https://m.site.com/i/9204550_3.jpg</sub> | <sub>Custom description<br>on multiple lines</sub>  | <sub>size: XL<br>color:blue</sub>  | <sub>5</sub>  | <sub>3</sub>  |
 
 ## Requirements
 - Python 3.6+
