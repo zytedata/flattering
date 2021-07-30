@@ -27,11 +27,7 @@ will look like this:
 | <sub>Name</sub> | <sub>Price</sub>  | <sub>Currency</sub>  | <sub>Sku</sub>  | <sub>Images</sub>  | <sub>Description&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</sub> | <sub>AdditionalProperty</sub>  | <sub>RatingValue</sub>  | <sub>ReviewCount</sub>  |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | <sub>Product</sub> | <sub>154.95</sub> | <sub>$</sub> | <sub>9204</sub> | <sub>https://m.site.com/i/9204_1.jpg<br>https://m.site.com/i/9204_2.jpg<br>https://m.site.com/i/9204_3.jpg</sub> | <sub>Custom description<br>on multiple lines.</sub>  | <sub>size: XL<br>color:blue</sub>  | <sub>5</sub>  | <sub>3</sub>  |
-
-## Requirements
-- Python 3.6+
-- Works on Linux, Windows, macOS, BSD
-
+<br><br>
 
 ## Quickstart
 
@@ -58,6 +54,7 @@ Also, you can use the tool through CLI:
 flattering --path="example.json" --outpath="example.csv"
 ```
 CLI supports all the same parameters, you can get full list using `flattering -h` command.
+<br><br>
 
 ## What you can do
 
@@ -207,3 +204,10 @@ All headers that are present in `headers_order` list will be ordered, and other 
 
 ### TODO: Add complex data examples
 ### TODO: Add invalid data examples
+
+<br><br><br>
+
+## Requirements
+- Python 3.6+
+- Works on Linux, Windows, macOS, BSD
+<br><br>
