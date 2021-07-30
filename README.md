@@ -27,7 +27,8 @@ will look like this:
 | <sub>Name</sub>| <sub>Price</sub> </sub> | <sub>Currency</sub> </sub> | <sub>Sku</sub> </sub> | <sub>Images</sub> </sub> | <sub>Description&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</sub>| <sub>AdditionalProperty</sub> </sub> | <sub>RatingValue</sub> </sub> | <sub>ReviewCount</sub>  |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | <sub>Product</sub>| <sub>154.95</sub>| <sub>$</sub>| <sub>9204</sub>| <sub>https://m.site.com/i/9204_1.jpg<br>https://m.site.com/i/9204_2.jpg<br>https://m.site.com/i/9204_3.jpg</sub>| <sub>Custom description<br>on multiple lines.</sub> </sub> | <sub>size: XL<br>color:blue</sub> </sub> | <sub>5</sub> </sub> | <sub>3</sub>  |
-<br><br>
+
+&nbsp;
 
 ## Quickstart
 
@@ -54,9 +55,12 @@ Also, you can use the tool through CLI:
 flattering --path="example.json" --outpath="example.csv"
 ```
 CLI supports all the same parameters, you can get full list using `flattering -h` command.
-<br><br>
+
+&nbsp;
 
 ## What you can do
+
+### Flatten data
 
 Let's pick an initial item to explain what parameters and formatting options do.
 
@@ -93,6 +97,8 @@ the export will look like this:
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | <sub>Product</sub> | <sub>154.95</sub> | <sub>$</sub> | <sub>9204</sub> | <sub>https://m.site.com/i/9204_1.jpg</sub> | <sub>https://m.site.com/i/9204_2.jpg</sub> | <sub>https://m.site.com/i/9204_3.jpg</sub> | <sub>Custom description<br>on multiple lines.</sub> | <sub>size</sub> | <sub>XL</sub> | <sub>color</sub> | <sub>blue</sub> | <sub>5.0</sub> | <sub>3</sub> |
 
+&nbsp;
+
 ### Rename columns
 
 Let's make it a bit more readable with `headers_renaming`:
@@ -113,6 +119,8 @@ exporter = Exporter(
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | <sub>Product</sub> | <sub>154.95</sub> | <sub>$</sub> | <sub>9204</sub> | <sub>https://m.site.com/i/9204_1.jpg</sub> | <sub>https://m.site.com/i/9204_2.jpg</sub> | <sub>https://m.site.com/i/9204_3.jpg</sub> | <sub>Custom description<br>on multiple lines.</sub> | <sub>size</sub> | <sub>XL</sub> | <sub>color</sub> | <sub>blue</sub> | <sub>5.0</sub> | <sub>3</sub> |
 
+&nbsp;
+
 ### Format data
 
 Better, but images take too much place. Let's **group them in a single cell**, using the name of the field and `field_options`. Fields could be `grouped` (all data in a single cell), `named` (create columns based on an object property), or both.
@@ -130,6 +138,8 @@ exporter = Exporter(
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | <sub>Product</sub> | <sub>154.95</sub> | <sub>$</sub> | <sub>9204</sub> | <sub>https://m.site.com/i/9204_1.jpg<br>https://m.site.com/i/9204_2.jpg<br>https://m.site.com/i/9204_3.jpg</sub> | <sub>Custom description<br>on multiple lines.</sub> | <sub>size</sub> | <sub>XL</sub> | <sub>color</sub> | <sub>blue</sub> | <sub>5.0</sub> | <sub>3</sub> |
 
+&nbsp;
+
 Looks even better, but we still have a lot of `additionalProperty` columns. Let's make them `named`, by using `name` property as the name of the column to make it better:
 
 ```python
@@ -144,6 +154,8 @@ options = {
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | <sub>Product</sub> | <sub>154.95</sub> | <sub>$</sub> | <sub>9204</sub> | <sub>https://m.site.com/i/9204_1.jpg<br>https://m.site.com/i/9204_2.jpg<br>https://m.site.com/i/9204_3.jpg</sub> | <sub>Custom description<br>on multiple lines.</sub> | <sub>XL</sub> | <sub>blue</sub> | <sub>5.0</sub> | <sub>3</sub> |
 
+&nbsp;
+
 Now we have a column with value for each `additionalProperty`. But if you don't need separate columns for that, you can go even futher and format them as both `named` and `grouped`:
 
 ```python
@@ -154,7 +166,9 @@ Now we have a column with value for each `additionalProperty`. But if you don't 
 
 | <sub>Name</sub> | <sub>Price</sub> | <sub>Currency</sub> | <sub>Sku</sub> | <sub>Images</sub> | <sub>Description</sub> | <sub>AdditionalProperty</sub> | <sub>RatingValue</sub> | <sub>ReviewCount</sub> |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
- </sub> | <sub>Product</sub> | <sub>154.95</sub> | <sub>$</sub> | <sub>9204</sub> | <sub>https://m.site.com/i/9204_1.jpg<br>https://m.site.com/i/9204_2.jpg<br>https://m.site.com/i/9204_3.jpg</sub> | <sub>Custom description<br>on multiple lines.</sub> | <sub>size: XL<br>color: blue</sub> | <sub>5.0</sub> | <sub>3</sub> |
+| <sub>Product</sub> | <sub>154.95</sub> | <sub>$</sub> | <sub>9204</sub> | <sub>https://m.site.com/i/9204_1.jpg<br>https://m.site.com/i/9204_2.jpg<br>https://m.site.com/i/9204_3.jpg</sub> | <sub>Custom description<br>on multiple lines.</sub> | <sub>size: XL<br>color: blue</sub> | <sub>5.0</sub> | <sub>3</sub> |
+
+&nbsp;
 
 ### Filter columns
 
@@ -175,6 +189,8 @@ It's important to remember that filters are regular expressions and work with th
 | <sub>Name</sub> | <sub>Price</sub> | <sub>Currency</sub> | <sub>Sku</sub> | <sub>Images</sub> | <sub>Description</sub> | <sub>AdditionalProperty</sub> |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | <sub>Product</sub> | <sub>154.95</sub> | <sub>$</sub> | <sub>9204</sub> | <sub>https://m.site.com/i/9204_1.jpg<br>https://m.site.com/i/9204_2.jpg<br>https://m.site.com/i/9204_3.jpg</sub> | <sub>Custom description<br>on multiple lines.</sub> | <sub>size: XL<br>color: blue</sub> |
+
+&nbsp;
 
 ### Order columns
 
@@ -197,6 +213,7 @@ All headers that are present in `headers_order` list will be ordered, and other 
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | <sub>Product</sub> | <sub>9204</sub> | <sub>154.95</sub> | <sub>$</sub> | <sub>https://m.site.com/i/9204_1.jpg<br>https://m.site.com/i/9204_2.jpg<br>https://m.site.com/i/9204_3.jpg</sub> | <sub>Custom description<br>on multiple lines.</sub> | <sub>size: XL<br>color: blue</sub> |
 
+&nbsp;
 
 ---
 
