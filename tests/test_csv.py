@@ -5,6 +5,7 @@ import json
 import logging
 import re
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List
 
 import pytest
@@ -91,17 +92,119 @@ class TestCSV:
             ),
         ],
     )
-    def test_csv_export(self, case_name, field_options, export_options):
+    def test_csv_export(self, case_name, field_options, export_options, tmpdir):
         # Load item list from JSON (simulate API response)
         item_list = json.loads(
             resource_string(__name__, f"assets/{case_name}.json").decode("utf-8")
         )
-
         # AutoCrawl part
         csv_stats_col = StatsCollector()
-        # Items could be processed in batch or one-by-one through `process_object`
+        # Collect stats fully (not row by row)
         csv_stats_col.process_items(item_list)
+        # Backend part
+        csv_exporter = Exporter(
+            stats=csv_stats_col._stats,
+            invalid_properties=csv_stats_col._invalid_properties,
+            field_options=field_options,
+            **export_options,
+        )
+        # Get pre-processed data
+        base_path = Path(__file__).parent
+        with open((base_path / f"assets/{case_name}.csv").resolve(), "r") as f:
+            init_csv_data = list(csv.reader(f))
+        filename = tmpdir.join(f"{case_name}.csv")
+        # Export data
+        csv_exporter.export_csv_full(item_list, filename)
+        # Get exported data
+        with open(filename, "r") as f:
+            test_csv_data = list(csv.reader(f))
+        # Comparing full files without headers (different separators)
+        assert init_csv_data[1:] == test_csv_data[1:]
 
+    @pytest.mark.parametrize(
+        "case_name, field_options, export_options",
+        [
+            ("articles_xod_test", {}, {}),
+            (
+                "items_recursive_test",
+                {
+                    "named_array_field": {
+                        "named": True,
+                        "name": "name",
+                        "grouped": False,
+                    }
+                },
+                {},
+            ),
+            (
+                "products_full_schema_test",
+                {
+                    "gtin": {"named": True, "name": "type", "grouped": False},
+                    "additionalProperty": {
+                        "named": True,
+                        "name": "name",
+                        "grouped": False,
+                    },
+                    "ratingHistogram": {
+                        "named": True,
+                        "name": "ratingOption",
+                        "grouped": False,
+                    },
+                },
+                {"array_limits": {"offers": 1}},
+            ),
+            (
+                "products_simple_xod_test",
+                {
+                    "gtin": {"named": True, "name": "type", "grouped": False},
+                    "additionalProperty": {
+                        "named": True,
+                        "name": "name",
+                        "grouped": False,
+                    },
+                },
+                {"array_limits": {"offers": 1}},
+            ),
+            (
+                "products_xod_test",
+                {
+                    "gtin": {"named": True, "name": "type", "grouped": False},
+                    "additionalProperty": {
+                        "named": True,
+                        "name": "name",
+                        "grouped": False,
+                    },
+                },
+                {"array_limits": {"offers": 1}},
+            ),
+            (
+                "products_xod_100_test",
+                {
+                    "gtin": {"named": True, "name": "type", "grouped": False},
+                    "additionalProperty": {
+                        "named": True,
+                        "name": "name",
+                        "grouped": False,
+                    },
+                },
+                {"array_limits": {"offers": 1}},
+            ),
+            (
+                "items_simple_test",
+                {},
+                {},
+            ),
+        ],
+    )
+    def test_csv_export_one_by_one(self, case_name, field_options, export_options):
+        # Load item list from JSON (simulate API response)
+        item_list = json.loads(
+            resource_string(__name__, f"assets/{case_name}.json").decode("utf-8")
+        )
+        # AutoCrawl part
+        csv_stats_col = StatsCollector()
+        # Collect stats row by row
+        [csv_stats_col.process_object(x) for x in item_list]
         # Backend part
         csv_exporter = Exporter(
             stats=csv_stats_col._stats,
@@ -118,8 +221,7 @@ class TestCSV:
             )
         )
         assert len([csv_exporter._headers] + item_list) == len(csv_data)
-        # assert csv_exporter._headers == csv_data[0]
-        # Comparing row by row
+        # Export and compare row by row
         for item, row in zip(item_list, csv_data[1:]):
             # Stringify all values because to match string data from csv
             assert [

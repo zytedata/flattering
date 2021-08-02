@@ -62,13 +62,14 @@ def is_list(value):
 def prepare_io(func):
     @wraps(func)
     def prepare_io_wrapper(self, *args, **kwargs):
+        export_path = kwargs.get("export_path") or args[1]
+        append = kwargs.get("append") or (args[-1] if len(args) == 3 else False)
+        csv_io, need_to_close = self._prepare_io(export_path, append)
         if "export_path" in kwargs:
-            csv_io, need_to_close = self._prepare_io(kwargs["export_path"])
             kwargs["export_path"]: str = csv_io
         else:
-            csv_io, need_to_close = self._prepare_io(args[-1])
             args = list(args)
-            args[-1]: str = csv_io
+            args[1]: str = csv_io
         try:
             func(self, *args, **kwargs)
         finally:
@@ -401,6 +402,7 @@ class Exporter:
     cut_separator: str = attr.ib(default="->")
     # CSV headers generated from item stats
     _headers: List[str] = attr.ib(init=False, default=attr.Factory(list))
+
     # TODO Add headers_match support
     # Middle storage to allow applying filters and renaming rules to the renamed headers
     # _headers_match: Dict[str, str] = attr.ib(default=attr.Factory(dict))
@@ -413,12 +415,11 @@ class Exporter:
         self._prepare_for_export()
 
     @staticmethod
-    def _prepare_io(
-        export_path: Union[str, bytes, PathLike, TextIO]
-    ) -> Tuple[TextIO, bool]:
+    def _prepare_io(export_path: Union[str, bytes, PathLike, TextIO], append: bool):
         need_to_close = False
+        write_mode = "a" if append else "w"
         if isinstance(export_path, (str, bytes, PathLike)):
-            export_file = open(export_path, mode="w", newline="")
+            export_file = open(export_path, mode=write_mode, newline="")
             need_to_close = True
         elif hasattr(export_path, "write"):
             export_file = export_path
@@ -872,7 +873,7 @@ class Exporter:
         csv_writer.writerow(self._get_renamed_headers())
 
     @prepare_io
-    def export_csv_row(self, item: Dict, export_path):
+    def export_csv_row(self, item: Dict, export_path, append=True):
         csv_writer = csv.writer(
             export_path, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL
         )
