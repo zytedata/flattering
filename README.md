@@ -47,9 +47,21 @@ exporter.export_csv_full(item_list, "example.csv")
 
 You could use both parts on the same side or separately. For example, collect stats during a running job, and then provide them (tiny `JSON` with numbers) to the backend when a user wants to export the data.
 
+Also, stats and items could be processed one by one:
+
+```python
+item_list = [{"some_field": "some_value", "another_field": [1, 2, 3]}]
+sc = StatsCollector()
+[sc.process_object(x) for x in item_list]
+exporter = Exporter(sc.stats["stats"], sc.stats["invalid_properties"])
+exporter.export_csv_headers("example.csv")
+[exporter.export_csv_row(x, "example.csv", append=True) for x in item_list]
+```
+
+
 ### CLI
 
-Also, you can use the tool through CLI:
+Plus, you can use the tool through CLI:
 
 ```bash
 flattering --path="example.json" --outpath="example.csv"
