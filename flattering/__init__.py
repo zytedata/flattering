@@ -62,14 +62,19 @@ def is_list(value):
 def prepare_io(func):
     @wraps(func)
     def prepare_io_wrapper(self, *args, **kwargs):
-        export_path = kwargs.get("export_path") or args[1]
+        export_path = kwargs.get("export_path") or (
+            args[1] if len(args) >= 2 else args[0]
+        )
         append = kwargs.get("append") or (args[-1] if len(args) == 3 else False)
         csv_io, need_to_close = self._prepare_io(export_path, append)
         if "export_path" in kwargs:
             kwargs["export_path"]: str = csv_io
         else:
             args = list(args)
-            args[1]: str = csv_io
+            if len(args) >= 2:
+                args[1]: str = csv_io
+            else:
+                args[0]: str = csv_io
         try:
             func(self, *args, **kwargs)
         finally:
@@ -866,21 +871,21 @@ class Exporter:
         return renamed_headers
 
     @prepare_io
-    def export_csv_headers(self, export_path):
+    def export_csv_headers(self, export_path, append: bool = False):
         csv_writer = csv.writer(
             export_path, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL
         )
         csv_writer.writerow(self._get_renamed_headers())
 
     @prepare_io
-    def export_csv_row(self, item: Dict, export_path, append=True):
+    def export_csv_row(self, item: Dict, export_path, append: bool = False):
         csv_writer = csv.writer(
             export_path, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL
         )
         csv_writer.writerow(self.export_item_as_row(item))
 
     @prepare_io
-    def export_csv_full(self, items: List[Dict], export_path):
+    def export_csv_full(self, items: List[Dict], export_path, append: bool = False):
         csv_writer = csv.writer(
             export_path, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL
         )
