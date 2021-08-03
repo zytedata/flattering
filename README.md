@@ -28,7 +28,21 @@ will look like this:
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | <sub>Product</sub>| <sub>154.95</sub>| <sub>$</sub>| <sub>9204</sub>| <sub>https://m.site.com/i/9204_1.jpg<br>https://m.site.com/i/9204_2.jpg<br>https://m.site.com/i/9204_3.jpg</sub>| <sub>Custom description<br>on multiple lines.</sub> </sub> | <sub>size: XL<br>color:blue</sub> </sub> | <sub>5</sub> </sub> | <sub>3</sub>  |
 
-&nbsp;
+Contents
+
+# Contents
+
+Contents
+
+- Quickstart
+- CLI
+- What you can do
+  1. Flatten data
+  2. Rename columns
+  3. Format data
+  4. Filter columns
+  5. Order columns
+  6. 
 
 ## Quickstart
 
@@ -59,7 +73,7 @@ exporter.export_csv_headers("example.csv")
 ```
 
 
-### CLI
+## CLI
 
 Plus, you can use the tool through CLI:
 
@@ -227,7 +241,63 @@ All headers that are present in `headers_order` list will be ordered, and other 
 
 &nbsp;
 
----
+### 6. Process invalid data
+
+If your input has mixed types or invalid data, it could be hard to flatten it properly. So, you can decide - either `skip` such columns or `stringify` them.
+
+For example, here the property changed type from `dict` to `list`:
+
+```python
+item_list = [
+    {"a": "a_1", "b": {"c": "c_1"}},
+    {"a": "a_2", "b": [1, 2, 3]}
+]
+sc = StatsCollector()
+sc.process_items(item_list)
+exporter = Exporter(sc.stats["stats"], sc.stats["invalid_properties"])
+exporter.export_csv_full(item_list, "example.csv")
+```
+
+By default, invalid properties would be stringified, so you'll get:
+| <sub>a</sub> | <sub>b</sub> |
+| :--- | :--- |
+| <sub>a_1</sub> | <sub>{'c': 'c_1'}</sub> |
+| <sub>a_2</sub> | <sub>some_value</sub> |
+
+&nbsp;
+
+But if you want to skip them, you could set `stringify_invalid` parameter to `False`. It works at all level of nesting, and will affect only the invalid property, so items like this:
+
+```python
+item_list = [
+    {"a": "a_1", "b": {"c": "c_1", "b": "b_1"}},
+    {"a": "a_1", "b": {"c": "c_2", "b": [1, 2, 3]}},
+]
+sc = StatsCollector()
+sc.process_items(item_list)
+exporter = Exporter(
+    sc.stats["stats"],
+    sc.stats["invalid_properties"],
+    stringify_invalid=False
+)
+exporter.export_csv_full(item_list, "example.csv")
+```
+
+Will export like this:
+
+| <sub>a</sub> | <sub>b->c</sub> |
+| :--- | :--- |
+| <sub>a_1</sub> | <sub>c_1</sub> |
+| <sub>a_1</sub> | <sub>c_2</sub> |
+
+
+&nbsp;
+
+### 7. Process complex data
+
+Following the nesting, you can export and format data with any amount of nested levels. So, if the item looks like this:
+
+
 
 <br><br>
 
