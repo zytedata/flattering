@@ -37,14 +37,14 @@ Contents
 - [Quickstart](#quickstart)
 - [CLI](#cli)
 - What you can do
-  1. Flatten data
-  2. Rename columns
-  3. Format data
-  4. Filter columns
-  5. Order columns
-  6. Process invalid data
-  7. Process complex data
-  8. Export data
+  [1. Flatten data](#1-flatten-data)
+  [2. Rename columns](2. Rename columns)
+  [3. Format data]()
+  [4. Filter columns]()
+  [5. Order columns]()
+  [6. Process invalid data]()
+  [7. Process complex data]()
+  [8. Export data]()
 
 ## Quickstart
 
