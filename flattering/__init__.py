@@ -180,9 +180,7 @@ class StatsCollector:
             self._process_base_array(array_value, prefix)
 
     def _process_base_array(self, array_value: List, prefix: str):
-        if self._stats[prefix]["count"] < len(array_value):
-            self._stats[prefix]["count"] = len(array_value)
-        # Checking manually to keep properties order instead of checking subsets
+        has_hashable_values = False
         for i, element in enumerate(array_value):
             for property_name, property_value in element.items():
                 property_path = f"{prefix}[{i}]{self.cut_separator}{property_name}"
@@ -190,6 +188,7 @@ class StatsCollector:
                     continue
                 if is_hashable(property_value):
                     self._process_hashable_value(property_name, property_value, prefix)
+                    has_hashable_values = True
                 elif is_list(property_value):
                     self._process_array(property_value, property_path)
                 elif isinstance(property_value, dict):
@@ -202,6 +201,10 @@ class StatsCollector:
                     )
                     logger.warning(msg)
                     self._invalid_properties[property_path] = msg
+        # Count makes sense only for arrays with properties and hashable values
+        if self._stats[prefix].get("properties") or has_hashable_values:
+            if self._stats[prefix]["count"] < len(array_value):
+                self._stats[prefix]["count"] = len(array_value)
 
     def process_object(self, object_value: Dict, prefix: str = ""):
         if prefix in self._invalid_properties:

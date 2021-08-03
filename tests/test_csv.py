@@ -492,6 +492,93 @@ class TestCSV:
                 [{"name": "value", "another_name": "another_value"}],
                 [[], []],
             ],
+            [
+                {},
+                {},
+                [{"a": [{"b": [1, 2, 3]}]}],
+                [["a[0]->b[0]", "a[0]->b[1]", "a[0]->b[2]"], ["1", "2", "3"]],
+            ],
+            [
+                {},
+                {},
+                [
+                    {
+                        "a": {
+                            "nested_a": [
+                                [
+                                    {
+                                        "2x_nested_a": {
+                                            "3x_nested_a": [
+                                                {
+                                                    "name": "parameter1",
+                                                    "value": "value1",
+                                                },
+                                                {
+                                                    "name": "parameter2",
+                                                    "value": "value2",
+                                                },
+                                            ]
+                                        }
+                                    },
+                                ]
+                            ],
+                            "second_nested_a": "some_value",
+                        }
+                    }
+                ],
+                [
+                    [
+                        "a->nested_a[0][0]->2x_nested_a->3x_nested_a[0]->name",
+                        "a->nested_a[0][0]->2x_nested_a->3x_nested_a[0]->value",
+                        "a->nested_a[0][0]->2x_nested_a->3x_nested_a[1]->name",
+                        "a->nested_a[0][0]->2x_nested_a->3x_nested_a[1]->value",
+                        "a->second_nested_a",
+                    ],
+                    ["parameter1", "value1", "parameter2", "value2", "some_value"],
+                ],
+            ],
+            [
+                {
+                    "a->nested_a[0][0]->2x_nested_a->3x_nested_a": {
+                        "named": True,
+                        "name": "name",
+                        "grouped": True,
+                    }
+                },
+                {},
+                [
+                    {
+                        "a": {
+                            "nested_a": [
+                                [
+                                    {
+                                        "2x_nested_a": {
+                                            "3x_nested_a": [
+                                                {
+                                                    "name": "parameter1",
+                                                    "value": "value1",
+                                                },
+                                                {
+                                                    "name": "parameter2",
+                                                    "value": "value2",
+                                                },
+                                            ]
+                                        }
+                                    },
+                                ]
+                            ],
+                            "second_nested_a": "some_value",
+                        }
+                    }
+                ],
+                [
+                    [
+                        "a->nested_a[0][0]->2x_nested_a->3x_nested_a",
+                        "a->second_nested_a",
+                    ],
+                    ["parameter1: value1\nparameter2: value2", "some_value"],
+                ],
+            ],
         ],
     )
     def test_single_item(
