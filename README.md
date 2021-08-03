@@ -34,8 +34,8 @@ Contents
 
 Contents
 
-- Quickstart
-- CLI
+- [Quickstart](#quickstart)
+- [CLI](#cli)
 - What you can do
   1. Flatten data
   2. Rename columns
