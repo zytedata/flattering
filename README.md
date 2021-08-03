@@ -42,7 +42,9 @@ Contents
   3. Format data
   4. Filter columns
   5. Order columns
-  6. 
+  6. Process invalid data
+  7. Process complex data
+  8. Export data
 
 ## Quickstart
 
@@ -295,16 +297,61 @@ Will export like this:
 
 ### 7. Process complex data
 
-Following the nesting, you can export and format data with any amount of nested levels. So, if the item looks like this:
+Following the nesting, you can export and format data with any amount of nested levels. So, let's create a bit unrealistic item with multiple levels, arrays of arays and so on:
 
+```yaml
+{
+    "a": {
+        "nested_a": [[
+            {
+                "2x_nested_a": {
+                    "3x_nested_a": [
+                        {"name": "parameter1", "value": "value1"},
+                        {"name": "parameter2", "value": "value2"},
+                    ]
+                }
+            },
+        ]],
+        "second_nested_a": "some_value",
+    }
+}
+```
 
+If we try to flatten it as is, it will work. Hovewer, headers will be a bit questionable, so let's show it as a code:
+
+```python
+[
+    "a->nested_a[0][0]->2x_nested_a->3x_nested_a[0]->name",
+    "a->nested_a[0][0]->2x_nested_a->3x_nested_a[0]->value",
+    "a->nested_a[0][0]->2x_nested_a->3x_nested_a[1]->name",
+    "a->nested_a[0][0]->2x_nested_a->3x_nested_a[1]->value",
+    "a->second_nested_a",
+]
+["parameter1", "value1", "parameter2", "value2", "some_value"]
+```
+
+But the best part is that we can format data (`grouped`, `named`) on any level, so with a bit of `field_options` magic:
+
+```python
+"a->nested_a[0][0]->2x_nested_a->3x_nested_a": {
+    "named": True, "name": "name", "grouped": True
+}
+```
+
+It will look like this:
+
+| <sub>a->nested_a[0][0]->2x_nested_a->3x_nested_a</sub> | <sub>a->second_nested_a</sub> |
+| :--- | :--- |
+| <sub>parameter1: value1<br>parameter2: value2</sub> | <sub>some_value</sub>
+
+---
 
 <br><br>
 
-### TODO: Add complex data examples
-### TODO: Add invalid data examples
+### TODO: Add "Export data" block
+### TODO: Add full list of arguments
 
-<br><br><br>
+<br><br>
 
 ## Requirements
 - Python 3.6+
