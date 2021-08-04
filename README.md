@@ -28,6 +28,8 @@ will look like this:
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | <sub>Product</sub>| <sub>154.95</sub>| <sub>$</sub>| <sub>9204</sub>| <sub>https://m.site.com/i/9204_1.jpg<br>https://m.site.com/i/9204_2.jpg<br>https://m.site.com/i/9204_3.jpg</sub>| <sub>Custom description<br>on multiple lines.</sub> </sub> | <sub>size: XL<br>color:blue</sub> </sub> | <sub>5</sub> </sub> | <sub>3</sub>  |
 
+&nbsp;
+
 ## Contents
 
 - [Quickstart](#quickstart)
