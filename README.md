@@ -42,7 +42,7 @@ will look like this:
   - [5. Order columns](#5-order-columns)
   - [6. Process invalid data](#6-process-invalid-data)
   - [7. Process complex data](#7-process-complex-data)
-  - [8.Export data](#8export-data)
+  - [8. Export data](#8-export-data)
 - [Arguments](#arguments)
   - [StatsCollector](#statscollector)
   - [Exporter](#exporter)
@@ -352,7 +352,7 @@ It will look like this:
 &nbsp;
 
 
-### 8.Export data
+### 8. Export data
 
 By default, all the data is exported to `.csv`, either in one go:
 
