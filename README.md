@@ -32,23 +32,21 @@ Contents
 
 ## Contents
 
-- [Flattering](#flattering)
-  - [Contents](#contents)
-  - [Quickstart](#quickstart)
-  - [CLI](#cli)
-  - [What you can do](#what-you-can-do)
-    - [1. Flatten data](#1-flatten-data)
-    - [2. Rename columns](#2-rename-columns)
-    - [3. Format data](#3-format-data)
-    - [4. Filter columns](#4-filter-columns)
-    - [5. Order columns](#5-order-columns)
-    - [6. Process invalid data](#6-process-invalid-data)
-    - [7. Process complex data](#7-process-complex-data)
-    - [8.Export data](#8export-data)
-  - [Arguments](#arguments)
-    - [StatsCollector](#statscollector)
-    - [Exporter](#exporter)
-  - [Requirements](#requirements)
+- [Quickstart](#quickstart)
+- [CLI](#cli)
+- [What you can do](#what-you-can-do)
+  - [1. Flatten data](#1-flatten-data)
+  - [2. Rename columns](#2-rename-columns)
+  - [3. Format data](#3-format-data)
+  - [4. Filter columns](#4-filter-columns)
+  - [5. Order columns](#5-order-columns)
+  - [6. Process invalid data](#6-process-invalid-data)
+  - [7. Process complex data](#7-process-complex-data)
+  - [8.Export data](#8export-data)
+- [Arguments](#arguments)
+  - [StatsCollector](#statscollector)
+  - [Exporter](#exporter)
+- [Requirements](#requirements)
 
 ## Quickstart
 
