@@ -30,12 +30,12 @@ will look like this:
 
 Contents
 
-# Contents
+## Contents
 
 Contents
 
 - [Flattering](#flattering)
-- [Contents](#contents)
+  - [Contents](#contents)
   - [Quickstart](#quickstart)
   - [CLI](#cli)
   - [What you can do](#what-you-can-do)
@@ -47,7 +47,9 @@ Contents
     - [6. Process invalid data](#6-process-invalid-data)
     - [7. Process complex data](#7-process-complex-data)
     - [8.Export data](#8export-data)
-    - [TODO: Add full list of arguments](#todo-add-full-list-of-arguments)
+  - [Arguments](#arguments)
+    - [StatsCollector](#statscollector)
+    - [Exporter](#exporter)
   - [Requirements](#requirements)
 
 ## Quickstart
@@ -67,7 +69,7 @@ exporter.export_csv_full(item_list, "example.csv")
 
 You could use both parts on the same side or separately. For example, collect stats during a running job, and then provide them (tiny `JSON` with numbers) to the backend when a user wants to export the data.
 
-Also, stats and items could be processed one by one:
+Also, stats and items could be processed one by one (use `append=True` to append rows, if needed):
 
 ```python
 item_list = [{"some_field": "some_value", "another_field": [1, 2, 3]}]
@@ -384,7 +386,7 @@ filename = tmpdir.join("example")
 exporter.export_csv_full(item_list, filename)
 ```
 
-We plan to add support for other formats, but for now  you could also get flattened items trough `export_item_as_row` method and write them whever you want:
+We plan to support other formats, but for now  you could also get flattened items trough `export_item_as_row` method and write them wherever you want:
 
 ```python
 # [{"property_1": "value", "property_2": {"nested_property": [1, 2, 3]}}]
@@ -392,12 +394,66 @@ flattened_items = [exporter.export_item_as_row(x) for x in item_list]
 # [['value', '1', '2', '3']]
 ```
 
+&nbsp;
 
-<br><br>
+## Arguments
+### StatsCollector
 
-### TODO: Add full list of arguments
+- **`named_columns_limit:`** `int(default=50)` 
+  
+  How many named columns could be created for a single field. For example, you have a set of objects like `{"name": "color", "value": "blue"}`. If you decide to create a separate column for each `name` ("color", "size", etc.), the limit defines how much data would be collected to make it work. If the limit is hit (too many columns) - no named columns would be created in export.
 
-<br><br>
+- **`cut_separator:`** `str(default="->")`
+  
+  Separator to organize values from items to required columns. Used instead of default "`.`" separator. If your properties names include the separator - replace it with a custom one.
+
+&nbsp;
+### Exporter
+
+- **`stats:`** `Dict[str, Header]`
+  
+  Item stats collected by `StatsCollector` (`stats_collector.stats["stats"]`).
+
+- **`invalid_properties:`** `Dict[str, str]`
+  
+  Invalid properties data provided by `StatsCollector` (`stats_collector.stats["invalid_properties"]`)
+
+- **`stringify_invalid:`** `bool(default=True)`
+  
+  If `True` - columns with invalid data would be stringified. If `False` - columns with invalid data would be skipped
+
+- **`field_options:`** `Dict[str, FieldOption]`
+    
+    Field options to format data.
+    - Options could be `named` (`named=True, name="property_name"`), so the exporter will try to create columns based on the values of the property provided in the `"name"` attribute.
+    - Options could be `grouped` (`grouped=True`), so the exporter will try to fit all the data for this field into a single cell.
+    - Options could be both `named` and `grouped`, so the exporter will try to get data collected for each named property and fit all this data in a single field.
+
+- **`array_limits:`** `Dict[str, int]`
+  
+  Limit for the array fields to export only first N elements (`{"images": 1}`).
+
+- **`headers_renaming:`** `List[Tuple[str, str]]`
+  
+   Set of RegExp rules to rename existing item colulmns (`[".*_price", "regularPrice"]`). The first value is the pattern to replace, while the second one is the replacement.
+
+- **`headers_order:`** `List[str]`
+  
+  List to sort columns headers. All headers that are present both it this list and actual data - would be sorted. All other headers would be appended in a natural order. Headers should be provided in the form before renaming (`"offers[0]->price"`, not `"Price"`).
+
+- **`headers_filters:`** `List[str]`
+  
+  List of RegExp statements to filter columns. Headers that match any of these statements would be skipped (`["name.*", "_key"]`).
+
+- **`grouped_separator:`** `str`
+  
+  Separator to divide values when grouping data in a single cell (if `grouped=True`).
+
+- **`cut_separator:`** `str(default="->")`
+  
+  Separator to organize values from items to required columns. Used instead of default "`.`" separator. If your properties names include the separator - replace it with a custom one.
+
+&nbsp;
 
 ## Requirements
 - Python 3.6+
