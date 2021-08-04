@@ -1,6 +1,6 @@
 # Flattering
 
-Flattering is the tool to flatten, format and export any JSON-like data, no matter how complex or mixed it is.
+Flattering is the tool to flatten, format, and export any JSON-like data, no matter how complex or mixed it is.
 
 So, items like this:
 
@@ -88,7 +88,7 @@ Plus, you can use the tool through CLI:
 ```bash
 flattering --path="example.json" --outpath="example.csv"
 ```
-CLI supports all the same parameters, you can get full list using `flattering -h` command.
+CLI supports all the same parameters, you can get a complete list using the `flattering -h` command.
 
 &nbsp;
 
@@ -190,7 +190,7 @@ options = {
 
 &nbsp;
 
-Now we have a column with value for each `additionalProperty`. But if you don't need separate columns for that, you can go even futher and format them as both `named` and `grouped`:
+Now we have a column with a value for each `additionalProperty`. But if you don't need separate columns for that, you can go even further and format them as both `named` and `grouped`:
 
 ```python
 "additionalProperty": {
@@ -241,7 +241,7 @@ exporter = Exporter(
     field_options=options
 )
 ```
-All headers that are present in `headers_order` list will be ordered, and other headers will be provided in the natural order they appear in your data. Also, we're sorting initial headers, so using `name` and `sku` in lowercase.
+All headers present in the `headers_order` list will be ordered, and other headers will be provided in the natural order they appear in your data. Also, we're sorting initial headers, so using `name` and `sku` in lowercase.
 
 | <sub>Name</sub> | <sub>Sku</sub> | <sub>Price</sub> | <sub>Currency</sub> | <sub>Images</sub> | <sub>Description</sub> | <sub>AdditionalProperty</sub> |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -303,7 +303,7 @@ Will export like this:
 
 ### 7. Process complex data
 
-Following the nesting, you can export and format data with any amount of nested levels. So, let's create a bit unrealistic item with multiple levels, arrays of arays and so on:
+Following the nesting, you can export and format data with any amount of nested levels. So, let's create a bit unrealistic item with multiple levels, arrays of arrays, and so on:
 
 ```yaml
 {
@@ -323,7 +323,7 @@ Following the nesting, you can export and format data with any amount of nested 
 }
 ```
 
-If we try to flatten it as is, it will work. Hovewer, headers will be a bit questionable, so let's show it as a code:
+If we try to flatten it as is, it will work. However, headers will be a bit questionable, so let's show it as a code:
 
 ```python
 [
@@ -370,7 +370,7 @@ exporter.export_csv_headers("example.csv")
 [exporter.export_csv_row(x, "example.csv", append=True) for x in item_list]
 ```
 
-Also, you could use any writable input, like `TextIO`, `StringIO` and so on, so all of the examples below will work:
+Also, you could use any writable input, like `TextIO`, `StringIO`, and so on, so all of the examples below will work:
 
 ```python
 # StringIO
@@ -405,7 +405,7 @@ flattened_items = [exporter.export_item_as_row(x) for x in item_list]
 
 - **cut_separator** `str(default="->")`
   
-  Separator to organize values from items to required columns. Used instead of default "`.`" separator. If your properties names include the separator - replace it with a custom one.
+  Separator to organize values from items to required columns. Used instead of default "`.`" separator. If your properties' names include the separator - replace it with a custom one.
 
 &nbsp;
 
@@ -436,11 +436,11 @@ flattened_items = [exporter.export_item_as_row(x) for x in item_list]
 
 - **headers_renaming** `List[Tuple[str, str]]`
   
-   Set of RegExp rules to rename existing item colulmns (`[".*_price", "regularPrice"]`). The first value is the pattern to replace, while the second one is the replacement.
+   Set of RegExp rules to rename existing item columns (`[".*_price", "regularPrice"]`). The first value is the pattern to replace, while the second one is the replacement.
 
 - **headers_order** `List[str]`
   
-  List to sort columns headers. All headers that are present both it this list and actual data - would be sorted. All other headers would be appended in a natural order. Headers should be provided in the form before renaming (`"offers[0]->price"`, not `"Price"`).
+  List to sort columns headers. All headers that are present both in this list and actual data - would be sorted. All other headers would be appended in a natural order. Headers should be provided in the form before renaming (`"offers[0]->price"`, not `"Price"`).
 
 - **headers_filters** `List[str]`
   
@@ -452,7 +452,7 @@ flattened_items = [exporter.export_item_as_row(x) for x in item_list]
 
 - **cut_separator** `str(default="->")`
   
-  Separator to organize values from items to required columns. Used instead of default "`.`" separator. If your properties names include the separator - replace it with a custom one.
+  Separator to organize values from items to required columns. Used instead of default "`.`" separator. If your properties' names include the separator - replace it with a custom one.
 
 &nbsp;
 
