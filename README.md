@@ -32,8 +32,6 @@ Contents
 
 ## Contents
 
-Contents
-
 - [Flattering](#flattering)
   - [Contents](#contents)
   - [Quickstart](#quickstart)
