@@ -399,57 +399,58 @@ flattened_items = [exporter.export_item_as_row(x) for x in item_list]
 ## Arguments
 ### StatsCollector
 
-- **`named_columns_limit:`** `int(default=50)` 
+- **named_columns_limit** `int(default=50)` 
   
   How many named columns could be created for a single field. For example, you have a set of objects like `{"name": "color", "value": "blue"}`. If you decide to create a separate column for each `name` ("color", "size", etc.), the limit defines how much data would be collected to make it work. If the limit is hit (too many columns) - no named columns would be created in export.
 
-- **`cut_separator:`** `str(default="->")`
+- **cut_separator** `str(default="->")`
   
   Separator to organize values from items to required columns. Used instead of default "`.`" separator. If your properties names include the separator - replace it with a custom one.
 
 &nbsp;
+
 ### Exporter
 
-- **`stats:`** `Dict[str, Header]`
+- **stats** `Dict[str, Header]`
   
   Item stats collected by `StatsCollector` (`stats_collector.stats["stats"]`).
 
-- **`invalid_properties:`** `Dict[str, str]`
+- **invalid_properties** `Dict[str, str]`
   
   Invalid properties data provided by `StatsCollector` (`stats_collector.stats["invalid_properties"]`)
 
-- **`stringify_invalid:`** `bool(default=True)`
+- **stringify_invalid** `bool(default=True)`
   
   If `True` - columns with invalid data would be stringified. If `False` - columns with invalid data would be skipped
 
-- **`field_options:`** `Dict[str, FieldOption]`
+- **field_options** `Dict[str, FieldOption]`
     
     Field options to format data.
     - Options could be `named` (`named=True, name="property_name"`), so the exporter will try to create columns based on the values of the property provided in the `"name"` attribute.
     - Options could be `grouped` (`grouped=True`), so the exporter will try to fit all the data for this field into a single cell.
     - Options could be both `named` and `grouped`, so the exporter will try to get data collected for each named property and fit all this data in a single field.
 
-- **`array_limits:`** `Dict[str, int]`
+- **array_limits** `Dict[str, int]`
   
   Limit for the array fields to export only first N elements (`{"images": 1}`).
 
-- **`headers_renaming:`** `List[Tuple[str, str]]`
+- **headers_renaming** `List[Tuple[str, str]]`
   
    Set of RegExp rules to rename existing item colulmns (`[".*_price", "regularPrice"]`). The first value is the pattern to replace, while the second one is the replacement.
 
-- **`headers_order:`** `List[str]`
+- **headers_order** `List[str]`
   
   List to sort columns headers. All headers that are present both it this list and actual data - would be sorted. All other headers would be appended in a natural order. Headers should be provided in the form before renaming (`"offers[0]->price"`, not `"Price"`).
 
-- **`headers_filters:`** `List[str]`
+- **headers_filters** `List[str]`
   
   List of RegExp statements to filter columns. Headers that match any of these statements would be skipped (`["name.*", "_key"]`).
 
-- **`grouped_separator:`** `str`
+- **grouped_separator** `str`
   
   Separator to divide values when grouping data in a single cell (if `grouped=True`).
 
-- **`cut_separator:`** `str(default="->")`
+- **cut_separator** `str(default="->")`
   
   Separator to organize values from items to required columns. Used instead of default "`.`" separator. If your properties names include the separator - replace it with a custom one.
 
