@@ -34,17 +34,21 @@ Contents
 
 Contents
 
-- [Quickstart](#quickstart)
-- [CLI](#cli)
-- What you can do
-  - [1. Flatten data](#1-flatten-data)
-  - [2. Rename columns](#2-rename-columns)
-  - [3. Format data](#3-format-data)
-  - [4. Filter columns](#4-filter-columns)
-  - [5. Order columns](#5-order-columns)
-  - [6. Process invalid data](#6-process-invalid-data)
-  - [7. Process complex data](#7-process-complex-data)
-  - [8. Export data](#8-export-data)
+- [Flattering](#flattering)
+- [Contents](#contents)
+  - [Quickstart](#quickstart)
+  - [CLI](#cli)
+  - [What you can do](#what-you-can-do)
+    - [1. Flatten data](#1-flatten-data)
+    - [2. Rename columns](#2-rename-columns)
+    - [3. Format data](#3-format-data)
+    - [4. Filter columns](#4-filter-columns)
+    - [5. Order columns](#5-order-columns)
+    - [6. Process invalid data](#6-process-invalid-data)
+    - [7. Process complex data](#7-process-complex-data)
+    - [8.Export data](#8export-data)
+    - [TODO: Add full list of arguments](#todo-add-full-list-of-arguments)
+  - [Requirements](#requirements)
 
 ## Quickstart
 
@@ -344,11 +348,53 @@ It will look like this:
 | :--- | :--- |
 | <sub>parameter1: value1<br>parameter2: value2</sub> | <sub>some_value</sub>
 
----
+
+&nbsp;
+
+
+### 8.Export data
+
+By default, all the data is exported to `.csv`, either in one go:
+
+```python
+exporter = Exporter(sc.stats["stats"], sc.stats["invalid_properties"])
+exporter.export_csv_full(item_list, "example.csv")
+```
+
+or one-by-one:
+
+```python
+exporter.export_csv_headers("example.csv")
+[exporter.export_csv_row(x, "example.csv", append=True) for x in item_list]
+```
+
+Also, you could use any writable input, like `TextIO`, `StringIO` and so on, so all of the examples below will work:
+
+```python
+# StringIO
+buffer = io.StringIO()
+exporter.export_csv_full(item_list, buffer)
+
+# File objects
+with open("example.csv", "w") as f:
+    exporter.export_csv_full(item_list, f)
+
+# Path-like objects
+filename = tmpdir.join("example")
+exporter.export_csv_full(item_list, filename)
+```
+
+We plan to add support for other formats, but for now  you could also get flattened items trough `export_item_as_row` method and write them whever you want:
+
+```python
+# [{"property_1": "value", "property_2": {"nested_property": [1, 2, 3]}}]
+flattened_items = [exporter.export_item_as_row(x) for x in item_list]
+# [['value', '1', '2', '3']]
+```
+
 
 <br><br>
 
-### TODO: Add "Export data" block
 ### TODO: Add full list of arguments
 
 <br><br>

@@ -68,13 +68,13 @@ def prepare_io(func):
         append = kwargs.get("append") or (args[-1] if len(args) == 3 else False)
         csv_io, need_to_close = self._prepare_io(export_path, append)
         if "export_path" in kwargs:
-            kwargs["export_path"]: str = csv_io
+            kwargs["export_path"] = csv_io
         else:
             args = list(args)
             if len(args) >= 2:
-                args[1]: str = csv_io
+                args[1] = csv_io
             else:
-                args[0]: str = csv_io
+                args[0] = csv_io
         try:
             func(self, *args, **kwargs)
         finally:
@@ -862,6 +862,7 @@ class Exporter:
             )
 
     def _get_renamed_headers(self, capitalize: bool = True) -> List[str]:
+        print(self._headers)
         if not self.headers_renaming:
             return self._headers
         renamed_headers = []
@@ -894,4 +895,6 @@ class Exporter:
         )
         csv_writer.writerow(self._get_renamed_headers())
         for p in items:
+            row = self.export_item_as_row(p)
+            print(row)
             csv_writer.writerow(self.export_item_as_row(p))
