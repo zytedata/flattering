@@ -1,6 +1,6 @@
 # Flattering
 
-Flattering is the tool to flatten, format, and export any JSON-like data, no matter how complex or mixed it is.
+Flattering is the tool to flatten, format, and export any JSON-like data to CSV (or any other output), no matter how complex or mixed the data is.
 
 So, items like this:
 
@@ -67,7 +67,7 @@ exporter.export_csv_full(item_list, "example.csv")
 
 You could use both parts on the same side or separately. For example, collect stats during a running job, and then provide them (tiny `JSON` with numbers) to the backend when a user wants to export the data.
 
-Also, stats and items could be processed one by one (use `append=True` to append rows, if needed):
+Also, stats and **items could be processed one by one** (use `append=True` to append rows, if needed):
 
 ```python
 item_list = [{"some_field": "some_value", "another_field": [1, 2, 3]}]
@@ -75,8 +75,11 @@ sc = StatsCollector()
 [sc.process_object(x) for x in item_list]
 exporter = Exporter(sc.stats["stats"], sc.stats["invalid_properties"])
 exporter.export_csv_headers("example.csv")
-[exporter.export_csv_row(x, "example.csv", append=True) for x in item_list]
+for item in item_list:
+    exporter.export_csv_row(item, "example.csv", append=True)
 ```
+
+When you provide the filename, the file will be opened to write/append automatically. If you want to open the file manually or write to any other form of `StringIO`, `TextIO`, etc. - check the [8. Export data](#8-export-data) section.
 
 
 ## CLI
@@ -384,7 +387,7 @@ filename = tmpdir.join("example")
 exporter.export_csv_full(item_list, filename)
 ```
 
-We plan to support other formats, but for now  you could also get flattened items trough `export_item_as_row` method and write them wherever you want:
+We plan to support other formats, but for now  you could also get flattened items **one by one** trough `export_item_as_row` method and write them wherever you want:
 
 ```python
 # [{"property_1": "value", "property_2": {"nested_property": [1, 2, 3]}}]
@@ -399,7 +402,7 @@ flattened_items = [exporter.export_item_as_row(x) for x in item_list]
 
 - **named_columns_limit** `int(default=50)` 
   
-  How many named columns could be created for a single field. For example, you have a set of objects like `{"name": "color", "value": "blue"}`. If you decide to create a separate column for each `name` ("color", "size", etc.), the limit defines how much data would be collected to make it work. If the limit is hit (too many columns) - no named columns would be created in export.
+  How many named columns could be created for a single field. For example, you have a set of objects like `{"name": "color", "value": "blue"}`. If you decide to create a separate column for each `name` ("color", "size", etc.), the limit defines how much data would be collected to make it work. If the limit is hit (too many columns) - no named columns would be created in export. It's required to control memory usage and data size during stats collection (no need to collect stats for 1000 columns if you don't plan to have 1000 columns anyway).
 
 - **cut_separator** `str(default="->")`
   
