@@ -3,8 +3,10 @@
 &nbsp;
 
 <p align="center">
-  <img src="/images/flatlogo.png" alt="Flatteting" title="Flatteting" />
+<img src="/images/flatlogo.png" alt="Flatteting" title="Flatteting" />
 </p>
+
+&nbsp;
 
 Flattering is the tool to flatten, format, and export any JSON-like data to CSV (or any other output), no matter how complex or mixed the data is.
 
