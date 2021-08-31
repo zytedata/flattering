@@ -835,7 +835,7 @@ class Exporter:
             # If only one (like in {"name": "color", "value": "green"}) - use name instead of property
             else:
                 values.append(
-                    f"{element_name}: {','.join([pv for pn, pv in element_values])}"
+                    f"{element_name}: {','.join([str(pv) for pn, pv in element_values])}"
                 )
         return separator.join([self._escape_grouped_data(x, separator) for x in values])
 
@@ -894,5 +894,4 @@ class Exporter:
         )
         csv_writer.writerow(self._get_renamed_headers())
         for p in items:
-            row = self.export_item_as_row(p)
             csv_writer.writerow(self.export_item_as_row(p))
