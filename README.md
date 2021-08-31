@@ -462,6 +462,10 @@ flattened_items = [exporter.export_item_as_row(x) for x in item_list]
 - **cut_separator** `str(default="->")`
   
   Separator to organize values from items to required columns. Used instead of default "`.`" separator. If your properties' names include the separator - replace it with a custom one.
+  
+- **capitalize_headers**  `bool(default=False)`
+
+  Capitalize fist letter of CSV headers when exporting.
 
 &nbsp;
 

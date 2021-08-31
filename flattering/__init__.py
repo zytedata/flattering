@@ -409,7 +409,7 @@ class Exporter:
     # If your properties names include the separator - replace it with a custom one.
     cut_separator: str = attr.ib(default="->")
     # Capitalize fist letter of CSV headers when exporting
-    capitalize_headers: bool = attr.ib(default=True)
+    capitalize_headers: bool = attr.ib(default=False)
     # CSV headers generated from item stats
     _headers: List[str] = attr.ib(init=False, default=attr.Factory(list))
 
