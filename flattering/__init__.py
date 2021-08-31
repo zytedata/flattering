@@ -862,7 +862,6 @@ class Exporter:
             )
 
     def _get_renamed_headers(self, capitalize: bool = True) -> List[str]:
-        print(self._headers)
         if not self.headers_renaming:
             return self._headers
         renamed_headers = []
@@ -896,5 +895,4 @@ class Exporter:
         csv_writer.writerow(self._get_renamed_headers())
         for p in items:
             row = self.export_item_as_row(p)
-            print(row)
             csv_writer.writerow(self.export_item_as_row(p))
