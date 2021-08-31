@@ -408,6 +408,8 @@ class Exporter:
     # Separator to place values from items to required columns. Used instead of default `.`.
     # If your properties names include the separator - replace it with a custom one.
     cut_separator: str = attr.ib(default="->")
+    # Capitalize fist letter of CSV headers when exporting
+    capitalize_headers: bool = attr.ib(default=True)
     # CSV headers generated from item stats
     _headers: List[str] = attr.ib(init=False, default=attr.Factory(list))
 
@@ -861,14 +863,14 @@ class Exporter:
                 f"Unexpected value type ({type(elements)}) for field ({[main_header] + child_headers}): {elements}"
             )
 
-    def _get_renamed_headers(self, capitalize: bool = True) -> List[str]:
+    def _get_renamed_headers(self) -> List[str]:
         if not self.headers_renaming:
             return self._headers
         renamed_headers = []
         for header in self._headers:
             for old, new in self.headers_renaming:
                 header = re.sub(old, new, header)
-            if capitalize and header:
+            if self.capitalize_headers and header:
                 header = header[:1].capitalize() + header[1:]
             renamed_headers.append(header)
         return renamed_headers
