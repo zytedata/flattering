@@ -498,7 +498,7 @@ class Exporter:
                 )
                 continue
             for key, value in property_value.get("grouped_separators", {}).items():
-                if value not in allowed_separators:
+                if not all([x in allowed_separators for x in value]):
                     logger.warning(
                         f"Only {allowed_separators} could be used"
                         f" as custom grouped separators ({key}:{value}). "
