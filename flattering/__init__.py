@@ -466,7 +466,7 @@ class Exporter:
         Validate and filter field options that can't be applied.
         """
         validated_field_options = {}
-        allowed_separators = (";", ",", "\n")
+        allowed_separators = (";", ",", "\n", ">", " ")
         for property_name, property_value in self.field_options.items():
             invalid_option = False
             if property_name not in self.stats:
