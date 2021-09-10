@@ -2123,7 +2123,7 @@ class TestCSV:
                 [
                     {"c": [{"name": "color", "value": "blue"}]},
                     {"c": [{"name": "color", "value": "green"}]},
-                    {"c": [{"name": "color", "value": "cyan"}]},
+                    {"c": [{"name": "color", "value": "black"}]},
                 ],
                 2,
             ]
