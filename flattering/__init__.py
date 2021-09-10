@@ -9,7 +9,6 @@ from typing import Dict, Hashable, List, TextIO, Tuple, TypedDict, Union
 import attr
 
 # Using scalpl (instead of jmespath/etc.) as an existing fast backend dependency
-from pkg_resources import resource_string  # NOQA
 from scalpl import Cut
 
 logger = logging.getLogger(__name__)
