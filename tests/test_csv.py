@@ -1941,7 +1941,8 @@ class TestCSV:
             [
                 [{"some": "data"}, [1, 2, 3]],
                 TypeError,
-                r"All elements of the array must be of the same type instead of \{<class 'dict'>, <class 'list'>\}.",
+                r"All elements of the array must be of the same type instead of "
+                r"\{(?:<class 'dict'>|, |<class 'list'>)+\}\.",
             ],
             # Array of arrays
             [
