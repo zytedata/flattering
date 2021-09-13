@@ -470,6 +470,6 @@ flattened_items = [exporter.export_item_as_row(x) for x in item_list]
 &nbsp;
 
 ## Requirements
-- Python 3.6+
+- Python 3.7+
 - Works on Linux, Windows, macOS, BSD
 <br><br>

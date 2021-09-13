@@ -2,14 +2,15 @@ import csv
 import json  # NOQA
 import logging
 import re
+import sys
 from functools import wraps
 from os import PathLike
 from typing import Dict, Hashable, List, TextIO, Tuple, Union
 
-# Python 3.6/3.7 compatibility
-try:
+# Python 3.7 compatibility
+if sys.version_info >= (3, 8):
     from typing import TypedDict
-except ImportError:
+else:
     from typing_extensions import TypedDict
 
 import attr
