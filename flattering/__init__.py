@@ -4,7 +4,13 @@ import logging
 import re
 from functools import wraps
 from os import PathLike
-from typing import Dict, Hashable, List, TextIO, Tuple, TypedDict, Union
+from typing import Dict, Hashable, List, TextIO, Tuple, Union
+
+# Python 3.6/3.7 compatibility
+try:
+    from typing import TypedDict
+except ImportError:
+    from typing_extensions import TypedDict
 
 import attr
 
